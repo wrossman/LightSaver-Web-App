@@ -1,14 +1,12 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using Microsoft.AspNetCore.Http.Features;
-using Microsoft.VisualBasic;
 
 public class GooglePhotos
 {
-    public List<string> FileUrls { get; set; } = new();
+    public Dictionary<string, string> FileUrls { get; set; } = new();
 
-    public async Task GooglePhotosFlow((PickerSession, PollingConfig) pickerSession, string accessToken, IServiceProvider serviceProvider, IConfiguration config)
+    public async Task StartGooglePhotosFlow((PickerSession, PollingConfig) pickerSession, string accessToken, IServiceProvider serviceProvider, IConfiguration config)
     {
         using var scope = serviceProvider.CreateScope();
 
@@ -20,24 +18,55 @@ public class GooglePhotos
         { }
         ;
 
+        AddUrlsToList(photoList, config);
+
+        await WritePhotosToLocal(pickerSession, accessToken);
+
+    }
+    public async Task WritePhotosToLocal((PickerSession, PollingConfig) pickerSession, string accessToken)
+    {
+        using HttpClient client = new();
+        string folderPath = @"C:\Users\billuswillus\Desktop\";
+        int filename = 0;
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", accessToken);
+        foreach (KeyValuePair<string, string> item in FileUrls)
+        {
+            filename++;
+            var filePath = folderPath + filename.ToString() + "." + item.Value;
+            using var response = await client.GetAsync(item.Key, HttpCompletionOption.ResponseHeadersRead);
+            response.EnsureSuccessStatusCode();
+            await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
+            await using var responseStream = await response.Content.ReadAsStreamAsync();
+            await responseStream.CopyToAsync(fileStream);
+        }
+    }
+    public void AddUrlsToList(string photoList, IConfiguration config)
+    {
         MediaItemsResponse photoListJson = JsonSerializer.Deserialize<MediaItemsResponse>(photoList) ?? new();
         List<MediaItem> mediaItems = photoListJson.MediaItems;
         string maxSize = config["MaxPhotoDimensions"] ?? "w3840-h2160";
 
         foreach (MediaItem item in mediaItems)
         {
-            if (item.Type == "PHOTO")
+            string fileType = item.MediaFile.MimeType;
+            fileType = fileType.Substring(fileType.IndexOf("/") + 1);
+            System.Console.WriteLine(fileType);
+            if (item.Type == "PHOTO" &&
+            (string.Equals(fileType, "jpg", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(fileType, "jpeg", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(fileType, "png", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(fileType, "gif", StringComparison.OrdinalIgnoreCase)))
             {
                 MediaFile tempFile = item.MediaFile;
-                FileUrls.Add($"{tempFile.BaseUrl}={maxSize}");
+                FileUrls.Add($"{tempFile.BaseUrl}={maxSize}", fileType);
             }
         }
 
-        foreach (string item in FileUrls)
+        foreach (KeyValuePair<string, string> item in FileUrls)
         {
-            System.Console.WriteLine(item);
+            System.Console.WriteLine($"{item.Key}: {item.Value}");
         }
-
     }
     public static async Task<string> GetPhotoList((PickerSession, PollingConfig) pickerSession, string accessToken)
     {
