@@ -20,11 +20,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-
-
-// picker scope https://www.googleapis.com/auth/photospicker.mediaitems.readonly
-// google oauth endpoint https://accounts.google.com/o/oauth2/v2/auth
-
 app.MapGet("/test", (IConfiguration config) =>
 {
     string clientId = config["OAuth:ClientId"] ?? string.Empty;
@@ -36,69 +31,44 @@ app.MapGet("/test", (IConfiguration config) =>
     return Results.Redirect(googleQuery);
 });
 
-app.MapGet("/auth/google-callback", async (HttpContext context) =>
+app.MapGet("/auth/google-callback", async (HttpContext context, IServiceProvider serviceProvider) =>
 {
     var request = context.Request;
     var config = context.RequestServices.GetRequiredService<IConfiguration>();
 
-    if (request.Query.ContainsKey("error"))
+    if (context.Request.Query.ContainsKey("error"))
+        return Results.BadRequest($"Failed with error: {context.Request.Query["error"]}");
+
+    var authCode = request.Query["code"];
+    if (authCode == StringValues.Empty)
+        return Results.BadRequest("Unable to get Authorization Code from Google");
+    string authCodeString = authCode.ToString();
+    if (authCodeString is null)
+        return Results.BadRequest("Google OAuth Response Failed to provide Authorization String");
+
+    GoogleTokenResponse? accessTokenJson = await GoogleOAuth.GetAccessToken(context, config, authCodeString);
+    // ADD TRACKING FOR ACCESSTOKENS
+    if (accessTokenJson is null)
+        return Results.BadRequest("Failed to retrieve Access Token");
+    string accessToken = accessTokenJson.AccessToken;
+
+    (PickerSession?, PollingConfig?) pickerSession = ((PickerSession?, PollingConfig?))await GooglePhotos.GetPickerSession(context, config, accessToken);
+    // CREATE POLLING INSTANCE FOR PICKERSESSION
+    if (pickerSession.Item1 is null || pickerSession.Item2 is null)
+        return Results.BadRequest("Failed to retrieve Picker URI");
+    string pickerUri = pickerSession.Item1.PickerUri;
+    try
     {
-        var error = request.Query["error"];
-        return Results.BadRequest($"Failed with error: {error}");
+        GooglePhotos myGoogleFlow = new();
+        myGoogleFlow.GooglePhotosFlow(pickerSession, accessToken, serviceProvider, config);
     }
-    ;
-
-    var code = request.Query["code"];
-    var scope = request.Query["scope"];
-
-    string clientId = config["OAuth:ClientId"] ?? string.Empty;
-    string clientSecret = config["OAuth:ClientSecret"] ?? string.Empty;
-    string retrieveTokenUrl = "https://oauth2.googleapis.com/token";
-
-    using HttpClient client = new();
-
-    var payload = new Dictionary<string, string>
+    catch (Exception e)
     {
-        { "client_id", clientId },
-        { "client_secret", clientSecret},
-        { "code", code },
-        { "grant_type", "authorization_code" },
-        { "redirect_uri", "https://localhost:8443/auth/google-callback" }
-    };
-
-    var postContent = new FormUrlEncodedContent(payload);
-
-    var response = await client.PostAsync(retrieveTokenUrl, postContent);
-    var respContent = await response.Content.ReadAsStringAsync();
-
-    var jsonResponse = JsonSerializer.Deserialize<GoogleTokenResponse>(respContent);
-    if (jsonResponse is null || string.IsNullOrEmpty(jsonResponse.AccessToken))
-    {
-        return Results.Problem("Failed to retrieve access token.");
+        System.Console.WriteLine($"Exited with error: {e.Message}");
     }
 
-    string accessToken = jsonResponse.AccessToken;
-    string scopeGiven = jsonResponse.Scope;
 
-    using HttpClient photosClient = new();
-
-    var pickerRequest = new HttpRequestMessage(HttpMethod.Post, "https://photospicker.googleapis.com/v1/sessions");
-    pickerRequest.Headers.Authorization =
-        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-    pickerRequest.Content = new StringContent("{}", Encoding.UTF8, "application/json");
-
-    var pickerResponse = await photosClient.SendAsync(pickerRequest);
-    var pickerContent = await pickerResponse.Content.ReadAsStringAsync();
-
-    var pickerJson = JsonSerializer.Deserialize<PickerSession>(pickerContent);
-    if (pickerJson is null || string.IsNullOrEmpty(pickerJson.PickerUri))
-    {
-        return Results.Problem("Failed to create photo picker session.");
-    }
-
-    var photoRedirect = pickerJson.PickerUri;
-
-    return Results.Redirect(photoRedirect);
+    return Results.Redirect($"{pickerUri}/autoclose");
 });
 
 app.Run();
