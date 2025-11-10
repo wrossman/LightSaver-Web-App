@@ -20,7 +20,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapGet("/test", (IConfiguration config) =>
+app.MapGet("/roku", (IConfiguration config) =>
 {
     string clientId = config["OAuth:ClientId"] ?? string.Empty;
     string redirect = config["OAuth:RedirectUri"] ?? string.Empty;
