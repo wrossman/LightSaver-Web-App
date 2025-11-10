@@ -60,7 +60,7 @@ app.MapGet("/auth/google-callback", async (HttpContext context, IServiceProvider
     try
     {
         GooglePhotos myGoogleFlow = new();
-        myGoogleFlow.GooglePhotosFlow(pickerSession, accessToken, serviceProvider, config);
+        _ = myGoogleFlow.StartGooglePhotosFlow(pickerSession, accessToken, serviceProvider, config);
     }
     catch (Exception e)
     {
