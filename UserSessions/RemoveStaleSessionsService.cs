@@ -22,7 +22,15 @@ public class RemoveStaleSessionsService(
 
             // Remove them
             sessionDb.Sessions.RemoveRange(expiredSessions);
-
+            // remove session key too
+            foreach (UserSession session in expiredSessions)
+            {
+                if (UserSessions.SessionCodes.Remove(session.SessionCode))
+                    System.Console.WriteLine($"Successfully removed session code for {session.SourceAddress}");
+                else
+                    System.Console.WriteLine($"Failed to remove session code for {session.SourceAddress}");
+            }
+            ;
             // Commit changes
             await sessionDb.SaveChangesAsync();
             foreach (UserSession item in expiredSessions)
