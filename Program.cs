@@ -15,8 +15,6 @@ builder.Services.Configure<HostOptions>(options =>
     options.ServicesStartConcurrently = true;
 });
 
-
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -32,7 +30,8 @@ app.MapGet("/test", async (IConfiguration config, HttpContext context, SessionDb
     var request = context.Request;
     var remoteIpAddress = request.HttpContext.Connection.RemoteIpAddress ?? new IPAddress(new byte[4]);
 
-    if (!await UserSessions.CreateUserSession(remoteIpAddress, sessionDb))
+    string sessionCode = await UserSessions.CreateUserSession(remoteIpAddress, sessionDb);
+    if (sessionCode == string.Empty)
     {
         Console.WriteLine("Failed");
         return Results.Unauthorized();
@@ -44,7 +43,7 @@ app.MapGet("/test", async (IConfiguration config, HttpContext context, SessionDb
     string scope = config["OAuth:PickerScope"] ?? string.Empty;
     string googleAuthServer = config["OAuth:GoogleAuthServer"] ?? string.Empty;
     string googleQuery = $"{googleAuthServer}?scope={scope}&response_type={responseType}&redirect_uri={redirect}&client_id={clientId}";
-    return Results.Content(googleQuery);
+    return Results.Content(googleQuery + "\n" + sessionCode);
 });
 
 app.MapGet("/auth/google-callback", static async (HttpContext context, IServiceProvider serviceProvider) =>
@@ -60,7 +59,7 @@ app.MapGet("/auth/google-callback", static async (HttpContext context, IServiceP
     if (authCode == StringValues.Empty)
         return Results.BadRequest("Unable to get Authorization Code from Google");
     string authCodeString = authCode.ToString();
-    if (authCodeString is null)
+    if (authCodeString == string.Empty)
         return Results.BadRequest("Google OAuth Response Failed to provide Authorization String");
 
     (PickerSession, PollingConfig) pickerSession = new();
@@ -69,21 +68,17 @@ app.MapGet("/auth/google-callback", static async (HttpContext context, IServiceP
         GoogleFlow googleFlow = new();
         pickerSession = await googleFlow.GoogleAuthFlow(context, config, authCodeString, serviceProvider);
     }
-    catch (Exception e) { Results.BadRequest(e.Message); }
+    catch (Exception e) { return Results.BadRequest(e.Message); }
 
     string pickerUri = "";
     if (pickerSession.Item1 is not null && pickerSession.Item2 is not null)
         pickerUri = pickerSession.Item1.PickerUri;
-
     try
     {
         GooglePhotosFlow photosFlow = new();
         _ = photosFlow.StartGooglePhotosFlow(pickerSession, serviceProvider, config);
     }
-    catch (Exception e)
-    {
-        System.Console.WriteLine($"Exited with error: {e.Message}");
-    }
+    catch (Exception e) { return Results.BadRequest(e.Message); }
 
     return Results.Redirect($"{pickerUri}/autoclose");
 });
