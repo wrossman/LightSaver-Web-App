@@ -2,17 +2,18 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
-public class GooglePhotos
+public class GooglePhotosFlow
 {
     public Dictionary<string, string> FileUrls { get; set; } = new();
 
-    public async Task StartGooglePhotosFlow((PickerSession, PollingConfig) pickerSession, string accessToken, IServiceProvider serviceProvider, IConfiguration config)
+    public async Task StartGooglePhotosFlow((PickerSession, PollingConfig) pickerSession, IServiceProvider serviceProvider, IConfiguration config)
     {
         using var scope = serviceProvider.CreateScope();
+        string accessToken = pickerSession.Item1.PickerUri;
 
         string photoList = "";
         if (await PollPhotos(pickerSession, accessToken) == "done")
-            photoList = await GooglePhotos.GetPhotoList(pickerSession, accessToken);
+            photoList = await GooglePhotosFlow.GetPhotoList(pickerSession, accessToken);
         else
         // LOGIC TO END SESSION WITH FAIL
         { }
@@ -119,7 +120,7 @@ public class GooglePhotos
             }
         }
     }
-    public static async Task<(PickerSession?, PollingConfig)?> GetPickerSession(HttpContext context, IConfiguration config, string accessToken)
+    public static async Task<(PickerSession, PollingConfig)> GetPickerSession(HttpContext context, IConfiguration config, string accessToken)
     {
         using HttpClient photosClient = new();
 
@@ -145,11 +146,11 @@ public class GooglePhotos
 
         var pickerJson = JsonSerializer.Deserialize<PickerSession>(pickerContent);
         if (pickerJson is null || string.IsNullOrEmpty(pickerJson.PickerUri))
-            return null;
+            return (new PickerSession(), new PollingConfig());
 
         var pollingJson = JsonSerializer.Deserialize<PollingConfig>(pickerContent);
         if (pollingJson is null)
-            return null;
+            return (new PickerSession(), new PollingConfig());
 
         return (pickerJson, pollingJson);
     }

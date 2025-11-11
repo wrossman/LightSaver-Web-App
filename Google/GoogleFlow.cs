@@ -1,6 +1,22 @@
 using System.Text.Json;
-public class GoogleOAuth
+public class GoogleFlow
 {
+    public async Task<(PickerSession, PollingConfig)> GoogleAuthFlow(HttpContext context, IConfiguration config, string authCodeString, IServiceProvider serviceProvider)
+    {
+
+        GoogleTokenResponse? accessTokenJson = await GetAccessToken(context, config, authCodeString);
+        // ADD TRACKING FOR ACCESSTOKENS
+        if (accessTokenJson is null)
+            throw new ArgumentException("Failed to retrieve Access Token");
+        string accessToken = accessTokenJson.AccessToken;
+
+        (PickerSession, PollingConfig) pickerSession = ((PickerSession, PollingConfig))await GooglePhotosFlow.GetPickerSession(context, config, accessToken);
+        // CREATE POLLING INSTANCE FOR PICKERSESSION
+        if (pickerSession.Item1.Id == string.Empty || pickerSession.Item2.PollInterval == string.Empty)
+            throw new ArgumentException("Failed to retrieve Picker URI");
+
+        return pickerSession;
+    }
 
     public static async Task<GoogleTokenResponse?> GetAccessToken(HttpContext context, IConfiguration config, string code)
     {

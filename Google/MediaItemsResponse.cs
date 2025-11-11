@@ -9,31 +9,31 @@ public class MediaItemsResponse
 public class MediaItem
 {
     [JsonPropertyName("id")]
-    public string Id { get; set; }
+    public string Id { get; set; } = "";
 
     [JsonPropertyName("createTime")]
     public DateTime CreateTime { get; set; }
 
     [JsonPropertyName("type")]
-    public string Type { get; set; }
+    public string Type { get; set; } = "";
 
     [JsonPropertyName("mediaFile")]
-    public MediaFile MediaFile { get; set; }
+    public MediaFile MediaFile { get; set; } = new MediaFile();
 }
 
 public class MediaFile
 {
     [JsonPropertyName("baseUrl")]
-    public string BaseUrl { get; set; }
+    public string BaseUrl { get; set; } = "";
 
     [JsonPropertyName("mimeType")]
-    public string MimeType { get; set; }
+    public string MimeType { get; set; } = "";
 
     [JsonPropertyName("mediaFileMetadata")]
-    public MediaFileMetadata MediaFileMetadata { get; set; }
+    public MediaFileMetadata MediaFileMetadata { get; set; } = new MediaFileMetadata();
 
     [JsonPropertyName("filename")]
-    public string Filename { get; set; }
+    public string Filename { get; set; } = "";
 }
 
 public class MediaFileMetadata
@@ -45,13 +45,13 @@ public class MediaFileMetadata
     public int Height { get; set; }
 
     [JsonPropertyName("cameraMake")]
-    public string CameraMake { get; set; }
+    public string CameraMake { get; set; } = "";
 
     [JsonPropertyName("cameraModel")]
-    public string CameraModel { get; set; }
+    public string CameraModel { get; set; } = "";
 
     [JsonPropertyName("photoMetadata")]
-    public PhotoMetadata PhotoMetadata { get; set; }
+    public PhotoMetadata PhotoMetadata { get; set; } = new PhotoMetadata();
 }
 
 public class PhotoMetadata
@@ -66,5 +66,5 @@ public class PhotoMetadata
     public int IsoEquivalent { get; set; }
 
     [JsonPropertyName("exposureTime")]
-    public string ExposureTime { get; set; }
+    public string ExposureTime { get; set; } = "";
 }
