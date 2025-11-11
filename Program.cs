@@ -1,14 +1,21 @@
-using System.Net.Http.Headers;
-using System.Text.Json;
-using System.Text;
-using Microsoft.AspNetCore.Authentication.OAuth;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Primitives;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services.AddDbContext<SessionDbContext>(options =>
+    options.UseInMemoryDatabase("SessionDb"));
+builder.Services.AddHostedService<RemoveStaleSessionsService>();
+builder.Services.Configure<HostOptions>(options =>
+{
+    options.ServicesStartConcurrently = true;
+});
+
+
 
 var app = builder.Build();
 
@@ -18,7 +25,28 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
+
+app.MapGet("/test", async (IConfiguration config, HttpContext context, SessionDbContext sessionDb) =>
+{
+    var request = context.Request;
+    var remoteIpAddress = request.HttpContext.Connection.RemoteIpAddress ?? new IPAddress(new byte[4]);
+
+    if (!await UserSessions.CreateUserSession(remoteIpAddress, sessionDb))
+    {
+        Console.WriteLine("Failed");
+        return Results.Unauthorized();
+    }
+
+
+    string clientId = config["OAuth:ClientId"] ?? string.Empty;
+    string redirect = config["OAuth:RedirectUri"] ?? string.Empty;
+    string responseType = config["OAuth:ResponseType"] ?? string.Empty;
+    string scope = config["OAuth:PickerScope"] ?? string.Empty;
+    string googleAuthServer = config["OAuth:GoogleAuthServer"] ?? string.Empty;
+    string googleQuery = $"{googleAuthServer}?scope={scope}&response_type={responseType}&redirect_uri={redirect}&client_id={clientId}";
+    return Results.Content(googleQuery);
+});
 
 app.MapGet("/roku", (IConfiguration config) =>
 {
