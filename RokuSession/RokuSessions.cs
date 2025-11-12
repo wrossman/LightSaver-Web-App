@@ -62,4 +62,14 @@ public class RokuSessions
             return false;
 
     }
+
+    public static async Task<bool> CheckReadyTransfer(string sessionCode, RokuSessionDbContext rokuSessionDb)
+    {
+        var rokuSession = await rokuSessionDb.Sessions
+            .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
+        if (rokuSession != null && rokuSession.ReadyForTransfer == true)
+            return true;
+        else
+            return false;
+    }
 }
