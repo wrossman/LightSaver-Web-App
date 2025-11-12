@@ -1,12 +1,12 @@
 using Microsoft.EntityFrameworkCore;
-public class SessionDbContext : DbContext
+public class UserSessionDbContext : DbContext
 {
     public DbSet<UserSession> Sessions { get; set; }
 
-    public SessionDbContext(DbContextOptions<SessionDbContext> options)
+    public UserSessionDbContext(DbContextOptions<UserSessionDbContext> options)
         : base(options) { }
 
-    public SessionDbContext()
+    public UserSessionDbContext()
     {
     }
 }

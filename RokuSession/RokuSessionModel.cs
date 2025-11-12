@@ -1,4 +1,4 @@
-public class UserSession
+public class RokuSession
 {
     public int Id { get; set; }
     public DateTime CreatedAt { get; set; }

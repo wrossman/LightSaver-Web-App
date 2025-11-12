@@ -6,25 +6,31 @@ public class GooglePhotosFlow
 {
     public Dictionary<string, string> FileUrls { get; set; } = new();
 
-    public async Task StartGooglePhotosFlow((PickerSession, PollingConfig) pickerSession, IServiceProvider serviceProvider, IConfiguration config)
+    public async Task<string> StartGooglePhotosFlow(IServiceProvider serviceProvider, HttpContext context, IConfiguration config, UserSessionDbContext userSessionDb, string userSessionId)
     {
-        using var scope = serviceProvider.CreateScope();
-        string accessToken = pickerSession.Item1.PickerUri;
+        System.Console.WriteLine(userSessionId + " Found in StartGoogle Photos flow");
+        var session = await userSessionDb.Sessions.FindAsync(userSessionId);
+        string? accessToken = session?.AccessToken;
+        System.Console.WriteLine(accessToken);
+        if (accessToken is null)
+            throw new ArgumentException("Failed to located User Session");
 
-        string photoList = "";
-        if (await PollPhotos(pickerSession, accessToken) == "done")
-            photoList = await GooglePhotosFlow.GetPhotoList(pickerSession, accessToken);
-        else
-        // LOGIC TO END SESSION WITH FAIL
-        { }
-        ;
+        PickerSession pickerSession = await GetPickerSession(config, accessToken);
+        // CREATE POLLING INSTANCE FOR PICKERSESSION
+        if (pickerSession.PickerUri == string.Empty || pickerSession.PollingConfig.PollInterval == string.Empty)
+            throw new ArgumentException("Failed to retrieve Picker URI");
 
-        AddUrlsToList(photoList, config);
+        string pickerUri = pickerSession.PickerUri;
 
-        await WritePhotosToLocal(pickerSession, accessToken);
+        using (var scope = serviceProvider.CreateScope())
+        {
+            _ = Task.Run(() => PollPhotos(config, pickerSession, accessToken));
+        }
+
+        return pickerUri;
 
     }
-    public async Task WritePhotosToLocal((PickerSession, PollingConfig) pickerSession, string accessToken)
+    public async Task WritePhotosToLocal(PickerSession pickerSession, string accessToken)
     {
         using HttpClient client = new();
         string folderPath = @"C:\Users\billuswillus\Desktop\";
@@ -69,26 +75,26 @@ public class GooglePhotosFlow
             System.Console.WriteLine($"{item.Key}: {item.Value}");
         }
     }
-    public static async Task<string> GetPhotoList((PickerSession, PollingConfig) pickerSession, string accessToken)
+    public static async Task<string> GetPhotoList(PickerSession pickerSession, string accessToken)
     {
         using HttpClient client = new();
         client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", accessToken);
-        string response = await client.GetStringAsync($"https://photospicker.googleapis.com/v1/mediaItems?sessionId={pickerSession.Item1.Id}");
+        string response = await client.GetStringAsync($"https://photospicker.googleapis.com/v1/mediaItems?sessionId={pickerSession.Id}");
         return response;
     }
-    public static async Task<string> PollPhotos((PickerSession, PollingConfig) pickerSession, string accessToken)
+    public async Task PollPhotos(IConfiguration config, PickerSession pickerSession, string accessToken)
     {
         int interval;
         decimal timeoutDecimal;
-        if (!Int32.TryParse(pickerSession.Item2.PollInterval, out interval))
+        if (!Int32.TryParse(pickerSession.PollingConfig.PollInterval, out interval))
             interval = 5;
-        if (!Decimal.TryParse(pickerSession.Item2.TimeoutIn, out timeoutDecimal))
+        if (!Decimal.TryParse(pickerSession.PollingConfig.TimeoutIn, out timeoutDecimal))
             timeoutDecimal = 1800;
 
         int timeout = (int)timeoutDecimal;
         DateTime sessionStartTime = DateTime.Now;
-        string sessionId = pickerSession.Item1.Id;
+        string sessionId = pickerSession.Id;
         using HttpClient pollClient = new();
 
         while (true)
@@ -98,29 +104,36 @@ public class GooglePhotosFlow
                 new AuthenticationHeaderValue("Bearer", accessToken);
 
             var response = await pollClient.GetStringAsync($"https://photospicker.googleapis.com/v1/sessions/{sessionId}");
-            System.Console.WriteLine(response);
             var responseJson = JsonSerializer.Deserialize<PickerSession>(response);
             if (responseJson is null)
             {
                 System.Console.WriteLine("Failed to get PickingSession");
 
-                return "failed";
+                // return "failed";
             }
-            ;
-            if (responseJson.MediaItemsSet == true)
+            else if (responseJson.MediaItemsSet == true)
             {
                 System.Console.WriteLine("User clicked DONE.");
-                return "done";
+                string photoList = await GooglePhotosFlow.GetPhotoList(pickerSession, accessToken);
+
+                AddUrlsToList(photoList, config);
+
+                await WritePhotosToLocal(pickerSession, accessToken);
+                break;
             }
-            ;
-            if (DateTime.Now >= sessionStartTime.AddSeconds(timeout))
+            else if (responseJson.MediaItemsSet == false)
+            {
+                System.Console.WriteLine("Still waiting for user to click done.");
+                // return "done";
+            }
+            else if (DateTime.Now >= sessionStartTime.AddSeconds(timeout))
             {
                 System.Console.WriteLine("Timeout reached.");
-                return "timeout";
+                // return "timeout";
             }
         }
     }
-    public static async Task<(PickerSession, PollingConfig)> GetPickerSession(HttpContext context, IConfiguration config, string accessToken)
+    public static async Task<PickerSession> GetPickerSession(IConfiguration config, string accessToken)
     {
         using HttpClient photosClient = new();
 
@@ -146,12 +159,9 @@ public class GooglePhotosFlow
 
         var pickerJson = JsonSerializer.Deserialize<PickerSession>(pickerContent);
         if (pickerJson is null || string.IsNullOrEmpty(pickerJson.PickerUri))
-            return (new PickerSession(), new PollingConfig());
+            return (new PickerSession());
 
-        var pollingJson = JsonSerializer.Deserialize<PollingConfig>(pickerContent);
-        if (pollingJson is null)
-            return (new PickerSession(), new PollingConfig());
 
-        return (pickerJson, pollingJson);
+        return pickerJson;
     }
 }
