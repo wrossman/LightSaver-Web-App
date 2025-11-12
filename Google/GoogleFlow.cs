@@ -1,7 +1,8 @@
+using System.Net;
 using System.Text.Json;
 public class GoogleFlow
 {
-    public async Task<(PickerSession, PollingConfig)> GoogleAuthFlow(HttpContext context, IConfiguration config, string authCodeString, IServiceProvider serviceProvider)
+    public static async Task<string> GoogleAuthFlow(IPAddress ipAddress, HttpContext context, IConfiguration config, string authCodeString, UserSessionDbContext userSessionDbContext)
     {
 
         GoogleTokenResponse? accessTokenJson = await GetAccessToken(context, config, authCodeString);
@@ -10,30 +11,37 @@ public class GoogleFlow
             throw new ArgumentException("Failed to retrieve Access Token");
         string accessToken = accessTokenJson.AccessToken;
 
-        (PickerSession, PollingConfig) pickerSession = ((PickerSession, PollingConfig))await GooglePhotosFlow.GetPickerSession(context, config, accessToken);
-        // CREATE POLLING INSTANCE FOR PICKERSESSION
-        if (pickerSession.Item1.Id == string.Empty || pickerSession.Item2.PollInterval == string.Empty)
-            throw new ArgumentException("Failed to retrieve Picker URI");
+        string userSessionId = await UserSessions.CreateUserSession(ipAddress, userSessionDbContext, accessToken);
+        if (string.IsNullOrEmpty(userSessionId))
+        {
+            Console.WriteLine("Failed to create user");
+            // add cleanup logic?
+            throw new ArgumentException("Failed to create User Session");
+        }
+        ;
 
-        return pickerSession;
+        return userSessionId;
+
     }
+
 
     public static async Task<GoogleTokenResponse?> GetAccessToken(HttpContext context, IConfiguration config, string code)
     {
         string clientId = config["OAuth:ClientId"] ?? string.Empty;
         string clientSecret = config["OAuth:ClientSecret"] ?? string.Empty;
         string retrieveTokenUrl = "https://oauth2.googleapis.com/token";
+        string redirectUri = config["OAuth:RedirectUri"] ?? string.Empty;
 
         using HttpClient client = new();
 
         var payload = new Dictionary<string, string>
-    {
-        { "client_id", clientId },
-        { "client_secret", clientSecret},
-        { "code", code },
-        { "grant_type", "authorization_code" },
-        { "redirect_uri", "https://localhost:8443/auth/google-callback" }
-    };
+        {
+            { "client_id", clientId },
+            { "client_secret", clientSecret},
+            { "code", code },
+            { "grant_type", "authorization_code" },
+            { "redirect_uri", redirectUri }
+        };
 
         var postContent = new FormUrlEncodedContent(payload);
 

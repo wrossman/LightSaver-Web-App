@@ -1,17 +1,18 @@
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
+using System.Reflection;
 
 
 public class UserSessions
 {
 
-    public static HashSet<string> SessionCodes { get; set; } = new();
+    private static HashSet<string> UserSessionIds { get; set; } = new();
 
-    public static async Task<bool> CheckIpSessionCount(IPAddress ipAddress, SessionDbContext sessionDb)
+    private static async Task<bool> CheckIpSessionCount(IPAddress ipAddress, UserSessionDbContext sessionDb)
     {
         string ipAddressStr = ipAddress.ToString();
-        System.Console.WriteLine($"{ipAddressStr} just tried to connect");
+        System.Console.WriteLine($"User {ipAddressStr} just tried to connect");
 
         int result = await sessionDb.Sessions.CountAsync(s => s.SourceAddress == ipAddressStr);
 
@@ -19,23 +20,22 @@ public class UserSessions
             return true;
         else
             return false;
-
     }
 
-    public static async Task<string> CreateUserSession(IPAddress ipAddress, SessionDbContext sessionDb)
+    public static async Task<string> CreateUserSession(IPAddress ipAddress, UserSessionDbContext sessionDb, string accessToken)
     {
         if (!await CheckIpSessionCount(ipAddress, sessionDb))
-            return string.Empty;
+            throw new ArgumentException("Too many sessions with current IP");
 
         string ipAddressStr = ipAddress.ToString();
 
         UserSession session = new()
         {
-            Id = 0,
+            Id = GenerateSessionId(),
             CreatedAt = DateTime.UtcNow,
+            AccessToken = accessToken,
             SourceAddress = ipAddressStr,
-            // ADD SESSION ID GENERATION
-            SessionCode = GenerateSessionCode(),
+            SessionCode = "",
             ReadyForTransfer = false
         };
 
@@ -43,28 +43,32 @@ public class UserSessions
         sessionDb.Add(session);
         // add check to ensure that the data was written
         await sessionDb.SaveChangesAsync();
-        SessionCodes.Add(session.SessionCode);
-
-        System.Console.WriteLine("finished saving to database");
-
-        return session.SessionCode;
+        System.Console.WriteLine("The following session was written to the database:");
+        foreach (PropertyInfo prop in session.GetType().GetProperties())
+        {
+            var name = prop.Name;
+            var value = prop.GetValue(session, null);
+            Console.WriteLine($"{name} = {value}");
+        }
+        return session.Id;
     }
 
-    public static string GenerateSessionCode()
+    private static string GenerateSessionId()
     {
         using var rng = RandomNumberGenerator.Create();
-        string sessionCode = "";
+        string userSessionId;
+        //thanks copilot
         do
         {
-            var bytes = new byte[4];
-            rng.GetBytes(bytes);
+            // Generate 16 random bytes (128 bits)
+            var bytes = new byte[16];
+            RandomNumberGenerator.Fill(bytes);
+            // Convert to hex string (32 hex chars)
+            userSessionId = Convert.ToHexString(bytes); // e.g., "A1B2C3D4..."
 
-            int value = BitConverter.ToInt32(bytes, 0) & int.MaxValue; // ensure non-negative
-            int code = value % 0x1000000; // restrict to 6 hex digits (0x000000 - 0xFFFFFF), thanks copilot
-            sessionCode = code.ToString("X6");
+        } while (UserSessionIds.Contains(userSessionId));
 
-        } while (SessionCodes.Contains(sessionCode));
-
-        return sessionCode;
+        return userSessionId;
     }
+
 }
