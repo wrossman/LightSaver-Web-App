@@ -71,4 +71,50 @@ public class UserSessions
         return userSessionId;
     }
 
+    public static async Task<bool> AssociateToRoku(string sessionCode, string sessionId, UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb)
+    {
+        // THIS METHOD IS A LITTLE OVER KILL I SHOULD PROBABLY FIX IT
+        var rokuSession = await rokuSessionDb.Sessions
+        .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
+        var userSession = await userSessionDb.Sessions.FindAsync(sessionId);
+
+        if (userSession != null)
+        {
+            userSession.SessionCode = sessionCode;
+            await userSessionDb.SaveChangesAsync();
+            System.Console.WriteLine("Successfully updated UserSession SessionCode");
+        }
+        else
+            throw new Exception("Unable to update UserSession SessionCode");
+
+        if (rokuSession != null && rokuSession.SessionCode == userSession.SessionCode)
+        {
+            System.Console.WriteLine("RokuSession and UserSession have been associated");
+        }
+        else
+            throw new Exception("RokuSession is unable to be found");
+
+        var test = await rokuSessionDb.Sessions
+        .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
+
+        foreach (PropertyInfo prop in test.GetType().GetProperties())
+        {
+            var name = prop.Name;
+            var value = prop.GetValue(test, null);
+            Console.WriteLine($"{name} = {value}");
+        }
+
+        var userTest = await userSessionDb.Sessions
+        .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
+
+        foreach (PropertyInfo prop in test.GetType().GetProperties())
+        {
+            var name = prop.Name;
+            var value = prop.GetValue(test, null);
+            Console.WriteLine($"{name} = {value}");
+        }
+
+        return true;
+    }
+
 }

@@ -1,12 +1,13 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 
 public class GooglePhotosFlow
 {
     public Dictionary<string, string> FileUrls { get; set; } = new();
 
-    public async Task<string> StartGooglePhotosFlow(IServiceProvider serviceProvider, HttpContext context, IConfiguration config, UserSessionDbContext userSessionDb, string userSessionId)
+    public async Task<string> StartGooglePhotosFlow(IServiceProvider serviceProvider, HttpContext context, IConfiguration config, UserSessionDbContext userSessionDb, string userSessionId, RokuSessionDbContext rokuSessionDb)
     {
         System.Console.WriteLine(userSessionId + " Found in StartGoogle Photos flow");
         var session = await userSessionDb.Sessions.FindAsync(userSessionId);
@@ -24,7 +25,7 @@ public class GooglePhotosFlow
 
         using (var scope = serviceProvider.CreateScope())
         {
-            _ = Task.Run(() => PollPhotos(config, pickerSession, accessToken));
+            _ = Task.Run(() => PollPhotos(config, pickerSession, accessToken, userSessionDb, rokuSessionDb));
         }
 
         return pickerUri;
@@ -83,7 +84,7 @@ public class GooglePhotosFlow
         string response = await client.GetStringAsync($"https://photospicker.googleapis.com/v1/mediaItems?sessionId={pickerSession.Id}");
         return response;
     }
-    public async Task PollPhotos(IConfiguration config, PickerSession pickerSession, string accessToken)
+    public async Task PollPhotos(IConfiguration config, PickerSession pickerSession, string accessToken, UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb)
     {
         int interval;
         decimal timeoutDecimal;
@@ -118,7 +119,22 @@ public class GooglePhotosFlow
 
                 AddUrlsToList(photoList, config);
 
-                await WritePhotosToLocal(pickerSession, accessToken);
+                var userSession = await userSessionDb.Sessions
+                .FirstOrDefaultAsync(s => s.AccessToken == accessToken);
+                if (userSession != null)
+                {
+                    userSession.ReadyForTransfer = true;
+                    await userSessionDb.SaveChangesAsync();
+                }
+                var rokuSession = await rokuSessionDb.Sessions
+                .FirstOrDefaultAsync(s => s.SessionCode == userSession.SessionCode);
+                if (rokuSession != null)
+                {
+                    rokuSession.ReadyForTransfer = true;
+                    await userSessionDb.SaveChangesAsync();
+                }
+
+                // await WritePhotosToLocal(pickerSession, accessToken);
                 break;
             }
             else if (responseJson.MediaItemsSet == false)

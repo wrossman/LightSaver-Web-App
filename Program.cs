@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Primitives;
 using System.Net;
 using HtmlAgilityPack;
-using Microsoft.AspNetCore.Html;
 
 var builder = WebApplication.CreateBuilder(args);
 /*
@@ -133,7 +132,7 @@ app.MapGet("/code", async (HttpContext context) =>
 
 });
 
-app.MapPost("/submit", async (IServiceProvider serviceProvider, HttpContext context, IConfiguration config, UserSessionDbContext userSessionDb) =>
+app.MapPost("/submit", async (IServiceProvider serviceProvider, HttpContext context, IConfiguration config, UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb) =>
 {
     string userSessionId;
     context.Request.Cookies.TryGetValue("sid", out userSessionId);
@@ -143,10 +142,33 @@ app.MapPost("/submit", async (IServiceProvider serviceProvider, HttpContext cont
     string code = rokuCodeForm["code"];
     System.Console.WriteLine($"User submitted {code}");
 
+    await UserSessions.AssociateToRoku(code, userSessionId, userSessionDb, rokuSessionDb);
+
     GooglePhotosFlow googlePhotos = new();
-    string pickerUri = await googlePhotos.StartGooglePhotosFlow(serviceProvider, context, config, userSessionDb, userSessionId);
+    string pickerUri = await googlePhotos.StartGooglePhotosFlow(serviceProvider, context, config, userSessionDb, userSessionId, rokuSessionDb);
 
     return Results.Redirect($"{pickerUri}/autoclose");
+});
+
+app.MapGet("/roku-reception", async (HttpContext context, RokuSessionDbContext rokuSessionDb) =>
+{
+
+    //be carefull about what i return to the user because they cant be able to see what is a valid session code
+
+    var sessionCode = context.Request.Headers.Authorization;
+    System.Console.WriteLine(sessionCode);
+    if (StringValues.IsNullOrEmpty(sessionCode))
+    {
+        Console.WriteLine("Unknown SessionCode was tried at /roku-reception endpoint");
+        return Results.Ok("Media is not ready to be transfered.");
+    }
+    ;
+
+    if (await RokuSessions.CheckReadyTransfer(sessionCode, rokuSessionDb))
+        return Results.Accepted("Media is Ready to Transfer");
+    else
+        return Results.Ok("Media is not ready to be transfered.");
+
 });
 
 app.Run();
