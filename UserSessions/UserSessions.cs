@@ -6,7 +6,7 @@ using System.Reflection;
 
 public class UserSessions
 {
-
+    public static Queue<string> CodesReadyForTransfer { get; set; } = new();
     private static HashSet<string> UserSessionIds { get; set; } = new();
 
     private static async Task<bool> CheckIpSessionCount(IPAddress ipAddress, UserSessionDbContext sessionDb)
@@ -97,22 +97,22 @@ public class UserSessions
         var test = await rokuSessionDb.Sessions
         .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
 
-        foreach (PropertyInfo prop in test.GetType().GetProperties())
-        {
-            var name = prop.Name;
-            var value = prop.GetValue(test, null);
-            Console.WriteLine($"{name} = {value}");
-        }
+        // foreach (PropertyInfo prop in test.GetType().GetProperties())
+        // {
+        //     var name = prop.Name;
+        //     var value = prop.GetValue(test, null);
+        //     Console.WriteLine($"{name} = {value}");
+        // }
 
-        var userTest = await userSessionDb.Sessions
-        .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
+        // var userTest = await userSessionDb.Sessions
+        // .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
 
-        foreach (PropertyInfo prop in test.GetType().GetProperties())
-        {
-            var name = prop.Name;
-            var value = prop.GetValue(test, null);
-            Console.WriteLine($"{name} = {value}");
-        }
+        // foreach (PropertyInfo prop in userTest.GetType().GetProperties())
+        // {
+        //     var name = prop.Name;
+        //     var value = prop.GetValue(userTest, null);
+        //     Console.WriteLine($"{name} = {value}");
+        // }
 
         return true;
     }

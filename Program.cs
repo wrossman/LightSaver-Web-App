@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Primitives;
 using System.Net;
 using HtmlAgilityPack;
+using System.Text;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 /*
@@ -11,17 +13,54 @@ ADD RATE LIMITING TO THE ENDPOINT THAT PROVIDES ACCESS TO USER PHOTOS.
 
 PROVIDE ACCESS WHEN THEY ENTER A CORRECT KEY THAT THEIR ROKU DEVICE DISPLAYS
 
+- Update all of the results. responses to the appropriate response
+
+- check owasp top ten vulnerabilites
+
+- Are the removestalesession background tasks messing with the database
+  in an un thread safe way
+
+- enable https redirect after i get ssl up
+
+- none of this shit is thread safe
+
+- update session timeouts
+
+- handle if browser cookie fail revert to query
+
+- fix null issues
+
+
+***** TO SECURE ACCESS AND MAKE SURE USERS CONTINUE TO HAVE IT,
+CREATE A CRYPTOGRAPHIC KEY THAT CAN BE STORED ON THE ROKU REGISTRY
+THE KEY WILL BE TIED TO THE PICTURE RESOURCE AND WILL BE OFFERED
+WHEN THEY SUBMIT IT. MAYBE I COULD ALSO TIE THE IP ADDRESS TO THE KEY
+TO VERIFY IF IT IS COMING FROM THE SAME SOURCE, IF NOT, DONT ALLOW IT.
+THERE HAS TO BE SOME OTHER WAY FOR ME TO VERIFY THE ROKU DEVICES SIGNATURE.
+MAYBE ROKU HAS A SERIAL NUMBER THAT I CAN ACCESS THAT THEY CAN PROVIDE AS WELL.
+FUCK YES I JUST SEARCHED IT UP AND I CAN ACCESS THE SERIAL NUMBER. SWEET, SO
+I WILL GENERATE A CRYPTO KEY AND WILL ASSOCIATE THE ROKU SERIAL NUMBER TO THE
+IMAGES. ONCE I DO THAT THE ROKU CAN STORE THE CRYPTO IN ITS ENCRYPTED REGISTRY
+AND THEN THEY CAN ACCESS THE PICTURES ONLY IF THE SERIAL NUMBER MATCHES THE
+IMAGE RESOURCE.
 
 */
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+//add databases
 builder.Services.AddDbContext<UserSessionDbContext>(options =>
     options.UseInMemoryDatabase("UserSessionDb"));
 builder.Services.AddDbContext<RokuSessionDbContext>(options =>
     options.UseInMemoryDatabase("RokuSessionDb"));
+
+//add hosted services for session management and file transfers
 builder.Services.AddHostedService<RemoveStaleUserSessionsService>();
 builder.Services.AddHostedService<RemoveStaleRokuSessionsService>();
+builder.Services.AddHostedService<TransferFilesService>();
+
+// start all services at the same time so they dont block each other
 builder.Services.Configure<HostOptions>(options =>
 {
     options.ServicesStartConcurrently = true;
@@ -70,7 +109,6 @@ app.MapGet("/google", (IConfiguration config) =>
     string scope = config["OAuth:PickerScope"] ?? string.Empty;
     string googleAuthServer = config["OAuth:GoogleAuthServer"] ?? string.Empty;
     string googleQuery = $"{googleAuthServer}?scope={scope}&response_type={responseType}&redirect_uri={redirect}&client_id={clientId}";
-    System.Console.WriteLine(googleQuery);
     return Results.Redirect(googleQuery);
 });
 
@@ -84,13 +122,13 @@ app.MapGet("/auth/google-callback", async (HttpContext context, IServiceProvider
 
 
     if (context.Request.Query.ContainsKey("error"))
-        return Results.BadRequest($"Failed with error: {context.Request.Query["error"]}");
+        return Results.Problem($"Failed with error: {context.Request.Query["error"]}");
     var authCode = request.Query["code"];
     if (authCode == StringValues.Empty)
-        return Results.BadRequest("Unable to get Authorization Code from Google");
+        return Results.Problem("Unable to get Authorization Code from Google");
     string authCodeString = authCode.ToString();
     if (authCodeString == string.Empty)
-        return Results.BadRequest("Google OAuth Response Failed to provide Authorization String");
+        return Results.Problem("Google OAuth Response Failed to provide Authorization String");
 
     string userSessionId = "";
     try
@@ -145,29 +183,79 @@ app.MapPost("/submit", async (IServiceProvider serviceProvider, HttpContext cont
     await UserSessions.AssociateToRoku(code, userSessionId, userSessionDb, rokuSessionDb);
 
     GooglePhotosFlow googlePhotos = new();
-    string pickerUri = await googlePhotos.StartGooglePhotosFlow(serviceProvider, context, config, userSessionDb, userSessionId, rokuSessionDb);
+    string pickerUri = await googlePhotos.StartGooglePhotosFlow(serviceProvider, config, userSessionDb, userSessionId, code);
 
     return Results.Redirect($"{pickerUri}/autoclose");
 });
 
-app.MapGet("/roku-reception", async (HttpContext context, RokuSessionDbContext rokuSessionDb) =>
+app.MapPost("/roku-reception", async (HttpContext context, RokuSessionDbContext rokuSessionDb) =>
 {
-
     //be carefull about what i return to the user because they cant be able to see what is a valid session code
 
-    var sessionCode = context.Request.Headers.Authorization;
-    System.Console.WriteLine(sessionCode);
-    if (StringValues.IsNullOrEmpty(sessionCode))
+    //thanks copilot for helping me read the post request
+    var body = await RokuSessions.ReadRokuPost(context);
+    if (body == "fail")
+        return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
+    var jsonBody = JsonSerializer.Deserialize<RokuSessionPostBody>(body);
+    var sessionCode = jsonBody?.RokuSessionCode;
+
+    if (string.IsNullOrEmpty(sessionCode))
     {
         Console.WriteLine("Unknown SessionCode was tried at /roku-reception endpoint");
-        return Results.Ok("Media is not ready to be transfered.");
+        return Results.NotFound("Media is not ready to be transfered.");
     }
     ;
 
     if (await RokuSessions.CheckReadyTransfer(sessionCode, rokuSessionDb))
-        return Results.Accepted("Media is Ready to Transfer");
+    {
+        System.Console.WriteLine("Media is ready");
+        return Results.Content("Ready");
+    }
     else
-        return Results.Ok("Media is not ready to be transfered.");
+    {
+        System.Console.WriteLine("Media is not ready to be transfered.");
+        return Results.NotFound("Media is not ready to be transfered.");
+    }
+
+});
+
+app.MapPost("/roku-links", async (HttpContext context) =>
+{
+    var body = await RokuSessions.ReadRokuPost(context);
+    if (body == "fail")
+        return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
+    var jsonBody = JsonSerializer.Deserialize<RokuSessionPostBody>(body);
+    var sessionCode = jsonBody?.RokuSessionCode;
+
+    //thanks copilot for the query
+    List<string> links = GlobalStore.GlobalImageStore
+    .Where(img => img.SessionCode == sessionCode)
+    .Select(img => img.Hash).ToList();
+
+    if (links is null || links.Count == 0)
+        return Results.Forbid();
+
+    return Results.Json(new { Links = links });
+
+});
+
+app.MapPost("/roku-pull", async (HttpContext context) =>
+{
+    var body = await RokuSessions.ReadRokuPost(context);
+    if (body == "fail")
+        return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
+    var jsonBody = JsonSerializer.Deserialize<RokuLinksPostBody>(body);
+    var link = jsonBody?.ImageLink;
+
+    //thanks copilot for the query
+    (byte[] image, string fileType) = GlobalStore.GlobalImageStore
+    .Where(img => img.Hash == link)
+    .Select(img => (img.ImageStream, img.FileType)).SingleOrDefault();
+
+    if (image is null || fileType is null)
+        return Results.Forbid();
+
+    return Results.File(image, $"image/{fileType}");
 
 });
 

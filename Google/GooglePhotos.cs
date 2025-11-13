@@ -1,18 +1,22 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection;
+using System.Runtime.InteropServices;
 
 public class GooglePhotosFlow
 {
+
+    public static Dictionary<string, ImageShare> UserImageShare { get; set; } = new();
     public Dictionary<string, string> FileUrls { get; set; } = new();
 
-    public async Task<string> StartGooglePhotosFlow(IServiceProvider serviceProvider, HttpContext context, IConfiguration config, UserSessionDbContext userSessionDb, string userSessionId, RokuSessionDbContext rokuSessionDb)
+    public async Task<string> StartGooglePhotosFlow(IServiceProvider serviceProvider, IConfiguration config, UserSessionDbContext userSessionDb, string userSessionId, string sessionCode)
     {
         System.Console.WriteLine(userSessionId + " Found in StartGoogle Photos flow");
         var session = await userSessionDb.Sessions.FindAsync(userSessionId);
         string? accessToken = session?.AccessToken;
-        System.Console.WriteLine(accessToken);
         if (accessToken is null)
             throw new ArgumentException("Failed to located User Session");
 
@@ -25,9 +29,8 @@ public class GooglePhotosFlow
 
         using (var scope = serviceProvider.CreateScope())
         {
-            _ = Task.Run(() => PollPhotos(config, pickerSession, accessToken, userSessionDb, rokuSessionDb));
+            _ = Task.Run(() => PollPhotos(config, pickerSession, accessToken, sessionCode));
         }
-
         return pickerUri;
 
     }
@@ -41,7 +44,7 @@ public class GooglePhotosFlow
         foreach (KeyValuePair<string, string> item in FileUrls)
         {
             filename++;
-            var filePath = folderPath + filename.ToString() + "." + item.Value;
+            var filePath = folderPath + "google" + filename.ToString() + "." + item.Value;
             using var response = await client.GetAsync(item.Key, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
             await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
@@ -49,6 +52,34 @@ public class GooglePhotosFlow
             await responseStream.CopyToAsync(fileStream);
         }
     }
+
+    public async Task WritePhotosToMemory(string sessionCode, string accessToken)
+    {
+        using HttpClient client = new();
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", accessToken);
+        foreach (KeyValuePair<string, string> item in FileUrls)
+        {
+            byte[] data = await client.GetByteArrayAsync(item.Key);
+            string hash = ComputeHashFromBytes(data);
+            ImageShare share = new(hash, sessionCode, data, DateTime.UtcNow, item.Value);
+            GlobalStore.GlobalImageStore.Add(share);
+        }
+    }
+    public static string ComputeHashFromBytes(byte[] data)
+    {
+        //thanks copilot
+        using var sha256 = SHA256.Create();
+        byte[] hashBytes = sha256.ComputeHash(data);
+
+        // Convert to hex string
+        var builder = new StringBuilder();
+        foreach (var b in hashBytes)
+            builder.Append(b.ToString("x2"));
+
+        return builder.ToString();
+    }
+
     public void AddUrlsToList(string photoList, IConfiguration config)
     {
         MediaItemsResponse photoListJson = JsonSerializer.Deserialize<MediaItemsResponse>(photoList) ?? new();
@@ -59,7 +90,6 @@ public class GooglePhotosFlow
         {
             string fileType = item.MediaFile.MimeType;
             fileType = fileType.Substring(fileType.IndexOf("/") + 1);
-            System.Console.WriteLine(fileType);
             if (item.Type == "PHOTO" &&
             (string.Equals(fileType, "jpg", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(fileType, "jpeg", StringComparison.OrdinalIgnoreCase) ||
@@ -70,11 +100,12 @@ public class GooglePhotosFlow
                 FileUrls.Add($"{tempFile.BaseUrl}={maxSize}", fileType);
             }
         }
-
-        foreach (KeyValuePair<string, string> item in FileUrls)
-        {
-            System.Console.WriteLine($"{item.Key}: {item.Value}");
-        }
+        //print all files
+        // foreach (KeyValuePair<string, string> item in FileUrls)
+        // {
+        //     // 
+        //     // System.Console.WriteLine($"{item.Key}: {item.Value}");
+        // }
     }
     public static async Task<string> GetPhotoList(PickerSession pickerSession, string accessToken)
     {
@@ -84,7 +115,7 @@ public class GooglePhotosFlow
         string response = await client.GetStringAsync($"https://photospicker.googleapis.com/v1/mediaItems?sessionId={pickerSession.Id}");
         return response;
     }
-    public async Task PollPhotos(IConfiguration config, PickerSession pickerSession, string accessToken, UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb)
+    public async Task PollPhotos(IConfiguration config, PickerSession pickerSession, string accessToken, string sessionCode)
     {
         int interval;
         decimal timeoutDecimal;
@@ -118,23 +149,9 @@ public class GooglePhotosFlow
                 string photoList = await GooglePhotosFlow.GetPhotoList(pickerSession, accessToken);
 
                 AddUrlsToList(photoList, config);
+                await WritePhotosToMemory(sessionCode, accessToken);
+                UserSessions.CodesReadyForTransfer.Enqueue(sessionCode);
 
-                var userSession = await userSessionDb.Sessions
-                .FirstOrDefaultAsync(s => s.AccessToken == accessToken);
-                if (userSession != null)
-                {
-                    userSession.ReadyForTransfer = true;
-                    await userSessionDb.SaveChangesAsync();
-                }
-                var rokuSession = await rokuSessionDb.Sessions
-                .FirstOrDefaultAsync(s => s.SessionCode == userSession.SessionCode);
-                if (rokuSession != null)
-                {
-                    rokuSession.ReadyForTransfer = true;
-                    await userSessionDb.SaveChangesAsync();
-                }
-
-                // await WritePhotosToLocal(pickerSession, accessToken);
                 break;
             }
             else if (responseJson.MediaItemsSet == false)
@@ -147,6 +164,7 @@ public class GooglePhotosFlow
                 System.Console.WriteLine("Timeout reached.");
                 // return "timeout";
             }
+
         }
     }
     public static async Task<PickerSession> GetPickerSession(IConfiguration config, string accessToken)
@@ -170,8 +188,6 @@ public class GooglePhotosFlow
 
         var pickerResponse = await photosClient.SendAsync(pickerRequest);
         var pickerContent = await pickerResponse.Content.ReadAsStringAsync();
-
-        System.Console.WriteLine(pickerContent);
 
         var pickerJson = JsonSerializer.Deserialize<PickerSession>(pickerContent);
         if (pickerJson is null || string.IsNullOrEmpty(pickerJson.PickerUri))
