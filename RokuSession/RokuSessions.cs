@@ -1,7 +1,9 @@
 using System.Security.Cryptography;
 using System.Net;
 using Microsoft.EntityFrameworkCore;
-
+using System.Reflection;
+using System.Text;
+using System.Text.Json;
 public class RokuSessions
 {
     private static HashSet<string> SessionCodes { get; set; } = new();
@@ -28,10 +30,16 @@ public class RokuSessions
         // add check to ensure that the data was written
         await sessionDb.SaveChangesAsync();
 
-        System.Console.WriteLine("finished saving roku session to rokuSession database");
-
+        System.Console.WriteLine("finished saving the following roku session to rokuSession database");
+        foreach (PropertyInfo prop in session.GetType().GetProperties())
+        {
+            var name = prop.Name;
+            var value = prop.GetValue(session, null);
+            Console.WriteLine($"{name} = {value}");
+        }
         return session.SessionCode;
     }
+
     private static string GenerateSessionCode()
     {
         using var rng = RandomNumberGenerator.Create();
@@ -67,9 +75,44 @@ public class RokuSessions
     {
         var rokuSession = await rokuSessionDb.Sessions
             .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
+        if (rokuSession is not null)
+        {
+            // foreach (PropertyInfo prop in rokuSession.GetType().GetProperties())
+            // {
+            //     var name = prop.Name;
+            //     var value = prop.GetValue(rokuSession, null);
+            //     Console.WriteLine($"{name} = {value}");
+            // }
+        }
         if (rokuSession != null && rokuSession.ReadyForTransfer == true)
             return true;
         else
             return false;
+    }
+
+    public static async Task<string> ReadRokuPost(HttpContext context)
+    {
+        context.Request.EnableBuffering(); // allows re-reading the stream
+
+        const int maxBytes = 64;
+        var buffer = new byte[32];
+        int totalBytes = 0;
+
+        using var memoryStream = new MemoryStream();
+        int bytesRead;
+
+        do
+        {
+            bytesRead = await context.Request.Body.ReadAsync(buffer, 0, buffer.Length);
+            totalBytes += bytesRead;
+
+            if (totalBytes > maxBytes)
+                return "fail";
+
+            await memoryStream.WriteAsync(buffer, 0, bytesRead);
+        }
+        while (bytesRead > 0);
+
+        return Encoding.UTF8.GetString(memoryStream.ToArray());
     }
 }

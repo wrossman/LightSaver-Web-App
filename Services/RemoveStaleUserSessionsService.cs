@@ -11,9 +11,9 @@ public class RemoveStaleUserSessionsService(
         while (true)
         {
             await Task.Delay(10000, cancellationToken);
-            System.Console.WriteLine("Running User Session Cleanup");
+            // System.Console.WriteLine("Running User Session Cleanup");
             // Define cutoff time (20 seconds ago)
-            var cutoff = DateTime.UtcNow.AddSeconds(-60);
+            var cutoff = DateTime.UtcNow.AddSeconds(-60000);
 
             // Find expired sessions
             var expiredSessions = await sessionDb.Sessions
