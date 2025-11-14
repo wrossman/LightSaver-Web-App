@@ -8,19 +8,18 @@ public class RokuSessions
 {
     private static HashSet<string> SessionCodes { get; set; } = new();
 
-    public static async Task<string> CreateRokuSession(IPAddress ipAddress, RokuSessionDbContext sessionDb)
+    public static async Task<string> CreateRokuSession(IPAddress ipAddress, RokuSessionDbContext sessionDb, string rokuId)
     {
+        // TODO: also check if we already have a roku session with this device id.
         if (!await CheckIpSessionCount(ipAddress, sessionDb))
             return string.Empty;
-
-        string ipAddressStr = ipAddress.ToString();
 
         RokuSession session = new()
         {
             Id = 0,
+            RokuId = rokuId,
             CreatedAt = DateTime.UtcNow,
-            SourceAddress = ipAddressStr,
-            // ADD SESSION ID GENERATION
+            SourceAddress = ipAddress.ToString(),
             SessionCode = GenerateSessionCode(),
             ReadyForTransfer = false
         };
@@ -94,7 +93,7 @@ public class RokuSessions
     {
         context.Request.EnableBuffering(); // allows re-reading the stream
 
-        const int maxBytes = 64;
+        const int maxBytes = 512;
         var buffer = new byte[32];
         int totalBytes = 0;
 
