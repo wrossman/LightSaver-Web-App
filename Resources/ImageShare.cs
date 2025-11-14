@@ -1,17 +1,21 @@
 public record ImageShare
 {
-    public ImageShare(string hash, string sessionCode, byte[] imageStream, DateTime createdOn, string fileType)
+    public ImageShare(string hash, string key, string sessionCode, byte[] imageStream, DateTime createdOn, string fileType, string rokuId)
     {
-        Hash = hash;
+        Id = hash;
+        Key = key;
         SessionCode = sessionCode;
         ImageStream = imageStream;
         CreatedOn = createdOn;
         FileType = fileType;
+        RokuId = rokuId;
     }
-    public string Hash { get; init; }
+    public string Id { get; init; }
+    public string Key { get; init; }
     public string SessionCode { get; init; }
     public byte[] ImageStream { get; init; }
     public DateTime CreatedOn { get; init; }
 
     public string FileType { get; init; }
+    public string RokuId { get; set; }
 }

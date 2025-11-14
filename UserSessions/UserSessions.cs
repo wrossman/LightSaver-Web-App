@@ -78,9 +78,16 @@ public class UserSessions
         .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
         var userSession = await userSessionDb.Sessions.FindAsync(sessionId);
 
+        if (rokuSession is null)
+        {
+            System.Console.WriteLine($"Roku session could not be found for sessionCode {sessionCode}");
+            return false;
+        }
+
         if (userSession != null)
         {
             userSession.SessionCode = sessionCode;
+            userSession.RokuId = rokuSession.RokuId;
             await userSessionDb.SaveChangesAsync();
             System.Console.WriteLine("Successfully updated UserSession SessionCode");
         }
@@ -94,8 +101,8 @@ public class UserSessions
         else
             throw new Exception("RokuSession is unable to be found");
 
-        var test = await rokuSessionDb.Sessions
-        .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
+        // var test = await rokuSessionDb.Sessions
+        // .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
 
         // foreach (PropertyInfo prop in test.GetType().GetProperties())
         // {

@@ -1,8 +1,9 @@
 public record RokuSession
 {
-    public int Id { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public string SourceAddress { get; set; } = "0.0.0.0";
+    public int Id { get; init; }
+    public string RokuId { get; init; } = "";
+    public DateTime CreatedAt { get; init; }
+    public string SourceAddress { get; init; } = "0.0.0.0";
     public string SessionCode { get; set; } = "";
     public bool ReadyForTransfer { get; set; } = false;
 

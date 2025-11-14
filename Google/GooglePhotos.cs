@@ -17,7 +17,8 @@ public class GooglePhotosFlow
         System.Console.WriteLine(userSessionId + " Found in StartGoogle Photos flow");
         var session = await userSessionDb.Sessions.FindAsync(userSessionId);
         string? accessToken = session?.AccessToken;
-        if (accessToken is null)
+        string? rokuId = session?.RokuId;
+        if (accessToken is null || rokuId is null)
             throw new ArgumentException("Failed to located User Session");
 
         PickerSession pickerSession = await GetPickerSession(config, accessToken);
@@ -29,7 +30,7 @@ public class GooglePhotosFlow
 
         using (var scope = serviceProvider.CreateScope())
         {
-            _ = Task.Run(() => PollPhotos(config, pickerSession, accessToken, sessionCode));
+            _ = Task.Run(() => PollPhotos(config, pickerSession, accessToken, sessionCode, rokuId));
         }
         return pickerUri;
 
@@ -53,17 +54,23 @@ public class GooglePhotosFlow
         }
     }
 
-    public async Task WritePhotosToMemory(string sessionCode, string accessToken)
+    public async Task WritePhotosToMemory(string sessionCode, string accessToken, string rokuId)
     {
         using HttpClient client = new();
         client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", accessToken);
         foreach (KeyValuePair<string, string> item in FileUrls)
         {
+            var bytes = new byte[32];
+            RandomNumberGenerator.Fill(bytes);
+            var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
             byte[] data = await client.GetByteArrayAsync(item.Key);
             string hash = ComputeHashFromBytes(data);
-            ImageShare share = new(hash, sessionCode, data, DateTime.UtcNow, item.Value);
-            GlobalStore.GlobalImageStore.Add(share);
+            hash = hash + "-" + DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
+
+            ImageShare share = new(hash, key, sessionCode, data, DateTime.UtcNow, item.Value, rokuId);
+            GlobalStore.AddResource(share);
         }
     }
     public static string ComputeHashFromBytes(byte[] data)
@@ -115,7 +122,7 @@ public class GooglePhotosFlow
         string response = await client.GetStringAsync($"https://photospicker.googleapis.com/v1/mediaItems?sessionId={pickerSession.Id}");
         return response;
     }
-    public async Task PollPhotos(IConfiguration config, PickerSession pickerSession, string accessToken, string sessionCode)
+    public async Task PollPhotos(IConfiguration config, PickerSession pickerSession, string accessToken, string sessionCode, string rokuId)
     {
         int interval;
         decimal timeoutDecimal;
@@ -149,7 +156,7 @@ public class GooglePhotosFlow
                 string photoList = await GooglePhotosFlow.GetPhotoList(pickerSession, accessToken);
 
                 AddUrlsToList(photoList, config);
-                await WritePhotosToMemory(sessionCode, accessToken);
+                await WritePhotosToMemory(sessionCode, accessToken, rokuId);
                 UserSessions.CodesReadyForTransfer.Enqueue(sessionCode);
 
                 break;

@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Primitives;
 using System.Net;
 using HtmlAgilityPack;
-using System.Text;
 using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,6 +28,19 @@ PROVIDE ACCESS WHEN THEY ENTER A CORRECT KEY THAT THEIR ROKU DEVICE DISPLAYS
 - handle if browser cookie fail revert to query
 
 - fix null issues
+
+- fix access to image store, create public access methods
+  in the immage store class for access to images and links
+
+- Set up proper logging
+
+- Does it make sense to have the hash of the image as the resource link?
+
+- require roku to hash the serial before sending it, store the id as a hash instead.
+
+- ON roku what if i just set the httpagent for the currwallpaper to the one for the
+  stager so i dont do a double tap for the photos, i would have to have a third agent
+  to pass off to 
 
 
 ***** TO SECURE ACCESS AND MAKE SURE USERS CONTINUE TO HAVE IT,
@@ -76,29 +88,28 @@ if (app.Environment.IsDevelopment())
 
 // app.UseHttpsRedirection();
 
-app.MapGet("/roku", async (HttpContext context, RokuSessionDbContext sessionDb) =>
+app.MapPost("/roku", async (HttpContext context, RokuSessionDbContext sessionDb) =>
 {
     var request = context.Request;
     var remoteIpAddress = request.HttpContext.Connection.RemoteIpAddress ?? new IPAddress(new byte[4]);
 
-    string sessionCode = await RokuSessions.CreateRokuSession(remoteIpAddress, sessionDb);
+    var body = await RokuSessions.ReadRokuPost(context);
+    if (body == "fail")
+        return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
+    var jsonBody = JsonSerializer.Deserialize<RokuIdPostBody>(body);
+    var rokuId = jsonBody?.RokuId;
+
+    if (string.IsNullOrEmpty(rokuId))
+        return Results.Forbid();
+
+    string sessionCode = await RokuSessions.CreateRokuSession(remoteIpAddress, sessionDb, rokuId);
     if (sessionCode == string.Empty)
     {
         Console.WriteLine($"Failed: TOO MANY CONNECTIONS FROM IP ADDRESS {remoteIpAddress}");
         return Results.Unauthorized();
     }
 
-    //simulate roku device on localhost browser
-    var doc = new HtmlDocument();
-    doc.LoadHtml(File.ReadAllText("./wwwroot/UserSession.html"));
-    var node = doc.DocumentNode.SelectSingleNode("//span[@id='sessionCode']");
-    node.InnerHtml = sessionCode;
-    string simulateSite = doc.DocumentNode.OuterHtml;
-
-    //create header that roku will use to get session code
-    context.Response.Headers.Append("RokuSessionCode", sessionCode);
-
-    return Results.Content(simulateSite, "text/html");
+    return Results.Json(new { RokuSessionCode = sessionCode });
 });
 
 app.MapGet("/google", (IConfiguration config) =>
@@ -155,11 +166,11 @@ app.MapGet("/auth/google-callback", async (HttpContext context, IServiceProvider
     });
 
 
-    return Results.Redirect("/code");
+    return Results.Redirect("/submit-code");
 
 });
 
-app.MapGet("/code", async (HttpContext context) =>
+app.MapGet("/submit-code", async (HttpContext context) =>
 {
 
     var doc = new HtmlDocument();
@@ -172,15 +183,26 @@ app.MapGet("/code", async (HttpContext context) =>
 
 app.MapPost("/submit", async (IServiceProvider serviceProvider, HttpContext context, IConfiguration config, UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb) =>
 {
-    string userSessionId;
-    context.Request.Cookies.TryGetValue("sid", out userSessionId);
+    string? userSessionId;
+    if (!context.Request.Cookies.TryGetValue("sid", out userSessionId))
+        return Results.BadRequest();
     Console.WriteLine($"Session endpoint accessed sid {userSessionId} from cookie.");
 
     var rokuCodeForm = await context.Request.ReadFormAsync();
-    string code = rokuCodeForm["code"];
+    if (rokuCodeForm is null)
+        return Results.BadRequest();
+
+    string? code = rokuCodeForm["code"];
+    if (code is null)
+        return Results.BadRequest();
     System.Console.WriteLine($"User submitted {code}");
 
-    await UserSessions.AssociateToRoku(code, userSessionId, userSessionDb, rokuSessionDb);
+    if (!await UserSessions.AssociateToRoku(code, userSessionId, userSessionDb, rokuSessionDb))
+    {
+        System.Console.WriteLine("Failed to associate roku session and user session");
+        return Results.BadRequest();
+    }
+    ;
 
     GooglePhotosFlow googlePhotos = new();
     string pickerUri = await googlePhotos.StartGooglePhotosFlow(serviceProvider, config, userSessionDb, userSessionId, code);
@@ -201,7 +223,7 @@ app.MapPost("/roku-reception", async (HttpContext context, RokuSessionDbContext 
 
     if (string.IsNullOrEmpty(sessionCode))
     {
-        Console.WriteLine("Unknown SessionCode was tried at /roku-reception endpoint");
+        Console.WriteLine("An invalid SessionCode was tried at /roku-reception endpoint");
         return Results.NotFound("Media is not ready to be transfered.");
     }
     ;
@@ -219,38 +241,58 @@ app.MapPost("/roku-reception", async (HttpContext context, RokuSessionDbContext 
 
 });
 
-app.MapPost("/roku-links", async (HttpContext context) =>
+app.MapPost("/roku-get-resource-package", async (HttpContext context) =>
 {
+    System.Console.WriteLine("Providing resource package");
     var body = await RokuSessions.ReadRokuPost(context);
     if (body == "fail")
+    {
+        System.Console.WriteLine("Failed to get Roku body");
         return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
-    var jsonBody = JsonSerializer.Deserialize<RokuSessionPostBody>(body);
+    }
+    var jsonBody = JsonSerializer.Deserialize<RokuSessionIdPostBody>(body);
     var sessionCode = jsonBody?.RokuSessionCode;
+    var rokuId = jsonBody?.RokuId;
+
+    System.Console.WriteLine($"User provided sessionCode: {sessionCode} and rokuId: {rokuId}");
+
+    if (rokuId is null || sessionCode is null)
+    {
+        System.Console.WriteLine("rokuid or sessioncode is null");
+        return Results.Forbid();
+    }
 
     //thanks copilot for the query
-    List<string> links = GlobalStore.GlobalImageStore
-    .Where(img => img.SessionCode == sessionCode)
-    .Select(img => img.Hash).ToList();
+    var links = GlobalStore.GetResourcePackage(sessionCode, rokuId);
 
     if (links is null || links.Count == 0)
+    {
+        System.Console.WriteLine("links is null or 0 count");
         return Results.Forbid();
+    }
 
-    return Results.Json(new { Links = links });
+    return Results.Json(links);
 
 });
 
-app.MapPost("/roku-pull", async (HttpContext context) =>
+app.MapGet("/roku-get-resource", async (HttpContext context) =>
 {
-    var body = await RokuSessions.ReadRokuPost(context);
-    if (body == "fail")
-        return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
-    var jsonBody = JsonSerializer.Deserialize<RokuLinksPostBody>(body);
-    var link = jsonBody?.ImageLink;
+    StringValues key;
+    StringValues location;
+    StringValues device;
+    if (!context.Request.Headers.TryGetValue("Authorization", out key))
+        return Results.Unauthorized();
+    if (!context.Request.Headers.TryGetValue("Location", out location))
+        return Results.Unauthorized();
+    if (!context.Request.Headers.TryGetValue("Device", out device))
+        return Results.Unauthorized();
 
-    //thanks copilot for the query
-    (byte[] image, string fileType) = GlobalStore.GlobalImageStore
-    .Where(img => img.Hash == link)
-    .Select(img => (img.ImageStream, img.FileType)).SingleOrDefault();
+    System.Console.WriteLine($"Received key: {key} for file {location} from device {device}");
+
+    if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(device) || string.IsNullOrEmpty(location))
+        return Results.Unauthorized();
+
+    (byte[] image, string fileType) = GlobalStore.GetResourceData(location, key, device);
 
     if (image is null || fileType is null)
         return Results.Forbid();
