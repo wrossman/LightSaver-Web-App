@@ -7,15 +7,25 @@ using System.Collections.Concurrent;
 
 public class UserSessions
 {
+
+    private readonly ILogger<UserSessions> _logger;
+    private readonly RokuSessionDbContext _rokuSessionDb;
+    private readonly UserSessionDbContext _userSessionDb;
+    public UserSessions(ILogger<UserSessions> logger, UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb)
+    {
+        _logger = logger;
+        _userSessionDb = userSessionDb;
+        _rokuSessionDb = rokuSessionDb;
+    }
     public static ConcurrentQueue<string> CodesReadyForTransfer { get; set; } = new();
     private static HashSet<string> UserSessionIds { get; set; } = new();
 
-    private static async Task<bool> CheckIpSessionCount(IPAddress ipAddress, UserSessionDbContext sessionDb)
+    private async Task<bool> CheckIpSessionCount(IPAddress ipAddress)
     {
         string ipAddressStr = ipAddress.ToString();
-        System.Console.WriteLine($"User {ipAddressStr} just tried to connect");
+        _logger.LogInformation($"User {ipAddressStr} just tried to connect");
 
-        int result = await sessionDb.Sessions.CountAsync(s => s.SourceAddress == ipAddressStr);
+        int result = await _userSessionDb.Sessions.CountAsync(s => s.SourceAddress == ipAddressStr);
 
         if (result <= 3)
             return true;
@@ -23,9 +33,9 @@ public class UserSessions
             return false;
     }
 
-    public static async Task<string> CreateUserSession(IPAddress ipAddress, UserSessionDbContext sessionDb, string accessToken)
+    public async Task<string> CreateUserSession(IPAddress ipAddress, string accessToken)
     {
-        if (!await CheckIpSessionCount(ipAddress, sessionDb))
+        if (!await CheckIpSessionCount(ipAddress))
             throw new ArgumentException("Too many sessions with current IP");
 
         string ipAddressStr = ipAddress.ToString();
@@ -41,16 +51,18 @@ public class UserSessions
         };
 
         // write usersession to database and write sessioncode to hashset
-        sessionDb.Add(session);
+        _userSessionDb.Add(session);
         // add check to ensure that the data was written
-        await sessionDb.SaveChangesAsync();
-        System.Console.WriteLine("The following session was written to the database:");
+        await _userSessionDb.SaveChangesAsync();
+
+        string sessionLog = "The following session was written to the database:";
         foreach (PropertyInfo prop in session.GetType().GetProperties())
         {
             var name = prop.Name;
             var value = prop.GetValue(session, null);
-            Console.WriteLine($"{name} = {value}");
+            sessionLog += $"\n{name} = {value}";
         }
+        _logger.LogInformation(sessionLog);
         return session.Id;
     }
 
@@ -72,12 +84,12 @@ public class UserSessions
         return userSessionId;
     }
 
-    public static async Task<bool> AssociateToRoku(string sessionCode, string sessionId, UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb)
+    public async Task<bool> AssociateToRoku(string sessionCode, string sessionId)
     {
         // THIS METHOD IS A LITTLE OVER KILL I SHOULD PROBABLY FIX IT
-        var rokuSession = await rokuSessionDb.Sessions
+        var rokuSession = await _rokuSessionDb.Sessions
         .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
-        var userSession = await userSessionDb.Sessions.FindAsync(sessionId);
+        var userSession = await _userSessionDb.Sessions.FindAsync(sessionId);
 
         if (rokuSession is null)
         {
@@ -89,8 +101,8 @@ public class UserSessions
         {
             userSession.SessionCode = sessionCode;
             userSession.RokuId = rokuSession.RokuId;
-            await userSessionDb.SaveChangesAsync();
-            System.Console.WriteLine("Successfully updated UserSession SessionCode");
+            await _userSessionDb.SaveChangesAsync();
+            _logger.LogInformation("Successfully updated UserSession SessionCode");
         }
         else
             throw new Exception("Unable to update UserSession SessionCode");
@@ -102,27 +114,6 @@ public class UserSessions
         else
             throw new Exception("RokuSession is unable to be found");
 
-        // var test = await rokuSessionDb.Sessions
-        // .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
-
-        // foreach (PropertyInfo prop in test.GetType().GetProperties())
-        // {
-        //     var name = prop.Name;
-        //     var value = prop.GetValue(test, null);
-        //     Console.WriteLine($"{name} = {value}");
-        // }
-
-        // var userTest = await userSessionDb.Sessions
-        // .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
-
-        // foreach (PropertyInfo prop in userTest.GetType().GetProperties())
-        // {
-        //     var name = prop.Name;
-        //     var value = prop.GetValue(userTest, null);
-        //     Console.WriteLine($"{name} = {value}");
-        // }
-
         return true;
     }
-
 }

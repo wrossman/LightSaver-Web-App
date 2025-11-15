@@ -79,6 +79,8 @@ builder.Services.AddHostedService<TransferFilesService>();
 
 // register classes for DI
 builder.Services.AddScoped<RokuSessions>();
+builder.Services.AddScoped<UserSessions>();
+builder.Services.AddScoped<GoogleFlow>();
 
 // start all services at the same time so they dont block each other
 builder.Services.Configure<HostOptions>(options =>
@@ -136,7 +138,7 @@ app.MapGet("/google", (IConfiguration config) =>
     return Results.Redirect(googleQuery);
 });
 
-app.MapGet("/auth/google-callback", async (HttpContext context, IServiceProvider serviceProvider, UserSessionDbContext userSessionDb) =>
+app.MapGet("/auth/google-callback", async (HttpContext context, GoogleFlow google, UserSessions user) =>
 {
 
     // ADD RATE LIMITING FOR ENDPOINTS
@@ -157,7 +159,7 @@ app.MapGet("/auth/google-callback", async (HttpContext context, IServiceProvider
     string userSessionId = "";
     try
     {
-        userSessionId = await GoogleFlow.GoogleAuthFlow(remoteIpAddress, context, config, authCodeString, userSessionDb);
+        userSessionId = await google.GoogleAuthFlow(remoteIpAddress, authCodeString, user);
     }
     catch (Exception e)
     {
@@ -167,7 +169,7 @@ app.MapGet("/auth/google-callback", async (HttpContext context, IServiceProvider
     // go to page that lets user input roku sessioncode
     // set a cookie to maintain session
     // create a fallback that uses a query to make sure it still works if browser does not allow cookies
-    Console.WriteLine($"Creating cookie for userSessionID {userSessionId}");
+    app.Logger.LogInformation($"Creating cookie for userSessionID {userSessionId}");
     //thanks copilot
     context.Response.Cookies.Append("sid", userSessionId, new CookieOptions
     {
@@ -178,9 +180,7 @@ app.MapGet("/auth/google-callback", async (HttpContext context, IServiceProvider
                      // No Expires or MaxAge → session cookie
     });
 
-
     return Results.Redirect("/submit-code");
-
 });
 
 app.MapGet("/submit-code", (HttpContext context) =>
@@ -194,7 +194,7 @@ app.MapGet("/submit-code", (HttpContext context) =>
 
 });
 
-app.MapPost("/submit", async (IServiceProvider serviceProvider, HttpContext context, IConfiguration config, UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb) =>
+app.MapPost("/submit", async (IServiceProvider serviceProvider, HttpContext context, IConfiguration config, UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb, UserSessions user) =>
 {
     string? userSessionId;
     if (!context.Request.Cookies.TryGetValue("sid", out userSessionId))
@@ -210,7 +210,7 @@ app.MapPost("/submit", async (IServiceProvider serviceProvider, HttpContext cont
         return Results.BadRequest();
     System.Console.WriteLine($"User submitted {code}");
 
-    if (!await UserSessions.AssociateToRoku(code, userSessionId, userSessionDb, rokuSessionDb))
+    if (!await user.AssociateToRoku(code, userSessionId))
     {
         System.Console.WriteLine("Failed to associate roku session and user session");
         return Results.BadRequest();
