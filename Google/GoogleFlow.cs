@@ -2,16 +2,25 @@ using System.Net;
 using System.Text.Json;
 public class GoogleFlow
 {
-    public static async Task<string> GoogleAuthFlow(IPAddress ipAddress, HttpContext context, IConfiguration config, string authCodeString, UserSessionDbContext userSessionDbContext)
+    public GoogleFlow(ILogger<GoogleFlow> logger, IConfiguration config, UserSessionDbContext userSessionDb)
+    {
+        _logger = logger;
+        _config = config;
+        _userSessionDb = userSessionDb;
+    }
+    private readonly ILogger<GoogleFlow> _logger;
+    private readonly IConfiguration _config;
+    private readonly UserSessionDbContext _userSessionDb;
+    public async Task<string> GoogleAuthFlow(IPAddress ipAddress, string authCodeString, UserSessions user)
     {
 
-        GoogleTokenResponse? accessTokenJson = await GetAccessToken(context, config, authCodeString);
+        GoogleTokenResponse? accessTokenJson = await GetAccessToken(authCodeString);
         // ADD TRACKING FOR ACCESSTOKENS
         if (accessTokenJson is null)
             throw new ArgumentException("Failed to retrieve Access Token");
         string accessToken = accessTokenJson.AccessToken;
 
-        string userSessionId = await UserSessions.CreateUserSession(ipAddress, userSessionDbContext, accessToken);
+        string userSessionId = await user.CreateUserSession(ipAddress, accessToken);
         if (string.IsNullOrEmpty(userSessionId))
         {
             Console.WriteLine("Failed to create user");
@@ -21,16 +30,15 @@ public class GoogleFlow
         ;
 
         return userSessionId;
-
     }
 
 
-    public static async Task<GoogleTokenResponse?> GetAccessToken(HttpContext context, IConfiguration config, string code)
+    public async Task<GoogleTokenResponse?> GetAccessToken(string code)
     {
-        string clientId = config["OAuth:ClientId"] ?? string.Empty;
-        string clientSecret = config["OAuth:ClientSecret"] ?? string.Empty;
+        string clientId = _config["OAuth:ClientId"] ?? string.Empty;
+        string clientSecret = _config["OAuth:ClientSecret"] ?? string.Empty;
         string retrieveTokenUrl = "https://oauth2.googleapis.com/token";
-        string redirectUri = config["OAuth:RedirectUri"] ?? string.Empty;
+        string redirectUri = _config["OAuth:RedirectUri"] ?? string.Empty;
 
         using HttpClient client = new();
 
