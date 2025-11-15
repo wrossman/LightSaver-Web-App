@@ -2,11 +2,12 @@ using System.Net;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Reflection;
+using System.Collections.Concurrent;
 
 
 public class UserSessions
 {
-    public static Queue<string> CodesReadyForTransfer { get; set; } = new();
+    public static ConcurrentQueue<string> CodesReadyForTransfer { get; set; } = new();
     private static HashSet<string> UserSessionIds { get; set; } = new();
 
     private static async Task<bool> CheckIpSessionCount(IPAddress ipAddress, UserSessionDbContext sessionDb)

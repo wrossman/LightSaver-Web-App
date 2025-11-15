@@ -3,8 +3,6 @@ using Microsoft.Extensions.Primitives;
 using System.Net;
 using HtmlAgilityPack;
 using System.Text.Json;
-
-var builder = WebApplication.CreateBuilder(args);
 /*
 
 
@@ -20,8 +18,6 @@ PROVIDE ACCESS WHEN THEY ENTER A CORRECT KEY THAT THEIR ROKU DEVICE DISPLAYS
   in an un thread safe way
 
 - enable https redirect after i get ssl up
-
-- none of this shit is thread safe
 
 - update session timeouts
 
@@ -42,6 +38,10 @@ PROVIDE ACCESS WHEN THEY ENTER A CORRECT KEY THAT THEIR ROKU DEVICE DISPLAYS
   stager so i dont do a double tap for the photos, i would have to have a third agent
   to pass off to 
 
+- Correct the stale session service time
+
+- refactor all the static classes so i can use di
+
 
 ***** TO SECURE ACCESS AND MAKE SURE USERS CONTINUE TO HAVE IT,
 CREATE A CRYPTOGRAPHIC KEY THAT CAN BE STORED ON THE ROKU REGISTRY
@@ -57,9 +57,14 @@ AND THEN THEY CAN ACCESS THE PICTURES ONLY IF THE SERIAL NUMBER MATCHES THE
 IMAGE RESOURCE.
 
 */
+var builder = WebApplication.CreateBuilder(args);
+
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
 
 //add databases
 builder.Services.AddDbContext<UserSessionDbContext>(options =>
@@ -71,6 +76,9 @@ builder.Services.AddDbContext<RokuSessionDbContext>(options =>
 builder.Services.AddHostedService<RemoveStaleUserSessionsService>();
 builder.Services.AddHostedService<RemoveStaleRokuSessionsService>();
 builder.Services.AddHostedService<TransferFilesService>();
+
+// register classes for DI
+builder.Services.AddScoped<RokuSessions>();
 
 // start all services at the same time so they dont block each other
 builder.Services.Configure<HostOptions>(options =>
@@ -88,25 +96,30 @@ if (app.Environment.IsDevelopment())
 
 // app.UseHttpsRedirection();
 
-app.MapPost("/roku", async (HttpContext context, RokuSessionDbContext sessionDb) =>
+app.MapPost("/roku", async (HttpContext context, RokuSessions roku) =>
 {
+    app.Logger.LogInformation("Someone Tried to get a session code");
     var request = context.Request;
     var remoteIpAddress = request.HttpContext.Connection.RemoteIpAddress ?? new IPAddress(new byte[4]);
 
     var body = await RokuSessions.ReadRokuPost(context);
     if (body == "fail")
+    {
         return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
+    }
+
     var jsonBody = JsonSerializer.Deserialize<RokuIdPostBody>(body);
     var rokuId = jsonBody?.RokuId;
 
     if (string.IsNullOrEmpty(rokuId))
-        return Results.Forbid();
+        return Results.BadRequest();
 
-    string sessionCode = await RokuSessions.CreateRokuSession(remoteIpAddress, sessionDb, rokuId);
+    string sessionCode = await roku.CreateRokuSession(remoteIpAddress, rokuId);
     if (sessionCode == string.Empty)
     {
         Console.WriteLine($"Failed: TOO MANY CONNECTIONS FROM IP ADDRESS {remoteIpAddress}");
-        return Results.Unauthorized();
+        return Results.StatusCode(StatusCodes.Status429TooManyRequests);
+
     }
 
     return Results.Json(new { RokuSessionCode = sessionCode });
@@ -133,13 +146,13 @@ app.MapGet("/auth/google-callback", async (HttpContext context, IServiceProvider
 
 
     if (context.Request.Query.ContainsKey("error"))
-        return Results.Problem($"Failed with error: {context.Request.Query["error"]}");
+        return Results.Content(GlobalHelpers.CreateErrorPage("There was a problem allowing <strong>Lightsaver</strong> to access your photos."), "text/html");
     var authCode = request.Query["code"];
     if (authCode == StringValues.Empty)
-        return Results.Problem("Unable to get Authorization Code from Google");
+        return Results.Content(GlobalHelpers.CreateErrorPage("There was a problem retrieving the google authorization code <strong>Lightsaver</strong> to access your photos."), "text/html");
     string authCodeString = authCode.ToString();
     if (authCodeString == string.Empty)
-        return Results.Problem("Google OAuth Response Failed to provide Authorization String");
+        return Results.BadRequest();
 
     string userSessionId = "";
     try
@@ -170,7 +183,7 @@ app.MapGet("/auth/google-callback", async (HttpContext context, IServiceProvider
 
 });
 
-app.MapGet("/submit-code", async (HttpContext context) =>
+app.MapGet("/submit-code", (HttpContext context) =>
 {
 
     var doc = new HtmlDocument();
@@ -210,7 +223,7 @@ app.MapPost("/submit", async (IServiceProvider serviceProvider, HttpContext cont
     return Results.Redirect($"{pickerUri}/autoclose");
 });
 
-app.MapPost("/roku-reception", async (HttpContext context, RokuSessionDbContext rokuSessionDb) =>
+app.MapPost("/roku-reception", async (HttpContext context, RokuSessionDbContext rokuSessionDb, RokuSessions roku) =>
 {
     //be carefull about what i return to the user because they cant be able to see what is a valid session code
 
@@ -228,7 +241,7 @@ app.MapPost("/roku-reception", async (HttpContext context, RokuSessionDbContext 
     }
     ;
 
-    if (await RokuSessions.CheckReadyTransfer(sessionCode, rokuSessionDb))
+    if (await roku.CheckReadyTransfer(sessionCode))
     {
         System.Console.WriteLine("Media is ready");
         return Results.Content("Ready");
@@ -275,7 +288,7 @@ app.MapPost("/roku-get-resource-package", async (HttpContext context) =>
 
 });
 
-app.MapGet("/roku-get-resource", async (HttpContext context) =>
+app.MapGet("/roku-get-resource", (HttpContext context) =>
 {
     StringValues key;
     StringValues location;
@@ -292,7 +305,7 @@ app.MapGet("/roku-get-resource", async (HttpContext context) =>
     if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(device) || string.IsNullOrEmpty(location))
         return Results.Unauthorized();
 
-    (byte[] image, string fileType) = GlobalStore.GetResourceData(location, key, device);
+    (byte[] image, string fileType) = GlobalStore.GetResourceData(location.ToString(), key.ToString(), device.ToString());
 
     if (image is null || fileType is null)
         return Results.Forbid();

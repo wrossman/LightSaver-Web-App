@@ -4,30 +4,51 @@ using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using System.Net.NetworkInformation;
 public class RokuSessions
 {
-    private static HashSet<string> SessionCodes { get; set; } = new();
+    private readonly ILogger<RokuSessions> _logger;
+    private readonly RokuSessionDbContext _rokuSessionDb;
 
-    public static async Task<string> CreateRokuSession(IPAddress ipAddress, RokuSessionDbContext sessionDb, string rokuId)
+    public RokuSessions(ILogger<RokuSessions> logger, RokuSessionDbContext rokuSessionDb)
+    {
+        _logger = logger;
+        _rokuSessionDb = rokuSessionDb;
+    }
+    public async Task<string> CreateRokuSession(IPAddress ipAddress, string rokuId)
     {
         // TODO: also check if we already have a roku session with this device id.
-        if (!await CheckIpSessionCount(ipAddress, sessionDb))
+        if (!await CheckIpSessionCount(ipAddress))
             return string.Empty;
-
-        RokuSession session = new()
+        bool retry;
+        RokuSession session = new();
+        do
         {
-            Id = 0,
-            RokuId = rokuId,
-            CreatedAt = DateTime.UtcNow,
-            SourceAddress = ipAddress.ToString(),
-            SessionCode = GenerateSessionCode(),
-            ReadyForTransfer = false
-        };
+            retry = false;
+            try
+            {
+                session = new()
+                {
+                    Id = 0,
+                    RokuId = rokuId,
+                    CreatedAt = DateTime.UtcNow,
+                    SourceAddress = ipAddress.ToString(),
+                    SessionCode = GenerateSessionCode(),
+                    ReadyForTransfer = false
+                };
 
-        // write usersession to database and write sessioncode to hashset
-        sessionDb.Add(session);
-        // add check to ensure that the data was written
-        await sessionDb.SaveChangesAsync();
+                // write usersession to database and write sessioncode to hashset
+                _rokuSessionDb.Add(session);
+                // add check to ensure that the data was written
+                await _rokuSessionDb.SaveChangesAsync();
+            }
+            catch (DbUpdateException e)
+            {
+                _logger.LogInformation($"A roku session could not be created due to a SessionCode collision: {e.Message}");
+                retry = true;
+            }
+        } while (retry);
+
 
         System.Console.WriteLine("finished saving the following roku session to rokuSession database");
         foreach (PropertyInfo prop in session.GetType().GetProperties())
@@ -43,25 +64,22 @@ public class RokuSessions
     {
         using var rng = RandomNumberGenerator.Create();
         string sessionCode = "";
-        do
-        {
-            var bytes = new byte[4];
-            rng.GetBytes(bytes);
 
-            int value = BitConverter.ToInt32(bytes, 0) & int.MaxValue; // ensure non-negative
-            int code = value % 0x1000000; // restrict to 6 hex digits (0x000000 - 0xFFFFFF), thanks copilot
-            sessionCode = code.ToString("X6");
+        var bytes = new byte[4];
+        rng.GetBytes(bytes);
 
-        } while (SessionCodes.Contains(sessionCode));
+        int value = BitConverter.ToInt32(bytes, 0) & int.MaxValue; // ensure non-negative
+        int code = value % 0x1000000; // restrict to 6 hex digits (0x000000 - 0xFFFFFF), thanks copilot
+        sessionCode = code.ToString("X6");
 
         return sessionCode;
     }
-    private static async Task<bool> CheckIpSessionCount(IPAddress ipAddress, RokuSessionDbContext sessionDb)
+    private async Task<bool> CheckIpSessionCount(IPAddress ipAddress)
     {
         string ipAddressStr = ipAddress.ToString();
         System.Console.WriteLine($"Roku device {ipAddressStr} just tried to connect");
 
-        int result = await sessionDb.Sessions.CountAsync(s => s.SourceAddress == ipAddressStr);
+        int result = await _rokuSessionDb.Sessions.CountAsync(s => s.SourceAddress == ipAddressStr);
 
         if (result <= 3)
             return true;
@@ -70,9 +88,9 @@ public class RokuSessions
 
     }
 
-    public static async Task<bool> CheckReadyTransfer(string sessionCode, RokuSessionDbContext rokuSessionDb)
+    public async Task<bool> CheckReadyTransfer(string sessionCode)
     {
-        var rokuSession = await rokuSessionDb.Sessions
+        var rokuSession = await _rokuSessionDb.Sessions
             .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
         if (rokuSession is not null)
         {

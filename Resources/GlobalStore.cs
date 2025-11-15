@@ -12,7 +12,10 @@ public class GlobalStore
             .Select(img => new { img.Id, img.Key })
             .ToDictionary(x => x.Id, x => x.Key);
         if (links is null)
+        {
             System.Console.WriteLine("GetResourcePackage Failed");
+            return null;
+        }
 
         foreach (KeyValuePair<string, string> item in links)
         {
