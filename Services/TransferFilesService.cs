@@ -5,20 +5,16 @@ public class TransferFilesService(
 {
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        using IServiceScope scope = serviceProvider.CreateScope();
-        var userOptions = new DbContextOptionsBuilder<UserSessionDbContext>().UseInMemoryDatabase("UserSessionDb").Options;
-        var rokuOptions = new DbContextOptionsBuilder<RokuSessionDbContext>().UseInMemoryDatabase("RokuSessionDb").Options;
-        using UserSessionDbContext userSessionDb = new(userOptions);
-        using RokuSessionDbContext rokuSessionDb = new(rokuOptions);
-
         while (!cancellationToken.IsCancellationRequested)
         {
+            using IServiceScope scope = serviceProvider.CreateScope();
+            var userOptions = new DbContextOptionsBuilder<UserSessionDbContext>().UseInMemoryDatabase("UserSessionDb").Options;
+            var rokuOptions = new DbContextOptionsBuilder<RokuSessionDbContext>().UseInMemoryDatabase("RokuSessionDb").Options;
+            using UserSessionDbContext userSessionDb = new(userOptions);
+            using RokuSessionDbContext rokuSessionDb = new(rokuOptions);
             if (UserSessions.CodesReadyForTransfer.TryDequeue(out var sessionCode))
             {
                 await TestSessionCode(userSessionDb, rokuSessionDb, sessionCode);
-
-
-
             }
             await Task.Delay(1000, cancellationToken);
         }
@@ -34,12 +30,22 @@ public class TransferFilesService(
             userSession.ReadyForTransfer = true;
             await userSessionDb.SaveChangesAsync();
         }
+        else
+        {
+            System.Console.WriteLine("TestSessionCode Failed getting userSession");
+            return;
+        }
         var rokuSession = await rokuSessionDb.Sessions
         .FirstOrDefaultAsync(s => s.SessionCode == userSession.SessionCode);
         if (rokuSession != null)
         {
             rokuSession.ReadyForTransfer = true;
             await rokuSessionDb.SaveChangesAsync();
+        }
+        else
+        {
+            System.Console.WriteLine("TestSessionCode Failed getting rokuSession");
+            return;
         }
         foreach (PropertyInfo prop in userSession.GetType().GetProperties())
         {

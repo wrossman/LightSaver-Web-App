@@ -9,4 +9,12 @@ public class RokuSessionDbContext : DbContext
     public RokuSessionDbContext()
     {
     }
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<RokuSession>()
+            .HasIndex(s => s.SessionCode)
+            .IsUnique();
+    }
 }

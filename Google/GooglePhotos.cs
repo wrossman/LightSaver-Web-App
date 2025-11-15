@@ -66,25 +66,12 @@ public class GooglePhotosFlow
             var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
             byte[] data = await client.GetByteArrayAsync(item.Key);
-            string hash = ComputeHashFromBytes(data);
+            string hash = GlobalHelpers.ComputeHashFromBytes(data);
             hash = hash + "-" + DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
 
             ImageShare share = new(hash, key, sessionCode, data, DateTime.UtcNow, item.Value, rokuId);
             GlobalStore.AddResource(share);
         }
-    }
-    public static string ComputeHashFromBytes(byte[] data)
-    {
-        //thanks copilot
-        using var sha256 = SHA256.Create();
-        byte[] hashBytes = sha256.ComputeHash(data);
-
-        // Convert to hex string
-        var builder = new StringBuilder();
-        foreach (var b in hashBytes)
-            builder.Append(b.ToString("x2"));
-
-        return builder.ToString();
     }
 
     public void AddUrlsToList(string photoList, IConfiguration config)
