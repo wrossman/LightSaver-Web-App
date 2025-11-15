@@ -31,8 +31,6 @@ public class GoogleFlow
 
         return userSessionId;
     }
-
-
     public async Task<GoogleTokenResponse?> GetAccessToken(string code)
     {
         string clientId = _config["OAuth:ClientId"] ?? string.Empty;
