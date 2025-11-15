@@ -31,5 +31,14 @@ public class GlobalHelpers
 
         return builder.ToString();
     }
-
+    public static string BuildGoogleOAuthUrl(IConfiguration config)
+    {
+        string clientId = config["OAuth:ClientId"] ?? string.Empty;
+        string redirect = config["OAuth:RedirectUri"] ?? string.Empty;
+        string responseType = config["OAuth:ResponseType"] ?? string.Empty;
+        string scope = config["OAuth:PickerScope"] ?? string.Empty;
+        string googleAuthServer = config["OAuth:GoogleAuthServer"] ?? string.Empty;
+        string googleQuery = $"{googleAuthServer}?scope={scope}&response_type={responseType}&redirect_uri={redirect}&client_id={clientId}";
+        return googleQuery;
+    }
 }

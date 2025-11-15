@@ -2,40 +2,46 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Security.Cryptography;
-using Microsoft.EntityFrameworkCore;
-using System.Reflection;
-using System.Runtime.InteropServices;
 
 public class GooglePhotosFlow
 {
-
-    public static Dictionary<string, ImageShare> UserImageShare { get; set; } = new();
     public Dictionary<string, string> FileUrls { get; set; } = new();
 
-    public async Task<string> StartGooglePhotosFlow(IServiceProvider serviceProvider, IConfiguration config, UserSessionDbContext userSessionDb, string userSessionId, string sessionCode)
+    private readonly ILogger<GooglePhotosFlow> _logger;
+    private readonly IConfiguration _config;
+    private readonly UserSessionDbContext _userSessionDb;
+    private readonly IServiceProvider _serviceProvider;
+    public GooglePhotosFlow(ILogger<GooglePhotosFlow> logger, IConfiguration config, UserSessionDbContext userSessionDb, IServiceProvider serviceProvider)
+    {
+        _logger = logger;
+        _config = config;
+        _userSessionDb = userSessionDb;
+        _serviceProvider = serviceProvider;
+    }
+    public async Task<string> StartGooglePhotosFlow(string userSessionId, string sessionCode)
     {
         System.Console.WriteLine(userSessionId + " Found in StartGoogle Photos flow");
-        var session = await userSessionDb.Sessions.FindAsync(userSessionId);
+        var session = await _userSessionDb.Sessions.FindAsync(userSessionId);
         string? accessToken = session?.AccessToken;
         string? rokuId = session?.RokuId;
         if (accessToken is null || rokuId is null)
             throw new ArgumentException("Failed to located User Session");
 
-        PickerSession pickerSession = await GetPickerSession(config, accessToken);
+        PickerSession pickerSession = await GetPickerSession(accessToken);
         // CREATE POLLING INSTANCE FOR PICKERSESSION
         if (pickerSession.PickerUri == string.Empty || pickerSession.PollingConfig.PollInterval == string.Empty)
             throw new ArgumentException("Failed to retrieve Picker URI");
 
         string pickerUri = pickerSession.PickerUri;
 
-        using (var scope = serviceProvider.CreateScope())
+        using (var scope = _serviceProvider.CreateScope())
         {
-            _ = Task.Run(() => PollPhotos(config, pickerSession, accessToken, sessionCode, rokuId));
+            _ = Task.Run(() => PollPhotos(pickerSession, accessToken, sessionCode, rokuId));
         }
         return pickerUri;
 
     }
-    public async Task WritePhotosToLocal(PickerSession pickerSession, string accessToken)
+    public async Task WritePhotosToLocal(string accessToken)
     {
         using HttpClient client = new();
         string folderPath = @"C:\Users\billuswillus\Desktop\";
@@ -53,7 +59,6 @@ public class GooglePhotosFlow
             await responseStream.CopyToAsync(fileStream);
         }
     }
-
     public async Task WritePhotosToMemory(string sessionCode, string accessToken, string rokuId)
     {
         using HttpClient client = new();
@@ -73,12 +78,11 @@ public class GooglePhotosFlow
             GlobalStore.AddResource(share);
         }
     }
-
-    public void AddUrlsToList(string photoList, IConfiguration config)
+    public void AddUrlsToList(string photoList)
     {
         MediaItemsResponse photoListJson = JsonSerializer.Deserialize<MediaItemsResponse>(photoList) ?? new();
         List<MediaItem> mediaItems = photoListJson.MediaItems;
-        string maxSize = config["MaxPhotoDimensions"] ?? "w3840-h2160";
+        string maxSize = _config["MaxPhotoDimensions"] ?? "w3840-h2160";
 
         foreach (MediaItem item in mediaItems)
         {
@@ -94,12 +98,6 @@ public class GooglePhotosFlow
                 FileUrls.Add($"{tempFile.BaseUrl}={maxSize}", fileType);
             }
         }
-        //print all files
-        // foreach (KeyValuePair<string, string> item in FileUrls)
-        // {
-        //     // 
-        //     // System.Console.WriteLine($"{item.Key}: {item.Value}");
-        // }
     }
     public static async Task<string> GetPhotoList(PickerSession pickerSession, string accessToken)
     {
@@ -109,7 +107,7 @@ public class GooglePhotosFlow
         string response = await client.GetStringAsync($"https://photospicker.googleapis.com/v1/mediaItems?sessionId={pickerSession.Id}");
         return response;
     }
-    public async Task PollPhotos(IConfiguration config, PickerSession pickerSession, string accessToken, string sessionCode, string rokuId)
+    public async Task PollPhotos(PickerSession pickerSession, string accessToken, string sessionCode, string rokuId)
     {
         int interval;
         decimal timeoutDecimal;
@@ -133,16 +131,16 @@ public class GooglePhotosFlow
             var responseJson = JsonSerializer.Deserialize<PickerSession>(response);
             if (responseJson is null)
             {
-                System.Console.WriteLine("Failed to get PickingSession");
+                _logger.LogWarning("Failed to get PickingSession");
 
                 // return "failed";
             }
             else if (responseJson.MediaItemsSet == true)
             {
-                System.Console.WriteLine("User clicked DONE.");
+                _logger.LogInformation("User finished selecting photos.");
                 string photoList = await GooglePhotosFlow.GetPhotoList(pickerSession, accessToken);
 
-                AddUrlsToList(photoList, config);
+                AddUrlsToList(photoList);
                 await WritePhotosToMemory(sessionCode, accessToken, rokuId);
                 UserSessions.CodesReadyForTransfer.Enqueue(sessionCode);
 
@@ -150,18 +148,18 @@ public class GooglePhotosFlow
             }
             else if (responseJson.MediaItemsSet == false)
             {
-                System.Console.WriteLine("Still waiting for user to click done.");
+                _logger.LogInformation("Waiting for user to select photos.");
                 // return "done";
             }
             else if (DateTime.Now >= sessionStartTime.AddSeconds(timeout))
             {
-                System.Console.WriteLine("Timeout reached.");
+                _logger.LogWarning("Timeout reached for photo selection.");
                 // return "timeout";
             }
 
         }
     }
-    public static async Task<PickerSession> GetPickerSession(IConfiguration config, string accessToken)
+    public async Task<PickerSession> GetPickerSession(string accessToken)
     {
         using HttpClient photosClient = new();
 
@@ -173,7 +171,7 @@ public class GooglePhotosFlow
         {
             pickingConfig = new
             {
-                maxItemCount = config["MaxGooglePhotosItems"]
+                maxItemCount = _config["MaxGooglePhotosItems"]
             }
         };
 
@@ -185,7 +183,7 @@ public class GooglePhotosFlow
 
         var pickerJson = JsonSerializer.Deserialize<PickerSession>(pickerContent);
         if (pickerJson is null || string.IsNullOrEmpty(pickerJson.PickerUri))
-            return (new PickerSession());
+            return new PickerSession();
 
 
         return pickerJson;
