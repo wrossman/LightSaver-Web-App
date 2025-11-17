@@ -18,9 +18,7 @@ public class TransferFilesService(
             }
             await Task.Delay(1000, cancellationToken);
         }
-
     }
-
     public static async Task TestSessionCode(UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb, string sessionCode)
     {
         var userSession = await userSessionDb.Sessions
