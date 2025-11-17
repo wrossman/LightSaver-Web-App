@@ -1,13 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 public class RemoveStaleRokuSessionsService(
-    IServiceProvider serviceProvider) : IHostedService
+    IServiceProvider serviceProvider, ILogger<RemoveStaleRokuSessionsService> logger) : IHostedService
 {
+    private readonly ILogger<RemoveStaleRokuSessionsService> _logger = logger;
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        // using IServiceScope scope = serviceProvider.CreateScope();
-        // var options = new DbContextOptionsBuilder<RokuSessionDbContext>().UseInMemoryDatabase("RokuSessionDb").Options;
-        // using RokuSessionDbContext sessionDb = new(options);
-
         while (true)
         {
             using IServiceScope scope = serviceProvider.CreateScope();
@@ -15,9 +12,9 @@ public class RemoveStaleRokuSessionsService(
             using RokuSessionDbContext sessionDb = new(options);
 
             await Task.Delay(10000, cancellationToken);
-            // System.Console.WriteLine("Running Roku Session Cleanup");
 
-            var cutoff = DateTime.UtcNow.AddSeconds(-60000);
+            _logger.LogInformation("Running Roku Session Cleanup");
+            var cutoff = DateTime.UtcNow.AddSeconds(-600);
 
             // Find expired sessions
             var expiredSessions = await sessionDb.Sessions
@@ -29,7 +26,7 @@ public class RemoveStaleRokuSessionsService(
 
             foreach (RokuSession item in expiredSessions)
             {
-                System.Console.WriteLine($"Removed Roku Session for IP: {item.SourceAddress}");
+                _logger.LogWarning($"Removed Roku Session for IP: {item.SourceAddress} due to session timeout.");
             }
         }
     }

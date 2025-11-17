@@ -92,7 +92,7 @@ public class UserSessions
 
         if (rokuSession is null)
         {
-            System.Console.WriteLine($"Roku session could not be found for sessionCode {sessionCode}");
+            _logger.LogWarning($"Roku session could not be found for sessionCode {sessionCode}");
             return false;
         }
 
@@ -108,7 +108,7 @@ public class UserSessions
 
         if (rokuSession != null && rokuSession.SessionCode == userSession.SessionCode)
         {
-            System.Console.WriteLine("RokuSession and UserSession have been associated");
+            _logger.LogInformation("RokuSession and UserSession have been associated");
         }
         else
             throw new Exception("RokuSession is unable to be found");

@@ -49,14 +49,16 @@ public class RokuSessions
             }
         } while (retry);
 
-
-        System.Console.WriteLine("finished saving the following roku session to rokuSession database");
+        string rokuSessionLog = "";
+        rokuSessionLog += "Finished saving the following roku session to rokuSession database:\n";
         foreach (PropertyInfo prop in session.GetType().GetProperties())
         {
             var name = prop.Name;
             var value = prop.GetValue(session, null);
-            Console.WriteLine($"{name} = {value}");
+            rokuSessionLog += $"{name} = {value}\n";
         }
+        _logger.LogInformation(rokuSessionLog);
+
         return session.SessionCode;
     }
 
@@ -77,7 +79,7 @@ public class RokuSessions
     private async Task<bool> CheckIpSessionCount(IPAddress ipAddress)
     {
         string ipAddressStr = ipAddress.ToString();
-        System.Console.WriteLine($"Roku device {ipAddressStr} just tried to connect");
+        _logger.LogInformation($"Roku device {ipAddressStr} just tried to connect");
 
         int result = await _rokuSessionDb.Sessions.CountAsync(s => s.SourceAddress == ipAddressStr);
 
@@ -92,15 +94,6 @@ public class RokuSessions
     {
         var rokuSession = await _rokuSessionDb.Sessions
             .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
-        if (rokuSession is not null)
-        {
-            // foreach (PropertyInfo prop in rokuSession.GetType().GetProperties())
-            // {
-            //     var name = prop.Name;
-            //     var value = prop.GetValue(rokuSession, null);
-            //     Console.WriteLine($"{name} = {value}");
-            // }
-        }
         if (rokuSession != null && rokuSession.ReadyForTransfer == true)
             return true;
         else

@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using System.Reflection;
 public class TransferFilesService(
-    IServiceProvider serviceProvider) : IHostedService
+    IServiceProvider serviceProvider, ILogger<TransferFilesService> logger) : IHostedService
 {
+    private readonly ILogger<TransferFilesService> _logger = logger;
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
@@ -12,6 +12,7 @@ public class TransferFilesService(
             var rokuOptions = new DbContextOptionsBuilder<RokuSessionDbContext>().UseInMemoryDatabase("RokuSessionDb").Options;
             using UserSessionDbContext userSessionDb = new(userOptions);
             using RokuSessionDbContext rokuSessionDb = new(rokuOptions);
+
             if (UserSessions.CodesReadyForTransfer.TryDequeue(out var sessionCode))
             {
                 await TestSessionCode(userSessionDb, rokuSessionDb, sessionCode);
@@ -19,7 +20,7 @@ public class TransferFilesService(
             await Task.Delay(1000, cancellationToken);
         }
     }
-    public static async Task TestSessionCode(UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb, string sessionCode)
+    public async Task TestSessionCode(UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb, string sessionCode)
     {
         var userSession = await userSessionDb.Sessions
         .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
@@ -30,7 +31,7 @@ public class TransferFilesService(
         }
         else
         {
-            System.Console.WriteLine("TestSessionCode Failed getting userSession");
+            _logger.LogWarning($"TestSessionCode Failed getting userSession for session code {sessionCode}");
             return;
         }
         var rokuSession = await rokuSessionDb.Sessions
@@ -42,21 +43,10 @@ public class TransferFilesService(
         }
         else
         {
-            System.Console.WriteLine("TestSessionCode Failed getting rokuSession");
+            _logger.LogWarning($"TestSessionCode Failed getting rokuSession for session code {sessionCode}");
             return;
         }
-        foreach (PropertyInfo prop in userSession.GetType().GetProperties())
-        {
-            var name = prop.Name;
-            var value = prop.GetValue(userSession, null);
-            Console.WriteLine($"{name} = {value}");
-        }
-        foreach (PropertyInfo prop in rokuSession.GetType().GetProperties())
-        {
-            var name = prop.Name;
-            var value = prop.GetValue(rokuSession, null);
-            Console.WriteLine($"{name} = {value}");
-        }
+
     }
     public Task StopAsync(CancellationToken cancellationToken)
         => Task.CompletedTask;

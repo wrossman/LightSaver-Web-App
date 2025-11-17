@@ -23,11 +23,10 @@ public class GoogleFlow
         string userSessionId = await user.CreateUserSession(ipAddress, accessToken);
         if (string.IsNullOrEmpty(userSessionId))
         {
-            Console.WriteLine("Failed to create user");
+            _logger.LogWarning("Failed to create user");
             // add cleanup logic?
             throw new ArgumentException("Failed to create User Session");
         }
-        ;
 
         return userSessionId;
     }
