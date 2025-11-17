@@ -7,6 +7,7 @@ GENERAL TO-DO ITEMS
 -------------------
 - Add rate limiting to the endpoint that provides access to user photos.
 - Provide access only when the user enters the correct key displayed by the Roku.
+- Create a background for each image that is just the image but super blurred. Send the background with the image if roku chooses the setting for a blurred image background. 
 - Update all Results.* responses to their appropriate HTTP responses.
 - Review and check for OWASP Top 10 vulnerabilities.
 - Enable HTTPS redirection (after SSL is configured).
