@@ -6,7 +6,8 @@ public static class GooglePhotosEndpoints
 {
     public static void MapGooglePhotosEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/google");
+        var group = app.MapGroup("/google")
+            .RequireRateLimiting("by-ip-policy");
 
         group.MapPost("/roku", ProvideSessionCode);
         group.MapGet("/google-redirect", GoogleOAuthRedirect);
@@ -107,7 +108,7 @@ public static class GooglePhotosEndpoints
         string? userSessionId;
         if (!context.Request.Cookies.TryGetValue("sid", out userSessionId))
             return Results.BadRequest();
-        Console.WriteLine($"Session endpoint accessed sid {userSessionId} from cookie.");
+        logger.LogInformation($"Session endpoint accessed sid {userSessionId} from cookie.");
 
         var rokuCodeForm = await context.Request.ReadFormAsync();
         if (rokuCodeForm is null)
@@ -116,11 +117,11 @@ public static class GooglePhotosEndpoints
         string? code = rokuCodeForm["code"];
         if (code is null)
             return Results.BadRequest();
-        System.Console.WriteLine($"User submitted {code}");
+        logger.LogInformation($"User submitted {code}");
 
         if (!await user.AssociateToRoku(code, userSessionId))
         {
-            System.Console.WriteLine("Failed to associate roku session and user session");
+            logger.LogWarning("Failed to associate roku session and user session");
             return Results.BadRequest();
         }
         ;
@@ -141,19 +142,16 @@ public static class GooglePhotosEndpoints
 
         if (string.IsNullOrEmpty(sessionCode))
         {
-            Console.WriteLine("An invalid SessionCode was tried at /google/roku-reception endpoint");
+            logger.LogWarning("An invalid SessionCode was tried at /google/roku-reception endpoint");
             return Results.NotFound("Media is not ready to be transfered.");
         }
-    ;
 
         if (await roku.CheckReadyTransfer(sessionCode))
         {
-            System.Console.WriteLine("Media is ready");
             return Results.Content("Ready");
         }
         else
         {
-            System.Console.WriteLine("Media is not ready to be transfered.");
             return Results.NotFound("Media is not ready to be transfered.");
         }
     }
@@ -199,7 +197,7 @@ public static class GooglePhotosEndpoints
         if (!context.Request.Headers.TryGetValue("Device", out device))
             return Results.Unauthorized();
 
-        System.Console.WriteLine($"Received key: {key} for file {location} from device {device}");
+        logger.LogInformation($"Received key: {key} for file {location} from device {device}");
 
         if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(device) || string.IsNullOrEmpty(location))
             return Results.Unauthorized();
@@ -207,7 +205,7 @@ public static class GooglePhotosEndpoints
         (byte[]? image, string? fileType) = GlobalStoreHelpers.GetResourceData(resourceDbContext, location.ToString(), key.ToString(), device.ToString());
 
         if (image is null || fileType is null)
-            return Results.Forbid();
+            return Results.Unauthorized();
 
         return Results.File(image, $"image/{fileType}");
     }

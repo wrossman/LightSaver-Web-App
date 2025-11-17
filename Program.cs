@@ -5,7 +5,7 @@
 
 GENERAL TO-DO ITEMS
 -------------------
-- Add rate limiting to the endpoint that provides access to user photos.
+
 - Provide access only when the user enters the correct key displayed by the Roku.
 - Create a background for each image that is just the image but super blurred. Send the background with the image if roku chooses the setting for a blurred image background. 
 - Update all Results.* responses to their appropriate HTTP responses.
@@ -16,13 +16,19 @@ GENERAL TO-DO ITEMS
 - Fix null-handling issues throughout the workflow.
 - Restrict direct access to the image store; create public access methods
   in the ImageStore class for images and links.
-- Set up proper logging for each stage of the workflow.
 - Decide whether the image hash should be used as the resource link.
 - Require Roku to send a hashed version of its serial number; store IDs as hashes.
 - Correct the stale session service timing.
 - Ensure all LogWarning() calls return something meaningful to the caller.
-- Refactor static classes to enable dependency injection.
+
 - Evaluate whether there’s a better approach to managing image resolution.
+
+-------------
+DONE
+-------------
+X Refactor static classes to enable dependency injection.
+X Set up proper logging for each stage of the workflow.
+X Add rate limiting to the endpoint that provides access to user photos.
 
 SECURITY DESIGN NOTES
 ---------------------
@@ -42,14 +48,32 @@ To secure access and ensure users retain proper authorization:
 --------------------------------------------------------------------------------
 */
 
+using System.Threading.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
+
+builder.Services.AddOpenApi();
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("by-ip-policy", httpContext =>
+    {
+        string ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        return RateLimitPartition.GetFixedWindowLimiter(partitionKey: ip, factory: key => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromSeconds(30),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0
+        });
+    });
+});
 
 //add databases
 builder.Services.AddDbContext<UserSessionDbContext>(options =>
@@ -77,6 +101,8 @@ builder.Services.Configure<HostOptions>(options =>
 });
 
 var app = builder.Build();
+
+app.UseRateLimiter();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
