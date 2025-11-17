@@ -157,39 +157,37 @@ public static class GooglePhotosEndpoints
             return Results.NotFound("Media is not ready to be transfered.");
         }
     }
-    private static async Task<IResult> ProvideResourcePackage(HttpContext context, ILogger<RokuSessions> logger)
+    private static async Task<IResult> ProvideResourcePackage(HttpContext context, GlobalImageStoreDbContext resourceDbContext, ILogger<RokuSessions> logger)
     {
-        System.Console.WriteLine("Providing resource package");
         var body = await RokuSessions.ReadRokuPost(context);
         if (body == "fail")
         {
-            System.Console.WriteLine("Failed to get Roku body");
+            logger.LogWarning($"IP: {context.Connection.RemoteIpAddress} failed to retrieve resource package. Request payload was too large.");
             return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
         }
+
         var jsonBody = JsonSerializer.Deserialize<RokuSessionIdPostBody>(body);
         var sessionCode = jsonBody?.RokuSessionCode;
         var rokuId = jsonBody?.RokuId;
 
-        System.Console.WriteLine($"User provided sessionCode: {sessionCode} and rokuId: {rokuId}");
-
         if (rokuId is null || sessionCode is null)
         {
-            System.Console.WriteLine("rokuid or sessioncode is null");
-            return Results.Forbid();
+            logger.LogWarning($"IP: {context.Connection.RemoteIpAddress} failed to retrieve resource package. Provided RokuId or SessionCode was invalid.");
+            return Results.BadRequest("Failed to retrieve resource package.");
         }
 
-        //thanks copilot for the query
-        var links = GlobalStore.GetResourcePackage(sessionCode, rokuId);
+        var links = GlobalStoreHelpers.GetResourcePackage(resourceDbContext, sessionCode, rokuId);
 
         if (links is null || links.Count == 0)
         {
-            System.Console.WriteLine("links is null or 0 count");
-            return Results.Forbid();
+            logger.LogWarning($"IP: {context.Connection.RemoteIpAddress} failed to retrieve resource package. Provided RokuId or SessionCode was invalid.");
+            return Results.BadRequest("Failed to retrieve resource package.");
         }
 
+        logger.LogInformation($"Sending resource package for session code {sessionCode} to IP: {context.Connection.RemoteIpAddress}");
         return Results.Json(links);
     }
-    private static IResult ProvideResource(HttpContext context, ILogger<RokuSessions> logger)
+    private static IResult ProvideResource(HttpContext context, GlobalImageStoreDbContext resourceDbContext, ILogger<RokuSessions> logger)
     {
         StringValues key;
         StringValues location;
@@ -206,7 +204,7 @@ public static class GooglePhotosEndpoints
         if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(device) || string.IsNullOrEmpty(location))
             return Results.Unauthorized();
 
-        (byte[] image, string fileType) = GlobalStore.GetResourceData(location.ToString(), key.ToString(), device.ToString());
+        (byte[]? image, string? fileType) = GlobalStoreHelpers.GetResourceData(resourceDbContext, location.ToString(), key.ToString(), device.ToString());
 
         if (image is null || fileType is null)
             return Results.Forbid();

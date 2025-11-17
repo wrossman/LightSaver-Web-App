@@ -19,7 +19,6 @@ public class UserSessions
     }
     public static ConcurrentQueue<string> CodesReadyForTransfer { get; set; } = new();
     private static HashSet<string> UserSessionIds { get; set; } = new();
-
     private async Task<bool> CheckIpSessionCount(IPAddress ipAddress)
     {
         string ipAddressStr = ipAddress.ToString();

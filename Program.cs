@@ -55,6 +55,8 @@ builder.Services.AddDbContext<UserSessionDbContext>(options =>
     options.UseInMemoryDatabase("UserSessionDb"));
 builder.Services.AddDbContext<RokuSessionDbContext>(options =>
     options.UseInMemoryDatabase("RokuSessionDb"));
+builder.Services.AddDbContext<GlobalImageStoreDbContext>(options =>
+    options.UseInMemoryDatabase("GlobalImageStore"));
 
 //add hosted services for session management and file transfers
 builder.Services.AddHostedService<RemoveStaleUserSessionsService>();
