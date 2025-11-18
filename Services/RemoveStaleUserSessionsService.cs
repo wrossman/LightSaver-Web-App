@@ -18,8 +18,8 @@ public class RemoveStaleUserSessionsService(
 
             // Find expired sessions
             var expiredSessions = await sessionDb.Sessions
-                .Where(s => s.CreatedAt < cutoff)
-                .ToListAsync();
+            .Where(s => s.Expired || s.CreatedAt < cutoff)
+            .ToListAsync();
 
             sessionDb.Sessions.RemoveRange(expiredSessions);
             await sessionDb.SaveChangesAsync();

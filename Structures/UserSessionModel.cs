@@ -7,5 +7,5 @@ public record UserSession
     public string SessionCode { get; set; } = "";
     public bool ReadyForTransfer { get; set; } = false;
     public string RokuId { get; set; } = "";
-
+    public bool Expired { get; set; } = false;
 }

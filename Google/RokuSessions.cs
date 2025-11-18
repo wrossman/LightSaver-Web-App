@@ -3,8 +3,6 @@ using System.Net;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 using System.Text;
-using System.Text.Json;
-using System.Net.NetworkInformation;
 public class RokuSessions
 {
     private readonly ILogger<RokuSessions> _logger;
@@ -17,9 +15,15 @@ public class RokuSessions
     }
     public async Task<string> CreateRokuSession(IPAddress ipAddress, string rokuId)
     {
-        // TODO: also check if we already have a roku session with this device id.
-        // if (!await CheckIpSessionCount(ipAddress))
-        //     return string.Empty;
+        var item = await _rokuSessionDb.Sessions
+        .FirstOrDefaultAsync(x => x.RokuId == rokuId);
+
+        if (item != null)
+        {
+            _rokuSessionDb.Sessions.Remove(item);
+            await _rokuSessionDb.SaveChangesAsync();
+        }
+
         bool retry;
         RokuSession session = new();
         do
@@ -34,10 +38,10 @@ public class RokuSessions
                     CreatedAt = DateTime.UtcNow,
                     SourceAddress = ipAddress.ToString(),
                     SessionCode = GenerateSessionCode(),
-                    ReadyForTransfer = false
+                    ReadyForTransfer = false,
+                    Expired = false
                 };
 
-                // write usersession to database and write sessioncode to hashset
                 _rokuSessionDb.Add(session);
                 // add check to ensure that the data was written
                 await _rokuSessionDb.SaveChangesAsync();
@@ -76,19 +80,6 @@ public class RokuSessions
 
         return sessionCode;
     }
-    // private async Task<bool> CheckIpSessionCount(IPAddress ipAddress)
-    // {
-    //     string ipAddressStr = ipAddress.ToString();
-    //     _logger.LogInformation($"Roku device {ipAddressStr} just tried to connect");
-
-    //     int result = await _rokuSessionDb.Sessions.CountAsync(s => s.SourceAddress == ipAddressStr);
-
-    //     if (result <= 3)
-    //         return true;
-    //     else
-    //         return false;
-
-    // }
 
     public async Task<bool> CheckReadyTransfer(string sessionCode)
     {

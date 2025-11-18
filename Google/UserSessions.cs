@@ -18,38 +18,21 @@ public class UserSessions
         _rokuSessionDb = rokuSessionDb;
     }
     public static ConcurrentQueue<string> CodesReadyForTransfer { get; set; } = new();
-    private static HashSet<string> UserSessionIds { get; set; } = new();
-    // private async Task<bool> CheckIpSessionCount(IPAddress ipAddress)
-    // {
-    //     string ipAddressStr = ipAddress.ToString();
-    //     _logger.LogInformation($"User {ipAddressStr} just tried to connect");
-
-    //     int result = await _userSessionDb.Sessions.CountAsync(s => s.SourceAddress == ipAddressStr);
-
-    //     if (result <= 3)
-    //         return true;
-    //     else
-    //         return false;
-    // }
-
     public async Task<string> CreateUserSession(IPAddress ipAddress, string accessToken)
     {
-        // if (!await CheckIpSessionCount(ipAddress))
-        //     throw new ArgumentException("Too many sessions with current IP");
-
         string ipAddressStr = ipAddress.ToString();
 
         UserSession session = new()
         {
-            Id = GenerateSessionId(),
+            Id = await GenerateSessionId(),
             CreatedAt = DateTime.UtcNow,
             AccessToken = accessToken,
             SourceAddress = ipAddressStr,
             SessionCode = "",
-            ReadyForTransfer = false
+            ReadyForTransfer = false,
+            Expired = false
         };
 
-        // write usersession to database and write sessioncode to hashset
         _userSessionDb.Add(session);
         // add check to ensure that the data was written
         await _userSessionDb.SaveChangesAsync();
@@ -65,11 +48,12 @@ public class UserSessions
         return session.Id;
     }
 
-    private static string GenerateSessionId()
+    private async Task<string> GenerateSessionId()
     {
         using var rng = RandomNumberGenerator.Create();
         string userSessionId;
-        //thanks copilot
+        UserSession? session;
+        //thanks copilot ish
         do
         {
             // Generate 16 random bytes (128 bits)
@@ -77,8 +61,10 @@ public class UserSessions
             RandomNumberGenerator.Fill(bytes);
             // Convert to hex string (32 hex chars)
             userSessionId = Convert.ToHexString(bytes); // e.g., "A1B2C3D4..."
+            session = await _userSessionDb.Sessions
+            .FirstOrDefaultAsync(x => x.Id == userSessionId);
 
-        } while (UserSessionIds.Contains(userSessionId));
+        } while (session is not null);
 
         return userSessionId;
     }

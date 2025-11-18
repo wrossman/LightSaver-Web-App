@@ -8,6 +8,7 @@ FINAL ITEMS
 - Enable HTTPS redirection (after SSL is configured).
 - Review and check for OWASP Top 10 vulnerabilities.
 - Update all Results.* responses to their appropriate HTTP responses.
+- Remove all sensitive data from logging
 
 NEW FEATURES
 -------------------
@@ -16,13 +17,21 @@ NEW FEATURES
 
 GENERAL TO-DO ITEMS
 -------------------
-- create an error page if cookies cannot be used
-- Require Roku to send a hashed version of its serial number; store IDs as hashes.
+- Require Roku to send a hashed version of its serial number; store IDs as hashes so im not storing peoples serials
 - Evaluate whether there’s a better approach to managing image resolution.
+- remove session code from imgs after linking and providing resource package
+- remove user and roku sessions after flow failure
+- if a roku tries to get google photos again then remove old photos right before comitting new ones
+- QR Code for LightSaver, could i make it so it verifys if the user enables cookies,
+  generate the qr code dynamically and include the session code in it, user scans
+  code, the enpoint stores the code in cookies and then forwards them through the
+  google oauth process without having to submit their session code
 
 -------------
 DONE
 -------------
+X remove session code from session code hash set on session expiration
+X remove duplicate session if the same roku device tries to connect to /roku
 X Restrict direct access to the image store; create public access methods
   in the ImageStore class for images and links.
 X Fix null-handling issues throughout the workflow.
