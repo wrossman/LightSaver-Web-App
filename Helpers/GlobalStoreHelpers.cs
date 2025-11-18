@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 public class GlobalStoreHelpers
 {
     public static Dictionary<string, string>? GetResourcePackage(GlobalImageStoreDbContext resourceDbContext, string sessionCode, string rokuId)
@@ -30,5 +31,24 @@ public class GlobalStoreHelpers
         else
             return (null, null);
 
+    }
+
+    public static async Task<bool> ScrubSessionCode(GlobalImageStoreDbContext resourceDb, string sessionCode)
+    {
+        var sessions = await resourceDb.Resources
+        .Where(s => s.SessionCode == sessionCode)
+        .ToListAsync();
+        if (sessions is null)
+        {
+            return false;
+        }
+        else
+        {
+            foreach (var s in sessions)
+                s.SessionCode = string.Empty;
+
+            await resourceDb.SaveChangesAsync();
+            return true;
+        }
     }
 }

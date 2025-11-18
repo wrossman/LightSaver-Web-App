@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Routing.Tree;
 using Microsoft.EntityFrameworkCore;
 public class RemoveStaleUserSessionsService(
     IServiceProvider serviceProvider, ILogger<RemoveStaleUserSessionsService> logger) : IHostedService
@@ -26,7 +27,10 @@ public class RemoveStaleUserSessionsService(
 
             foreach (UserSession item in expiredSessions)
             {
-                _logger.LogWarning($"Removed User Session for user {item.SourceAddress} due to session timeout.");
+                if (item.Expired)
+                    _logger.LogInformation($"Removed User Session for user {item.SourceAddress} marked as expired.");
+                else
+                    _logger.LogWarning($"Removed User Session for user {item.SourceAddress} due to session timeout.");
             }
         }
     }
