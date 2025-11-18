@@ -3,32 +3,38 @@
  Feature & Security Improvements
 --------------------------------------------------------------------------------
 
+FINAL ITEMS
+-------------------
+- Enable HTTPS redirection (after SSL is configured).
+- Review and check for OWASP Top 10 vulnerabilities.
+- Update all Results.* responses to their appropriate HTTP responses.
+
+NEW FEATURES
+-------------------
+- Upload images from device
+- Create a background for each image that is just the image but super blurred. Send the background with the image if roku chooses the setting for a blurred image background. 
+
 GENERAL TO-DO ITEMS
 -------------------
-
-- Provide access only when the user enters the correct key displayed by the Roku.
-- Create a background for each image that is just the image but super blurred. Send the background with the image if roku chooses the setting for a blurred image background. 
-- Update all Results.* responses to their appropriate HTTP responses.
-- Review and check for OWASP Top 10 vulnerabilities.
-- Enable HTTPS redirection (after SSL is configured).
-- Update session timeout behavior.
-- If browser cookies fail, fall back to query parameters.
-- Fix null-handling issues throughout the workflow.
-- Restrict direct access to the image store; create public access methods
-  in the ImageStore class for images and links.
-- Decide whether the image hash should be used as the resource link.
+- create an error page if cookies cannot be used
 - Require Roku to send a hashed version of its serial number; store IDs as hashes.
-- Correct the stale session service timing.
-- Ensure all LogWarning() calls return something meaningful to the caller.
-
 - Evaluate whether there’s a better approach to managing image resolution.
 
 -------------
 DONE
 -------------
+X Restrict direct access to the image store; create public access methods
+  in the ImageStore class for images and links.
+X Fix null-handling issues throughout the workflow.
+X Decide whether the image hash should be used as the resource link. FOR NOW YES
+X Correct the stale session service timing.
+X Ensure all LogWarning() calls return something meaningful to the caller.
+X Provide access only when the user enters the correct key displayed by the Roku.
+X Update session timeout behavior.
 X Refactor static classes to enable dependency injection.
 X Set up proper logging for each stage of the workflow.
 X Add rate limiting to the endpoint that provides access to user photos.
+X If browser cookies fail, fall back to query parameters. OAuth requires cookies so this is not a thing.
 
 SECURITY DESIGN NOTES
 ---------------------
