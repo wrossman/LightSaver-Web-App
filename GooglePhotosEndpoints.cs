@@ -2,6 +2,7 @@ using Microsoft.Extensions.Primitives;
 using System.Net;
 using HtmlAgilityPack;
 using System.Text.Json;
+using System.Runtime.InteropServices;
 public static class GooglePhotosEndpoints
 {
     public static void MapGooglePhotosEndpoints(this IEndpointRouteBuilder app)
@@ -60,13 +61,13 @@ public static class GooglePhotosEndpoints
         var remoteIpAddress = request.HttpContext.Connection.RemoteIpAddress ?? new IPAddress(new byte[4]);
 
         if (context.Request.Query.ContainsKey("error"))
-            return Results.Content(GlobalHelpers.CreateErrorPage("There was a problem allowing <strong>Lightsaver</strong> to access your photos."), "text/html");
+            return GlobalHelpers.CreateErrorPage("There was a problem allowing <strong>Lightsaver</strong> to access your photos.");
         var authCode = request.Query["code"];
         if (authCode == StringValues.Empty)
-            return Results.Content(GlobalHelpers.CreateErrorPage("There was a problem retrieving the google authorization code <strong>Lightsaver</strong> to access your photos."), "text/html");
+            return GlobalHelpers.CreateErrorPage("There was a problem retrieving the google authorization code <strong>Lightsaver</strong> to access your photos.");
         string authCodeString = authCode.ToString();
         if (authCodeString == string.Empty)
-            return Results.Content(GlobalHelpers.CreateErrorPage("There was a problem retrieving the google authorization code <strong>Lightsaver</strong> to access your photos."), "text/html");
+            return GlobalHelpers.CreateErrorPage("There was a problem retrieving the google authorization code <strong>Lightsaver</strong> to access your photos.");
 
         string userSessionId = "";
         try
@@ -76,7 +77,7 @@ public static class GooglePhotosEndpoints
         catch (Exception e)
         {
             logger.LogWarning($"Failed to complete Google Authorization Flow with error: {e.Message}");
-            return Results.Content(GlobalHelpers.CreateErrorPage("Failed to authenticate with Google servers."), "text/html");
+            return GlobalHelpers.CreateErrorPage("Failed to authenticate with Google servers.");
         }
 
         // go to page that lets user input roku sessioncode
@@ -122,7 +123,7 @@ public static class GooglePhotosEndpoints
         if (!await user.AssociateToRoku(code, userSessionId))
         {
             logger.LogWarning("Failed to associate roku session and user session");
-            return Results.BadRequest();
+            return GlobalHelpers.CreateErrorPage("The session code you entered was unable to be found.", "<a href=https://10.0.0.15:8443/google/google-redirect>Please Try Again</a>");
         }
         ;
         string pickerUri = await googlePhotos.StartGooglePhotosFlow(userSessionId, code);
