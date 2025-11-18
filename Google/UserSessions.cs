@@ -19,23 +19,23 @@ public class UserSessions
     }
     public static ConcurrentQueue<string> CodesReadyForTransfer { get; set; } = new();
     private static HashSet<string> UserSessionIds { get; set; } = new();
-    private async Task<bool> CheckIpSessionCount(IPAddress ipAddress)
-    {
-        string ipAddressStr = ipAddress.ToString();
-        _logger.LogInformation($"User {ipAddressStr} just tried to connect");
+    // private async Task<bool> CheckIpSessionCount(IPAddress ipAddress)
+    // {
+    //     string ipAddressStr = ipAddress.ToString();
+    //     _logger.LogInformation($"User {ipAddressStr} just tried to connect");
 
-        int result = await _userSessionDb.Sessions.CountAsync(s => s.SourceAddress == ipAddressStr);
+    //     int result = await _userSessionDb.Sessions.CountAsync(s => s.SourceAddress == ipAddressStr);
 
-        if (result <= 3)
-            return true;
-        else
-            return false;
-    }
+    //     if (result <= 3)
+    //         return true;
+    //     else
+    //         return false;
+    // }
 
     public async Task<string> CreateUserSession(IPAddress ipAddress, string accessToken)
     {
-        if (!await CheckIpSessionCount(ipAddress))
-            throw new ArgumentException("Too many sessions with current IP");
+        // if (!await CheckIpSessionCount(ipAddress))
+        //     throw new ArgumentException("Too many sessions with current IP");
 
         string ipAddressStr = ipAddress.ToString();
 

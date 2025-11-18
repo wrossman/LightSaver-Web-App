@@ -18,8 +18,8 @@ public class RokuSessions
     public async Task<string> CreateRokuSession(IPAddress ipAddress, string rokuId)
     {
         // TODO: also check if we already have a roku session with this device id.
-        if (!await CheckIpSessionCount(ipAddress))
-            return string.Empty;
+        // if (!await CheckIpSessionCount(ipAddress))
+        //     return string.Empty;
         bool retry;
         RokuSession session = new();
         do
@@ -76,19 +76,19 @@ public class RokuSessions
 
         return sessionCode;
     }
-    private async Task<bool> CheckIpSessionCount(IPAddress ipAddress)
-    {
-        string ipAddressStr = ipAddress.ToString();
-        _logger.LogInformation($"Roku device {ipAddressStr} just tried to connect");
+    // private async Task<bool> CheckIpSessionCount(IPAddress ipAddress)
+    // {
+    //     string ipAddressStr = ipAddress.ToString();
+    //     _logger.LogInformation($"Roku device {ipAddressStr} just tried to connect");
 
-        int result = await _rokuSessionDb.Sessions.CountAsync(s => s.SourceAddress == ipAddressStr);
+    //     int result = await _rokuSessionDb.Sessions.CountAsync(s => s.SourceAddress == ipAddressStr);
 
-        if (result <= 3)
-            return true;
-        else
-            return false;
+    //     if (result <= 3)
+    //         return true;
+    //     else
+    //         return false;
 
-    }
+    // }
 
     public async Task<bool> CheckReadyTransfer(string sessionCode)
     {

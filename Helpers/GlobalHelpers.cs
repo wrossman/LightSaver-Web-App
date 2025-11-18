@@ -3,7 +3,7 @@ using System.Text;
 using HtmlAgilityPack;
 public class GlobalHelpers
 {
-    public static string CreateErrorPage(string message, string action = "")
+    public static IResult CreateErrorPage(string message, string action = "")
     {
         var doc = new HtmlDocument();
         doc.LoadHtml(File.ReadAllText("./wwwroot/Error.html"));
@@ -16,7 +16,7 @@ public class GlobalHelpers
             actionNode.InnerHtml = action;
         }
         string errorPage = doc.DocumentNode.OuterHtml;
-        return errorPage;
+        return Results.Content(errorPage, "text/html");
     }
     public static string ComputeHashFromBytes(byte[] data)
     {
