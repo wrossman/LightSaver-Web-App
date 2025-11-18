@@ -183,6 +183,12 @@ public static class GooglePhotosEndpoints
             return Results.BadRequest("Failed to retrieve resource package.");
         }
 
+        //remove sessioncode reference from resources
+        if (await GlobalStoreHelpers.ScrubSessionCode(resourceDbContext, sessionCode))
+            logger.LogInformation($"Scrubbed Image Resources of session code {sessionCode}");
+        else
+            logger.LogWarning($"Failed to scrub resources of session code {sessionCode}");
+
         // expire user and roku session associated with session code
         if (await GlobalHelpers.ExpireRokuSession(rokuSessionDb, sessionCode))
             logger.LogInformation("Set roku session for expiration due to resource package delivery.");

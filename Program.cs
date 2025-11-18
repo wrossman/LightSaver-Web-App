@@ -17,6 +17,7 @@ NEW FEATURES
 
 GENERAL TO-DO ITEMS
 -------------------
+- Ensure all polling tasks stop when leaving the screen in roku
 - Require Roku to send a hashed version of its serial number; store IDs as hashes so im not storing peoples serials
 - Evaluate whether there’s a better approach to managing image resolution.
 - remove session code from imgs after linking and providing resource package

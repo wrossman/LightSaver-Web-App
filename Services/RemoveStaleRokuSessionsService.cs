@@ -26,7 +26,10 @@ public class RemoveStaleRokuSessionsService(
 
             foreach (RokuSession item in expiredSessions)
             {
-                _logger.LogWarning($"Removed Roku Session for IP: {item.SourceAddress} due to session timeout.");
+                if (item.Expired)
+                    _logger.LogInformation($"Removed Roku Session for IP: {item.SourceAddress} marked as expired.");
+                else
+                    _logger.LogWarning($"Removed Roku Session for IP: {item.SourceAddress} due to session timeout.");
             }
         }
     }
