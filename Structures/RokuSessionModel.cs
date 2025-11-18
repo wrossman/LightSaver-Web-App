@@ -6,5 +6,6 @@ public record RokuSession
     public string SourceAddress { get; init; } = "0.0.0.0";
     public string SessionCode { get; set; } = "";
     public bool ReadyForTransfer { get; set; } = false;
+    public bool Expired { get; set; } = false;
 
 }

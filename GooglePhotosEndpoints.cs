@@ -156,7 +156,7 @@ public static class GooglePhotosEndpoints
             return Results.NotFound("Media is not ready to be transfered.");
         }
     }
-    private static async Task<IResult> ProvideResourcePackage(HttpContext context, GlobalImageStoreDbContext resourceDbContext, ILogger<RokuSessions> logger)
+    private static async Task<IResult> ProvideResourcePackage(HttpContext context, GlobalImageStoreDbContext resourceDbContext, ILogger<RokuSessions> logger, UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb)
     {
         var body = await RokuSessions.ReadRokuPost(context);
         if (body == "fail")
@@ -182,6 +182,17 @@ public static class GooglePhotosEndpoints
             logger.LogWarning($"IP: {context.Connection.RemoteIpAddress} failed to retrieve resource package. Provided RokuId or SessionCode was invalid.");
             return Results.BadRequest("Failed to retrieve resource package.");
         }
+
+        // expire user and roku session associated with session code
+        if (await GlobalHelpers.ExpireRokuSession(rokuSessionDb, sessionCode))
+            logger.LogInformation("Set roku session for expiration due to resource package delivery.");
+        else
+            logger.LogWarning("Failed to set expire for roku session after resource package delivery.");
+
+        if (await GlobalHelpers.ExpireUserSession(userSessionDb, sessionCode))
+            logger.LogInformation("Set user session for expiration due to resource package delivery.");
+        else
+            logger.LogWarning("Failed to set expire for user session after resource package delivery.");
 
         logger.LogInformation($"Sending resource package for session code {sessionCode} to IP: {context.Connection.RemoteIpAddress}");
         return Results.Json(links);
