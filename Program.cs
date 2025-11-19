@@ -31,6 +31,9 @@ ROKU TO-DO ITEMS
 - Require Roku to send a hashed version of its serial number; store IDs as hashes so im not storing peoples serials
 - Check if ligthroom album doesnt have any pictures before trying to display
 - Fix pic display time from geeking out the slideshow if you set it too low
+- Fix wallpaper not showing if only one image
+- fix roku pulling weird images after i select new google photos from the roku app
+- If the keys roku provides to lightsaver web app are old, prompt it to redo the flow
 -------------
 DONE
 -------------
