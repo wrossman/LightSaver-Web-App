@@ -223,7 +223,10 @@ public static class GooglePhotosEndpoints
         (byte[]? image, string? fileType) = GlobalStoreHelpers.GetResourceData(resourceDbContext, location.ToString(), key.ToString(), device.ToString());
 
         if (image is null || fileType is null)
+        {
+            logger.LogInformation("Old or incorrect keys were tried against the database.");
             return Results.Unauthorized();
+        }
 
         return Results.File(image, $"image/{fileType}");
     }
