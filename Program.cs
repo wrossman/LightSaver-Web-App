@@ -15,12 +15,10 @@ NEW FEATURES
 - Upload images from device
 - Create a background for each image that is just the image but super blurred. Send the background with the image if roku chooses the setting for a blurred image background. 
 
-GENERAL TO-DO ITEMS
+WEB APP TO-DO ITEMS
 -------------------
 - Ensure all polling tasks stop when leaving the screen in roku
-- Require Roku to send a hashed version of its serial number; store IDs as hashes so im not storing peoples serials
 - Evaluate whether there’s a better approach to managing image resolution.
-- remove session code from imgs after linking and providing resource package
 - remove user and roku sessions after flow failure
 - if a roku tries to get google photos again then remove old photos right before comitting new ones
 - QR Code for LightSaver, could i make it so it verifys if the user enables cookies,
@@ -28,9 +26,15 @@ GENERAL TO-DO ITEMS
   code, the enpoint stores the code in cookies and then forwards them through the
   google oauth process without having to submit their session code
 
+ROKU TO-DO ITEMS
+-------------------
+- Require Roku to send a hashed version of its serial number; store IDs as hashes so im not storing peoples serials
+- Check if ligthroom album doesnt have any pictures before trying to display
+- Fix pic display time from geeking out the slideshow if you set it too low
 -------------
 DONE
 -------------
+X remove session code from imgs after linking and providing resource package
 X remove session code from session code hash set on session expiration
 X remove duplicate session if the same roku device tries to connect to /roku
 X Restrict direct access to the image store; create public access methods
