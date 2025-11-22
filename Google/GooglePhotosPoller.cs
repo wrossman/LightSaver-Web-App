@@ -117,22 +117,4 @@ public class GooglePhotosPoller
             await _resourceDbContext.SaveChangesAsync();
         }
     }
-    // public async Task WritePhotosToLocal(string accessToken)
-    // {
-    //     using HttpClient client = new();
-    //     string folderPath = @"C:\Users\billuswillus\Desktop\";
-    //     int filename = 0;
-    //     client.DefaultRequestHeaders.Authorization =
-    //         new AuthenticationHeaderValue("Bearer", accessToken);
-    //     foreach (KeyValuePair<string, string> item in FileUrls)
-    //     {
-    //         filename++;
-    //         var filePath = folderPath + "google" + filename.ToString() + "." + item.Value;
-    //         using var response = await client.GetAsync(item.Key, HttpCompletionOption.ResponseHeadersRead);
-    //         response.EnsureSuccessStatusCode();
-    //         await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
-    //         await using var responseStream = await response.Content.ReadAsStreamAsync();
-    //         await responseStream.CopyToAsync(fileStream);
-    //     }
-    // }
 }

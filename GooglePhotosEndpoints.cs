@@ -2,7 +2,6 @@ using Microsoft.Extensions.Primitives;
 using System.Net;
 using HtmlAgilityPack;
 using System.Text.Json;
-using System.Runtime.InteropServices;
 public static class GooglePhotosEndpoints
 {
     public static void MapGooglePhotosEndpoints(this IEndpointRouteBuilder app)
@@ -44,7 +43,7 @@ public static class GooglePhotosEndpoints
         string sessionCode = await roku.CreateRokuSession(remoteIpAddress, rokuId);
         if (sessionCode == string.Empty)
         {
-            logger.LogWarning($"Failed: TOO MANY CONNECTIONS FROM IP ADDRESS {remoteIpAddress}");
+            logger.LogWarning($"Failed to create roku session for  {remoteIpAddress}");
             return Results.StatusCode(StatusCodes.Status429TooManyRequests);
         }
 
@@ -227,6 +226,9 @@ public static class GooglePhotosEndpoints
             logger.LogInformation("Old or incorrect keys were tried against the database.");
             return Results.Unauthorized();
         }
+
+        // For testing image output - this thing is dangerous, dont let it run for a long time because it writes to desktop unless you stop it
+        // GlobalStoreHelpers.WritePhotosToLocal(image, fileType);
 
         return Results.File(image, $"image/{fileType}");
     }

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 public class GlobalStoreHelpers
 {
+    public static int Filename { get; set; } = 0;
     public static Dictionary<string, string>? GetResourcePackage(GlobalImageStoreDbContext resourceDbContext, string sessionCode, string rokuId)
     {
         var links = resourceDbContext.Resources
@@ -50,5 +51,17 @@ public class GlobalStoreHelpers
             await resourceDb.SaveChangesAsync();
             return true;
         }
+    }
+    public static void WritePhotosToLocal(byte[] img, string fileType)
+    {
+        string folderPath = @"C:\Users\billuswillus\Desktop\";
+        int file = Filename++;
+        var filePath = folderPath + "google" + file.ToString() + "." + fileType;
+
+        using (FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
+        {
+            fs.Write(img, 0, img.Length);
+        }
+
     }
 }

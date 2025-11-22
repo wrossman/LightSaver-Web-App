@@ -17,7 +17,6 @@ NEW FEATURES
 
 WEB APP TO-DO ITEMS
 -------------------
-- Ensure all polling tasks stop when leaving the screen in roku
 - Evaluate whether there’s a better approach to managing image resolution.
 - remove user and roku sessions after flow failure
 - if a roku tries to get google photos again then remove old photos right before comitting new ones
@@ -32,11 +31,12 @@ ROKU TO-DO ITEMS
 - Check if ligthroom album doesnt have any pictures before trying to display
 - Fix pic display time from geeking out the slideshow if you set it too low
 - Fix wallpaper not showing if only one image
-- fix roku pulling weird images after i select new google photos from the roku app
-- If the keys roku provides to lightsaver web app are old, prompt it to redo the flow
 -------------
 DONE
 -------------
+X If the keys roku provides to lightsaver web app are old, prompt it to redo the flow
+X Ensure all polling tasks stop when leaving the screen in roku
+X fix roku pulling weird images after i select new google photos from the roku app
 X remove session code from imgs after linking and providing resource package
 X remove session code from session code hash set on session expiration
 X remove duplicate session if the same roku device tries to connect to /roku
@@ -136,7 +136,5 @@ if (app.Environment.IsDevelopment())
 // app.UseHttpsRedirection(); //enable this once im done with getting the app service up
 
 app.MapGooglePhotosEndpoints(); // Google Photos Feature Endpoints
-
-// app.MapUploadEndpoint // Upload via browser endpoint will be the next feature
 
 app.Run();
