@@ -27,13 +27,17 @@ WEB APP TO-DO ITEMS
 
 ROKU TO-DO ITEMS
 -------------------
-- Require Roku to send a hashed version of its serial number; store IDs as hashes so im not storing peoples serials
-- Check if ligthroom album doesnt have any pictures before trying to display
-- Fix pic display time from geeking out the slideshow if you set it too low
-- Fix wallpaper not showing if only one image
--------------
+
+-------------------
 DONE
--------------
+-------------------
+X input validation for pic display time
+X Require Roku to send a hashed version of its serial number; store IDs as hashes so im not storing peoples serials
+X Check if ligthroom album doesnt have any pictures before trying to display
+X Fix pic display time from geeking out the slideshow if you set it too low
+X Create a load config task instaed of keeping it all in main scene init
+X Add image display time to registry
+X Fix wallpaper not showing if only one image
 X If the keys roku provides to lightsaver web app are old, prompt it to redo the flow
 X Ensure all polling tasks stop when leaving the screen in roku
 X fix roku pulling weird images after i select new google photos from the roku app
@@ -54,7 +58,7 @@ X Add rate limiting to the endpoint that provides access to user photos.
 X If browser cookies fail, fall back to query parameters. OAuth requires cookies so this is not a thing.
 
 SECURITY DESIGN NOTES
----------------------
+-------------------
 To secure access and ensure users retain proper authorization:
 
 1. Generate a cryptographic key stored in the Roku registry.
@@ -68,7 +72,7 @@ To secure access and ensure users retain proper authorization:
 8. Allow picture access only if the serial number matches what is stored
    for the requested image resource.
 
---------------------------------------------------------------------------------
+-------------------
 */
 
 using System.Threading.RateLimiting;
