@@ -37,11 +37,13 @@ WEB APP TO-DO ITEMS
   code, the enpoint stores the code in cookies and then forwards them through the
   google oauth process without having to submit their session code
 - Add failure to upload image page if cookies are disabled for upload image flow
-
+- add lightroom scraping flow
+- add site to select image source
 ROKU TO-DO ITEMS
 -------------------
 - Fix issues with imgLinks not being initialized correctly on startup,
     if there are no links i should not be able to start the wallpaper and i should be directed elsewhere
+- on startup, if there are no links or if the links don't work, direct the user to the web app enter session code page, then let them select the source of there images, for now it will be public lightroom files, Google photos, or upload photos, then you will finish the flow based off o the selection. Remove the get image source from menu and add a section in the menu that let's you update your images by directing yoh to the web app and re grabbing images.
 -------------------
 DONE
 -------------------
