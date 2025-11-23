@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Enter 6-Character Code</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        body {
+            font-family: system-ui, Arial, sans-serif;
+            background: #f4f8ff;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            max-width: 360px;
+            width: 100%;
+        }
+
+        h1 {
+            margin-bottom: 24px;
+            color: #1a4fdd;
+            font-size: 24px;
+        }
+
+        form {
+            width: 100%;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+            color: #333;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.1rem;
+            text-align: center;
+            border: 2px solid #d5e2ff;
+            border-radius: 8px;
+            outline: none;
+            transition: 0.2s ease;
+        }
+
+        input:focus {
+            border-color: #1a4fdd;
+        }
+
+        button {
+            margin-top: 1rem;
+            padding: 14px;
+            font-size: 1.1rem;
+            width: 100%;
+            background: #1a4fdd;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s ease;
+        }
+
+        button:hover {
+            background: #163fb1;
+        }
+
+        .hint {
+            color: #6b6b6b;
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Enter your 6-character code</h1>
+
+        <form action="/user/source" method="post" novalidate>
+            <label for="code">6-character code</label>
+            <input id="code" name="code" type="text" pattern="^[A-Z0-9]{6}$" maxlength="6" required placeholder="A1B2C3"
+                aria-describedby="codeHint" />
+            <div id="codeHint" class="hint">Exactly 6 letters or numbers.</div>
+
+            <button type="submit">Verify</button>
+        </form>
+    </div>
+
+    <script>
+        const codeInput = document.getElementById('code');
+        codeInput.addEventListener('input', () => {
+            codeInput.value = codeInput.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase();
+        });
+    </script>
+</body>
+
+</html>
