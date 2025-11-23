@@ -18,7 +18,7 @@ public class UserSessions
         _rokuSessionDb = rokuSessionDb;
     }
     public static ConcurrentQueue<string> CodesReadyForTransfer { get; set; } = new();
-    public async Task<string> CreateUserSession(IPAddress ipAddress, string accessToken)
+    public async Task<string> CreateGoogleUserSession(IPAddress ipAddress, string accessToken)
     {
         string ipAddressStr = ipAddress.ToString();
 
@@ -29,6 +29,35 @@ public class UserSessions
             AccessToken = accessToken,
             SourceAddress = ipAddressStr,
             SessionCode = "",
+            ReadyForTransfer = false,
+            Expired = false
+        };
+
+        _userSessionDb.Add(session);
+        // add check to ensure that the data was written
+        await _userSessionDb.SaveChangesAsync();
+
+        string sessionLog = "The following session was written to the database:";
+        foreach (PropertyInfo prop in session.GetType().GetProperties())
+        {
+            var name = prop.Name;
+            var value = prop.GetValue(session, null);
+            sessionLog += $"\n{name} = {value}";
+        }
+        _logger.LogInformation(sessionLog);
+        return session.Id;
+    }
+    public async Task<string> CreateUploadUserSession(IPAddress ipAddress, string sessionCode)
+    {
+        string ipAddressStr = ipAddress.ToString();
+
+        UserSession session = new()
+        {
+            Id = await GenerateSessionId(),
+            CreatedAt = DateTime.UtcNow,
+            AccessToken = "",
+            SourceAddress = ipAddressStr,
+            SessionCode = sessionCode,
             ReadyForTransfer = false,
             Expired = false
         };

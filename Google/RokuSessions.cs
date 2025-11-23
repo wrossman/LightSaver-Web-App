@@ -15,6 +15,7 @@ public class RokuSessions
     }
     public async Task<string> CreateRokuSession(IPAddress ipAddress, string rokuId)
     {
+        // remove session if one exists with provided rokuID
         var item = await _rokuSessionDb.Sessions
         .FirstOrDefaultAsync(x => x.RokuId == rokuId);
 
@@ -43,7 +44,6 @@ public class RokuSessions
                 };
 
                 _rokuSessionDb.Add(session);
-                // add check to ensure that the data was written
                 await _rokuSessionDb.SaveChangesAsync();
             }
             catch (DbUpdateException e)

@@ -9,28 +9,43 @@ FINAL ITEMS
 - Review and check for OWASP Top 10 vulnerabilities.
 - Update all Results.* responses to their appropriate HTTP responses.
 - Remove all sensitive data from logging
+- Create Privacy Policy
+- Create Terms and Conditions
+- Check for uncaught exceptions
 
 NEW FEATURES
 -------------------
 - Upload images from device
-- Create a background for each image that is just the image but super blurred. Send the background with the image if roku chooses the setting for a blurred image background. 
+- Create an album that lets you add pictures from multiple sources. share with friends from a link.
+- Create a background for each image that is just the image but super blurred. Send the background with the image if roku chooses the setting for a blurred image background.
+
+DESIGN ITEMS
+-------------------
+- Create app logo
+- Create background for roku
+- Web App error page creation
+- Web App Code Submit Page
+- Web App home page with information
 
 WEB APP TO-DO ITEMS
 -------------------
 - Evaluate whether there’s a better approach to managing image resolution.
 - remove user and roku sessions after flow failure
-- if a roku tries to get google photos again then remove old photos right before comitting new ones
 - QR Code for LightSaver, could i make it so it verifys if the user enables cookies,
   generate the qr code dynamically and include the session code in it, user scans
   code, the enpoint stores the code in cookies and then forwards them through the
   google oauth process without having to submit their session code
+- Add failure to upload image page if cookies are disabled for upload image flow
 
 ROKU TO-DO ITEMS
 -------------------
-
+- Fix issues with imgLinks not being initialized correctly on startup,
+    if there are no links i should not be able to start the wallpaper and i should be directed elsewhere
 -------------------
 DONE
 -------------------
+X if a roku tries to get google photos again then remove old photos right before comitting new ones
+X Figure out why google still shows the wrong project name
 X input validation for pic display time
 X Require Roku to send a hashed version of its serial number; store IDs as hashes so im not storing peoples serials
 X Check if ligthroom album doesnt have any pictures before trying to display
@@ -45,7 +60,7 @@ X remove session code from imgs after linking and providing resource package
 X remove session code from session code hash set on session expiration
 X remove duplicate session if the same roku device tries to connect to /roku
 X Restrict direct access to the image store; create public access methods
-  in the ImageStore class for images and links.
+    in the ImageStore class for images and links.
 X Fix null-handling issues throughout the workflow.
 X Decide whether the image hash should be used as the resource link. FOR NOW YES
 X Correct the stale session service timing.
@@ -120,6 +135,7 @@ builder.Services.AddScoped<RokuSessions>();
 builder.Services.AddScoped<UserSessions>();
 builder.Services.AddScoped<GoogleFlow>();
 builder.Services.AddScoped<GooglePhotosFlow>();
+builder.Services.AddScoped<UploadImages>();
 
 // start all services at the same time so they dont block each other
 builder.Services.Configure<HostOptions>(options =>
@@ -140,5 +156,9 @@ if (app.Environment.IsDevelopment())
 // app.UseHttpsRedirection(); //enable this once im done with getting the app service up
 
 app.MapGooglePhotosEndpoints(); // Google Photos Feature Endpoints
+
+app.MapUploadPhotosEndpoints(); // Upload to web app feature enpoints
+
+app.MapRokuSessionEndpoints(); // Roku session code and image ready polling endpoints
 
 app.Run();

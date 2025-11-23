@@ -20,7 +20,7 @@ public class GoogleFlow
             throw new ArgumentException("Failed to retrieve Access Token");
         string accessToken = accessTokenJson.AccessToken;
 
-        string userSessionId = await user.CreateUserSession(ipAddress, accessToken);
+        string userSessionId = await user.CreateGoogleUserSession(ipAddress, accessToken);
         if (string.IsNullOrEmpty(userSessionId))
         {
             _logger.LogWarning("Failed to create user");
