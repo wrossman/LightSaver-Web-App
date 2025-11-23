@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 public class GoogleFlow
 {
     public GoogleFlow(ILogger<GoogleFlow> logger, IConfiguration config, UserSessionDbContext userSessionDb)
@@ -58,5 +59,18 @@ public class GoogleFlow
             return null;
 
         return jsonResponse;
+    }
+    public async Task<bool> LinkAccessToken(string accessToken, string userSessionId)
+    {
+        var userSession = await _userSessionDb.Sessions.FirstOrDefaultAsync(u => u.Id == userSessionId);
+
+        if (userSession is null)
+            return false;
+
+        userSession.AccessToken = accessToken;
+
+        await _userSessionDb.SaveChangesAsync();
+
+        return true;
     }
 }

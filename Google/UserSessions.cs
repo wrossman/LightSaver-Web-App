@@ -76,7 +76,34 @@ public class UserSessions
         _logger.LogInformation(sessionLog);
         return session.Id;
     }
+    public async Task<string> CreateUserSession(IPAddress ipAddress, string sessionCode)
+    {
+        string ipAddressStr = ipAddress.ToString();
 
+        UserSession session = new()
+        {
+            Id = await GenerateSessionId(),
+            CreatedAt = DateTime.UtcNow,
+            AccessToken = "",
+            SourceAddress = ipAddressStr,
+            SessionCode = sessionCode,
+            ReadyForTransfer = false,
+            Expired = false
+        };
+        _userSessionDb.Add(session);
+        // add check to ensure that the data was written
+        await _userSessionDb.SaveChangesAsync();
+
+        string sessionLog = "The following user session was written to the database:";
+        foreach (PropertyInfo prop in session.GetType().GetProperties())
+        {
+            var name = prop.Name;
+            var value = prop.GetValue(session, null);
+            sessionLog += $"\n{name} = {value}";
+        }
+        _logger.LogInformation(sessionLog);
+        return session.Id;
+    }
     private async Task<string> GenerateSessionId()
     {
         using var rng = RandomNumberGenerator.Create();
@@ -98,35 +125,20 @@ public class UserSessions
         return userSessionId;
     }
 
-    public async Task<bool> AssociateToRoku(string sessionCode, string sessionId)
+    public async Task<bool> AssociateToRoku(string userSessionId)
     {
         // THIS METHOD IS A LITTLE OVER KILL I SHOULD PROBABLY FIX IT
-        var rokuSession = await _rokuSessionDb.Sessions
-        .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
-        var userSession = await _userSessionDb.Sessions.FindAsync(sessionId);
-
-        if (rokuSession is null)
-        {
-            _logger.LogWarning($"Roku session could not be found for sessionCode {sessionCode}");
+        var userSession = await _userSessionDb.Sessions.FindAsync(userSessionId);
+        if (userSession == null)
             return false;
-        }
 
-        if (userSession != null)
-        {
-            userSession.SessionCode = sessionCode;
-            userSession.RokuId = rokuSession.RokuId;
-            await _userSessionDb.SaveChangesAsync();
-            _logger.LogInformation("Successfully updated UserSession SessionCode");
-        }
-        else
-            throw new Exception("Unable to update UserSession SessionCode");
+        var rokuSession = await _rokuSessionDb.Sessions.FirstOrDefaultAsync(r => r.SessionCode == userSession.SessionCode);
+        if (rokuSession == null)
+            return false;
 
-        if (rokuSession != null && rokuSession.SessionCode == userSession.SessionCode)
-        {
-            _logger.LogInformation("RokuSession and UserSession have been associated");
-        }
-        else
-            throw new Exception("RokuSession is unable to be found");
+        userSession.RokuId = rokuSession.RokuId;
+        await _userSessionDb.SaveChangesAsync();
+        _logger.LogInformation("Successfully updated UserSession with RokuId");
 
         return true;
     }

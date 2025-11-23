@@ -11,86 +11,52 @@ public static class GooglePhotosEndpoints
 
         group.MapGet("/google-redirect", GoogleOAuthRedirect);
         group.MapGet("/auth/google-callback", HandleOAuthResponse);
-        group.MapGet("/submit-code-google", CodeSubmissionPageGoogle);
-        group.MapPost("/submit", PostSessionCode);
     }
     private static IResult GoogleOAuthRedirect(IConfiguration config, ILogger<GoogleFlow> logger)
     {
         return Results.Redirect(GlobalHelpers.BuildGoogleOAuthUrl(config));
     }
-    private static async Task<IResult> HandleOAuthResponse(HttpContext context, GoogleFlow google, UserSessions user, ILogger<GoogleFlow> logger)
+    private static async Task<IResult> HandleOAuthResponse(HttpContext context, GooglePhotosFlow googlePhotos, GoogleFlow google, UserSessions user, ILogger<GoogleFlow> logger)
     {
         var request = context.Request;
-        var remoteIpAddress = request.HttpContext.Connection.RemoteIpAddress ?? new IPAddress(new byte[4]);
 
         if (context.Request.Query.ContainsKey("error"))
             return GlobalHelpers.CreateErrorPage("There was a problem allowing <strong>Lightsaver</strong> to access your photos.");
         var authCode = request.Query["code"];
         if (authCode == StringValues.Empty)
-            return GlobalHelpers.CreateErrorPage("There was a problem retrieving the google authorization code <strong>Lightsaver</strong> to access your photos.");
+            return GlobalHelpers.CreateErrorPage("There was a problem retrieving the google authorization code.");
         string authCodeString = authCode.ToString();
         if (authCodeString == string.Empty)
-            return GlobalHelpers.CreateErrorPage("There was a problem retrieving the google authorization code <strong>Lightsaver</strong> to access your photos.");
+            return GlobalHelpers.CreateErrorPage("There was a problem retrieving the google authorization code.");
 
-        string userSessionId;
+        string? userSessionId;
+        if (!context.Request.Cookies.TryGetValue("UserSID", out userSessionId))
+        {
+            logger.LogWarning("Failed to get userid at google handle oauth response endpoint");
+            return GlobalHelpers.CreateErrorPage("LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
+        }
+
+        GoogleTokenResponse? accessTokenJson = await google.GetAccessToken(authCodeString);
+        if (accessTokenJson is null)
+            return GlobalHelpers.CreateErrorPage("There was a problem retrieving the your access token from google.");
+
+        string accessToken = accessTokenJson.AccessToken;
+
+        if (!await google.LinkAccessToken(accessToken, userSessionId))
+        {
+            logger.LogWarning("Failed to link access token with userSessionId");
+            return GlobalHelpers.CreateErrorPage("LightSaver failed to link to google.");
+        }
+        string pickerUri;
         try
         {
-            userSessionId = await google.GoogleAuthFlow(remoteIpAddress, authCodeString, user);
+            pickerUri = await googlePhotos.StartGooglePhotosFlow(userSessionId);
         }
-        catch (Exception e)
+        catch
         {
-            logger.LogWarning($"Failed to complete Google Authorization Flow with error: {e.Message}");
-            return GlobalHelpers.CreateErrorPage("Failed to authenticate with Google servers.");
+            logger.LogWarning("Failed to start google photo flow for user session id " + userSessionId);
+            return GlobalHelpers.CreateErrorPage("LightSaver is unable to connect to Google Photos.");
         }
-
-        // go to page that lets user input roku sessioncode
-        // set a cookie to maintain session
-        // create a fallback that uses a query to make sure it still works if browser does not allow cookies
-        logger.LogInformation($"Creating cookie for userSessionID {userSessionId}");
-        //thanks copilot
-        context.Response.Cookies.Append("sid", userSessionId, new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Lax,
-            Path = "/"   // available to all endpoints
-                         // No Expires or MaxAge → session cookie
-        });
-
-        return Results.Redirect("/google/submit-code-google");
-    }
-    private static IResult CodeSubmissionPageGoogle(HttpContext context, ILogger<UserSessions> logger)
-    {
-        var doc = new HtmlDocument();
-        doc.LoadHtml(File.ReadAllText("./wwwroot/EnterSessionCodeGoogle.html"));
-        string codeSubmission = doc.DocumentNode.OuterHtml;
-
-        return Results.Content(codeSubmission, "text/html");
-    }
-    private static async Task<IResult> PostSessionCode(GooglePhotosFlow googlePhotos, HttpContext context, UserSessions user, ILogger<UserSessions> logger)
-    {
-        string? userSessionId;
-        if (!context.Request.Cookies.TryGetValue("sid", out userSessionId))
-            return Results.BadRequest();
-        logger.LogInformation($"Session endpoint accessed sid {userSessionId} from cookie.");
-
-        var rokuCodeForm = await context.Request.ReadFormAsync();
-        if (rokuCodeForm is null)
-            return Results.BadRequest();
-
-        string? code = rokuCodeForm["code"];
-        if (code is null)
-            return Results.BadRequest();
-        logger.LogInformation($"User submitted {code}");
-
-        if (!await user.AssociateToRoku(code, userSessionId))
-        {
-            logger.LogWarning("Failed to associate roku session and user session");
-            return GlobalHelpers.CreateErrorPage("The session code you entered was unable to be found.", "<a href=https://10.0.0.15:8443/google/google-redirect>Please Try Again</a>");
-        }
-        ;
-        string pickerUri = await googlePhotos.StartGooglePhotosFlow(userSessionId, code);
-        //add a check here
 
         return Results.Redirect($"{pickerUri}/autoclose");
     }

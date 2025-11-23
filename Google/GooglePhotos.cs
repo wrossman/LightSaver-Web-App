@@ -16,12 +16,13 @@ public class GooglePhotosFlow
         _userSessionDb = userSessionDb;
         _serviceProvider = serviceProvider;
     }
-    public async Task<string> StartGooglePhotosFlow(string userSessionId, string sessionCode)
+    public async Task<string> StartGooglePhotosFlow(string userSessionId)
     {
         var session = await _userSessionDb.Sessions.FindAsync(userSessionId);
         string? accessToken = session?.AccessToken;
+        string? sessionCode = session?.SessionCode;
         string? rokuId = session?.RokuId;
-        if (accessToken is null || rokuId is null)
+        if (accessToken is null || rokuId is null || sessionCode is null)
             throw new ArgumentException("Failed to locate User Session");
 
         PickerSession pickerSession = await GetPickerSession(accessToken);

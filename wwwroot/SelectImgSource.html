@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Select Image Source</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f8ff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        h1 {
+            margin-bottom: 24px;
+            color: #1a4fdd;
+            font-size: 24px;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            margin: 10px 0;
+            background: #1a4fdd;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: 0.2s ease;
+        }
+
+        .btn:hover {
+            background: #163fb1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Select Image Source</h1>
+        <a class="btn" href="">Public Lightroom Album</a>
+        <a class="btn" href="/google/google-redirect">Google Photos</a>
+        <a class="btn" href="/user/session?source=upload">Upload From Device</a>
+    </div>
+</body>
+
+</html>
