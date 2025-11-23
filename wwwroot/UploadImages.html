@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Image Upload Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 16px;
+        }
+
+        h1 {
+            font-size: 24px;
+        }
+
+        .upload-box {
+            border: 2px dashed #888;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        #preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .thumb {
+            width: 150px;
+            height: 150px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f8f8;
+        }
+
+        .thumb img {
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Select Images to Upload</h1>
+
+    <div class="upload-box">
+        <p>
+            <label for="imageInput">
+                Choose one or more image files:
+            </label>
+        </p>
+        <input id="imageInput" type="file" accept="image/*" multiple />
+        <p style="font-size: 12px; color: #555;">
+            (Images will be previewed locally and can then be uploaded.)
+        </p>
+
+        <!-- Upload button -->
+        <button id="uploadBtn" type="button">Upload</button>
+    </div>
+
+    <h2>Preview</h2>
+    <div id="preview"></div>
+
+    <script>
+        const input = document.getElementById('imageInput');
+        const preview = document.getElementById('preview');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const MAX_FILES = 3; // set your limit
+
+        // Handle file selection: limit + preview
+        input.addEventListener('change', () => {
+            if (input.files.length > MAX_FILES) {
+                alert(`You can only select up to ${MAX_FILES} images.`);
+                input.value = ""; // clear selection
+                preview.innerHTML = '';
+                return;
+            }
+
+            // Clear old previews
+            preview.innerHTML = '';
+
+            const files = input.files;
+            if (!files || !files.length) {
+                return;
+            }
+
+            Array.from(files).forEach(file => {
+                if (!file.type.startsWith('image/')) {
+                    return; // skip non-image files
+                }
+
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const div = document.createElement('div');
+                    div.className = 'thumb';
+
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.alt = file.name;
+
+                    div.appendChild(img);
+                    preview.appendChild(div);
+                };
+
+                reader.readAsDataURL(file);
+            });
+        });
+
+        // Send files to endpoint
+        uploadBtn.addEventListener('click', async () => {
+            const files = input.files;
+
+            if (!files || files.length === 0) {
+                alert('Please select at least one image first.');
+                return;
+            }
+
+            const formData = new FormData();
+
+            // "images" is the field name the backend will look for
+            Array.from(files).forEach(file => {
+                formData.append('images', file);
+            });
+
+            try {
+                const response = await fetch('/roku/upload-images', {
+                    method: 'POST',
+                    body: formData
+                    // Do NOT set Content-Type header; browser sets multipart/form-data with boundary
+                });
+
+                if (!response.ok) {
+                    const text = await response.text();
+                    alert('Upload failed: ' + text);
+                    return;
+                }
+
+                alert('Upload successful.');
+            } catch (err) {
+                console.error(err);
+                alert('Error uploading images.');
+            }
+        });
+    </script>
+</body>
+
+</html>

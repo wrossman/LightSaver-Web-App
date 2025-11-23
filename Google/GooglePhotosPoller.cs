@@ -48,6 +48,7 @@ public class GooglePhotosPoller
                 _logger.LogInformation("User finished selecting photos.");
                 string photoList = await GooglePhotosFlow.GetPhotoList(pickerSession, accessToken);
 
+                await RemoveOldPhotos(rokuId);
                 AddUrlsToList(photoList);
                 await WritePhotosToMemory(sessionCode, accessToken, rokuId);
                 UserSessions.CodesReadyForTransfer.Enqueue(sessionCode);
@@ -115,6 +116,20 @@ public class GooglePhotosPoller
             };
             _resourceDbContext.Resources.Add(share);
             await _resourceDbContext.SaveChangesAsync();
+        }
+    }
+    public async Task RemoveOldPhotos(string rokuId)
+    {
+        var itemsToRemove = await _resourceDbContext.Resources
+        .Where(x => x.RokuId == rokuId)
+        .ToListAsync();
+
+        _resourceDbContext.Resources.RemoveRange(itemsToRemove);
+        await _resourceDbContext.SaveChangesAsync();
+
+        foreach (var item in itemsToRemove)
+        {
+            _logger.LogInformation("Removed " + item.Id + " from resource database.");
         }
     }
 }

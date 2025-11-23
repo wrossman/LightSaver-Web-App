@@ -22,7 +22,7 @@ public class GooglePhotosFlow
         string? accessToken = session?.AccessToken;
         string? rokuId = session?.RokuId;
         if (accessToken is null || rokuId is null)
-            throw new ArgumentException("Failed to located User Session");
+            throw new ArgumentException("Failed to locate User Session");
 
         PickerSession pickerSession = await GetPickerSession(accessToken);
         // CREATE POLLING INSTANCE FOR PICKERSESSION
@@ -59,7 +59,7 @@ public class GooglePhotosFlow
 
         var pickerRequest = new HttpRequestMessage(HttpMethod.Post, "https://photospicker.googleapis.com/v1/sessions");
         pickerRequest.Headers.Authorization =
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            new AuthenticationHeaderValue("Bearer", accessToken);
 
         var body = new
         {
