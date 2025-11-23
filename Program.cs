@@ -22,6 +22,7 @@ NEW FEATURES
 DESIGN ITEMS
 -------------------
 - Create app logo
+- on startup, display an image that is exactly the splash screen image and have it fade out so it looks like the splash screen fades
 - Create background for roku
 - Web App error page creation
 - Web App Code Submit Page
