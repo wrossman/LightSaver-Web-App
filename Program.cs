@@ -30,6 +30,7 @@ DESIGN ITEMS
 
 WEB APP TO-DO ITEMS
 -------------------
+- Expires credentials every they need to be
 - change using html agility pack to serve my html. there has to be a better way.
 - Set up antiforgery middleware
 - Evaluate whether there’s a better approach to managing image resolution.

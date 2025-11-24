@@ -141,7 +141,7 @@ public static class RokuSessionEndpoints
         }
 
         // For testing image output - this thing is dangerous, dont let it run for a long time because it writes to desktop unless you stop it
-        // GlobalStoreHelpers.WritePhotosToLocal(image, fileType);
+        GlobalStoreHelpers.WritePhotosToLocal(image, fileType);
 
         return Results.File(image, $"image/{fileType}");
     }
