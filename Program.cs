@@ -30,6 +30,7 @@ DESIGN ITEMS
 
 WEB APP TO-DO ITEMS
 -------------------
+- check to see if lightroom album has changed before sending the images
 - limit the number of images to store for each upload method
 - Add a delete endpoint that lets you remove your files from lightsaver
 - Limit file size, the picture of latvia doesnt load on roku as a poster. I am assuming because it is too big?
