@@ -15,13 +15,13 @@ FINAL ITEMS
 
 NEW FEATURES
 -------------------
-- Upload images from device
 - Create an album that lets you add pictures from multiple sources. share with friends from a link.
 - Create a background for each image that is just the image but super blurred. Send the background with the image if roku chooses the setting for a blurred image background.
 
 DESIGN ITEMS
 -------------------
 - Create app logo
+- Creating an uploading animation
 - on startup, display an image that is exactly the splash screen image and have it fade out so it looks like the splash screen fades
 - Create background for roku
 - Web App error page creation
@@ -30,6 +30,7 @@ DESIGN ITEMS
 
 WEB APP TO-DO ITEMS
 -------------------
+- Limit file size, the picture of latvia doesnt load on roku as a poster. I am assuming because it is too big?
 - Expires credentials every they need to be
 - change using html agility pack to serve my html. there has to be a better way.
 - Set up antiforgery middleware
@@ -39,11 +40,11 @@ WEB APP TO-DO ITEMS
   generate the qr code dynamically and include the session code in it, user scans
   code, the enpoint stores the code in cookies and then forwards them through the
   google oauth process without having to submit their session code
-- add lightroom scraping flow
 - Create class to manage session and resource expiration
 ROKU TO-DO ITEMS
 -------------------
-- Verify polling stops if you exit out of the choose photos page
+- Adjust polling times, maybe create an account linked dialog, and then show that the images are being transferred.
+- Add fade in animation for session code label, since it processes later
 - Fix issues with imgLinks not being initialized correctly on startup,
     if there are no links i should not be able to start the wallpaper and i should be directed elsewhere
 - on startup, if there are no links or if the links don't work, direct the user to the web app
@@ -55,6 +56,9 @@ ROKU TO-DO ITEMS
 -------------------
 DONE
 -------------------
+X Upload images from device
+X Verify polling stops if you exit out of the choose photos page
+X add lightroom scraping flow
 X Add failure to upload image page if cookies are disabled for upload image flow
 X add site to select image source
 X if a roku tries to get google photos again then remove old photos right before comitting new ones
