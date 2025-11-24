@@ -68,18 +68,26 @@ public class RokuSessions
 
     private static string GenerateSessionCode()
     {
-        using var rng = RandomNumberGenerator.Create();
-        string sessionCode = "";
+        // thanks chat
+        const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-        var bytes = new byte[4];
+        using var rng = RandomNumberGenerator.Create();
+
+        // 6-char code -> 36^6 possibilities (~2.1 billion)
+        var bytes = new byte[6];
         rng.GetBytes(bytes);
 
-        int value = BitConverter.ToInt32(bytes, 0) & int.MaxValue; // ensure non-negative
-        int code = value % 0x1000000; // restrict to 6 hex digits (0x000000 - 0xFFFFFF), thanks copilot
-        sessionCode = code.ToString("X6");
+        char[] result = new char[6];
 
-        return sessionCode;
+        for (int i = 0; i < 6; i++)
+        {
+            // Convert random byte (0–255) into index (0–35)
+            result[i] = alphabet[bytes[i] % alphabet.Length];
+        }
+
+        return new string(result);
     }
+
 
     public async Task<bool> CheckReadyTransfer(string sessionCode)
     {

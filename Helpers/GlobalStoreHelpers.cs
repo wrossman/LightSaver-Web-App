@@ -56,7 +56,7 @@ public class GlobalStoreHelpers
     {
         string folderPath = @"C:\Users\billuswillus\Desktop\";
         int file = Filename++;
-        var filePath = folderPath + "google" + file.ToString() + "." + fileType;
+        var filePath = folderPath + "img" + file.ToString() + "." + fileType;
 
         using (FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
         {
