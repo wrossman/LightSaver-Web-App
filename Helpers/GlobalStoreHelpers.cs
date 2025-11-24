@@ -1,4 +1,7 @@
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using SixLabors.ImageSharp;
 public class GlobalStoreHelpers
 {
     public static int Filename { get; set; } = 0;
@@ -63,5 +66,30 @@ public class GlobalStoreHelpers
             fs.Write(img, 0, img.Length);
         }
 
+    }
+    public static async Task<RevokeAccessPackage> RevokeResourcePackage(RevokeAccessPackage revokePackage, GlobalImageStoreDbContext resourceDb)
+    {
+        string rokuId = revokePackage.RokuId;
+        var links = revokePackage.Links;
+
+        var failedRevoke = new RevokeAccessPackage();
+        failedRevoke.RokuId = rokuId;
+
+        foreach (var item in links)
+        {
+            var session = await resourceDb.Resources
+            .FirstOrDefaultAsync(x => x.Key == item.Value && x.Id == item.Key && x.RokuId == rokuId);
+
+            if (session == null)
+            {
+                failedRevoke.Links.Add(item.Key, item.Value);
+                continue;
+            }
+
+            resourceDb.Resources.Remove(session);
+            await resourceDb.SaveChangesAsync();
+        }
+
+        return failedRevoke;
     }
 }

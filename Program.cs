@@ -30,6 +30,8 @@ DESIGN ITEMS
 
 WEB APP TO-DO ITEMS
 -------------------
+- limit the number of images to store for each upload method
+- Add a delete endpoint that lets you remove your files from lightsaver
 - Limit file size, the picture of latvia doesnt load on roku as a poster. I am assuming because it is too big?
 - Expires credentials every they need to be
 - change using html agility pack to serve my html. there has to be a better way.
@@ -43,6 +45,7 @@ WEB APP TO-DO ITEMS
 - Create class to manage session and resource expiration
 ROKU TO-DO ITEMS
 -------------------
+- Limit the number of keys stored on roku registry
 - Adjust polling times, maybe create an account linked dialog, and then show that the images are being transferred.
 - Add fade in animation for session code label, since it processes later
 - Fix issues with imgLinks not being initialized correctly on startup,

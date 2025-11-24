@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Net;
 using Microsoft.Extensions.Primitives;
+using Microsoft.AspNetCore.Mvc;
 public static class RokuSessionEndpoints
 {
     public static void MapRokuSessionEndpoints(this IEndpointRouteBuilder app)
@@ -12,6 +13,7 @@ public static class RokuSessionEndpoints
         group.MapPost("/reception", RokuReception);
         group.MapPost("/resource-package", (Delegate)ProvideResourcePackage);
         group.MapGet("/get-resource", ProvideResource);
+        group.MapPost("/revoke", RevokeAccess);
     }
     private static async Task<IResult> ProvideSessionCode(HttpContext context, RokuSessions roku, ILogger<RokuSessions> logger)
     {
@@ -145,5 +147,33 @@ public static class RokuSessionEndpoints
 
         return Results.File(image, $"image/{fileType}");
     }
+    private static async Task<IResult> RevokeAccess([FromBody] RevokeAccessPackage revokePackage, HttpContext context, GlobalImageStoreDbContext resoucrceDb, ILogger<RokuSessions> logger)
+    {
+        logger.LogInformation("Received the following data from roku:");
+        string receiveLog = "";
+        foreach (var item in revokePackage.Links)
+        {
+            receiveLog += item.Key;
+            receiveLog += "\n";
+            receiveLog += item.Value;
+            receiveLog += "\n";
+        }
+        logger.LogInformation(receiveLog);
 
+        var failedRevoke = await GlobalStoreHelpers.RevokeResourcePackage(revokePackage, resoucrceDb);
+
+        if (failedRevoke.Links.Count > 0)
+        {
+            logger.LogWarning("Failed to remove all images from RevokePackage\nThe following resources were not removed");
+            string failedToRemove = "";
+            foreach (var item in failedRevoke.Links)
+            {
+                failedToRemove += item.Key + "\n";
+                failedToRemove += item.Value + "\n";
+            }
+            logger.LogWarning(failedToRemove);
+        }
+
+        return Results.Ok();
+    }
 }
