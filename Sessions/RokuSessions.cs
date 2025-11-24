@@ -69,17 +69,16 @@ public class RokuSessions
     private static string GenerateSessionCode()
     {
         // thanks chat
-        const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        const string alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
         using var rng = RandomNumberGenerator.Create();
 
-        // 6-char code -> 36^6 possibilities (~2.1 billion)
-        var bytes = new byte[6];
+        var bytes = new byte[7];
         rng.GetBytes(bytes);
 
-        char[] result = new char[6];
+        char[] result = new char[7];
 
-        for (int i = 0; i < 6; i++)
+        for (int i = 0; i < 7; i++)
         {
             // Convert random byte (0–255) into index (0–35)
             result[i] = alphabet[bytes[i] % alphabet.Length];
