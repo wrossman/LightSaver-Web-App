@@ -3,43 +3,101 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>Image Upload Demo</title>
+    <title>Select Images to Upload</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
         body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 0 16px;
+            font-family: system-ui, Arial, sans-serif;
+            background: #f4f8ff;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            max-width: 640px;
+            width: 100%;
         }
 
         h1 {
-            font-size: 24px;
+            margin-bottom: 24px;
+            color: #1a4fdd;
+            font-size: 26px;
+        }
+
+        h2 {
+            margin-top: 24px;
+            margin-bottom: 16px;
+            color: #1a4fdd;
+            font-size: 20px;
         }
 
         .upload-box {
-            border: 2px dashed #888;
+            border: 2px dashed #1a4fdd;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            background: #f7faff;
+        }
+
+        .upload-box label {
+            font-size: 1rem;
+            color: #333;
+        }
+
+        input[type="file"] {
+            margin-top: 12px;
+        }
+
+        button {
+            margin-top: 18px;
+            padding: 14px;
+            font-size: 1.05rem;
+            width: 100%;
+            max-width: 260px;
+            background: #1a4fdd;
+            color: white;
+            border: none;
             border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            margin-bottom: 20px;
+            cursor: pointer;
+            transition: 0.2s ease;
+        }
+
+        button:hover {
+            background: #163fb1;
+        }
+
+        p.hint {
+            font-size: 0.9rem;
+            color: #6b6b6b;
+            margin-top: 8px;
+            margin-bottom: 0;
         }
 
         #preview {
             display: flex;
             flex-wrap: wrap;
             gap: 12px;
+            justify-content: center;
         }
 
         .thumb {
-            width: 150px;
-            height: 150px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            width: 140px;
+            height: 140px;
+            border-radius: 10px;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #f8f8f8;
+            background: #eef3ff;
+            border: 2px solid #d5e2ff;
         }
 
         .thumb img {
@@ -51,42 +109,35 @@
 </head>
 
 <body>
-    <h1>Select Images to Upload</h1>
+    <div class="container">
+        <h1>Select Images to Upload</h1>
 
-    <div class="upload-box">
-        <p>
-            <label for="imageInput">
-                Choose one or more image files:
-            </label>
-        </p>
-        <input id="imageInput" type="file" accept="image/*" multiple />
-        <p style="font-size: 12px; color: #555;">
-            (Images will be previewed locally and can then be uploaded.)
-        </p>
+        <div class="upload-box">
+            <label for="imageInput"><strong>Choose up to 3 images:</strong></label>
+            <br />
+            <input id="imageInput" type="file" accept="image/*" multiple />
+            <p class="hint">Images will be previewed locally before upload.</p>
+            <button id="uploadBtn" type="button">Upload</button>
+        </div>
 
-        <!-- Upload button -->
-        <button id="uploadBtn" type="button">Upload</button>
+        <h2>Preview</h2>
+        <div id="preview"></div>
     </div>
-
-    <h2>Preview</h2>
-    <div id="preview"></div>
 
     <script>
         const input = document.getElementById('imageInput');
         const preview = document.getElementById('preview');
         const uploadBtn = document.getElementById('uploadBtn');
-        const MAX_FILES = 3; // set your limit
+        const MAX_FILES = 3;
 
-        // Handle file selection: limit + preview
         input.addEventListener('change', () => {
             if (input.files.length > MAX_FILES) {
                 alert(`You can only select up to ${MAX_FILES} images.`);
-                input.value = ""; // clear selection
+                input.value = "";
                 preview.innerHTML = '';
                 return;
             }
 
-            // Clear old previews
             preview.innerHTML = '';
 
             const files = input.files;
@@ -96,7 +147,7 @@
 
             Array.from(files).forEach(file => {
                 if (!file.type.startsWith('image/')) {
-                    return; // skip non-image files
+                    return;
                 }
 
                 const reader = new FileReader();
@@ -116,7 +167,6 @@
             });
         });
 
-        // Send files to endpoint
         uploadBtn.addEventListener('click', async () => {
             const files = input.files;
 
@@ -126,25 +176,30 @@
             }
 
             const formData = new FormData();
-
-            // "images" is the field name the backend will look for
             Array.from(files).forEach(file => {
                 formData.append('images', file);
             });
 
             try {
-                const response = await fetch('/roku/upload-images', {
+                const response = await fetch('/upload/post-images', {
                     method: 'POST',
                     body: formData
-                    // Do NOT set Content-Type header; browser sets multipart/form-data with boundary
                 });
 
-                if (!response.ok) {
+                // If server returned an error (non-2xx and no redirect)
+                if (!response.ok && !response.redirected) {
                     const text = await response.text();
                     alert('Upload failed: ' + text);
                     return;
                 }
 
+                // If server redirected (e.g., Results.Redirect("/UploadSuccess.html"))
+                if (response.redirected) {
+                    window.location.href = response.url;
+                    return;
+                }
+
+                // Fallback: no redirect but OK response
                 alert('Upload successful.');
             } catch (err) {
                 console.error(err);

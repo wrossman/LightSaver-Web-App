@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Enter Lightroom Album Code</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        body {
+            font-family: system-ui, Arial, sans-serif;
+            background: #f4f8ff;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            max-width: 420px;
+            width: 100%;
+        }
+
+        h1 {
+            margin-bottom: 16px;
+            color: #1a4fdd;
+            font-size: 26px;
+        }
+
+        p.hint {
+            font-size: 0.9rem;
+            color: #6b6b6b;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        form {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+            color: #333;
+            text-align: left;
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .prefix {
+            font-size: 0.95rem;
+            color: #555;
+            background: #f4f8ff;
+            border-radius: 8px;
+            padding: 10px 12px;
+            border: 1px solid #d5e2ff;
+            white-space: nowrap;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px 12px;
+            font-size: 1rem;
+            border-radius: 8px;
+            border: 2px solid #d5e2ff;
+            outline: none;
+            text-align: left;
+            transition: 0.2s ease;
+        }
+
+        input[type="text"]:focus {
+            border-color: #1a4fdd;
+        }
+
+        .small-hint {
+            font-size: 0.85rem;
+            color: #6b6b6b;
+            text-align: left;
+            margin-bottom: 16px;
+        }
+
+        button {
+            margin-top: 12px;
+            padding: 14px;
+            font-size: 1.05rem;
+            width: 100%;
+            background: #1a4fdd;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s ease;
+        }
+
+        button:hover {
+            background: #163fb1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Link Your Lightroom Album</h1>
+        <p class="hint">
+            Enter only the code at the end of your public Lightroom URL.
+        </p>
+
+        <!-- Updated to POST to /post-album -->
+        <form action="/lightroom/post-album" method="post" novalidate>
+            <label for="lrCode">Lightroom album code</label>
+
+            <div class="input-row">
+                <span class="prefix">https://adobe.ly/</span>
+                <input id="lrCode" name="lrCode" type="text" maxlength="16" placeholder="XXXXXXX"
+                    pattern="^[A-Za-z0-9]{4,16}$" required />
+            </div>
+
+            <div class="small-hint">
+                Example full URL:
+                <strong>https://adobe.ly/<u>XXXXXXX</u></strong><br />
+                Only enter the underlined part.
+            </div>
+
+            <button type="submit">Continue</button>
+        </form>
+    </div>
+
+    <script>
+        // Optional: keep input alphanumeric only
+        const lrInput = document.getElementById('lrCode');
+        lrInput.addEventListener('input', () => {
+            lrInput.value = lrInput.value.replace(/[^A-Za-z0-9]/g, '');
+        });
+    </script>
+</body>
+
+</html>
