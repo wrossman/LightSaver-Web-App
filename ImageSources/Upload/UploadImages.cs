@@ -1,5 +1,8 @@
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 public class UploadImages
 {
     private readonly ILogger<UserSessions> _logger;
@@ -45,11 +48,13 @@ public class UploadImages
                 imgBytes = ms.ToArray();
             }
 
+            var finalImg = FixOrientation(imgBytes);
+
             var bytes = new byte[32];
             RandomNumberGenerator.Fill(bytes);
             var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
-            string hash = GlobalHelpers.ComputeHashFromBytes(imgBytes);
+            string hash = GlobalHelpers.ComputeHashFromBytes(finalImg);
             hash = hash + "-" + DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
 
             ImageShare share = new()
@@ -57,7 +62,7 @@ public class UploadImages
                 Id = hash,
                 Key = key,
                 SessionCode = sessionCode,
-                ImageStream = imgBytes,
+                ImageStream = finalImg,
                 CreatedOn = DateTime.UtcNow,
                 FileType = "", // should i figure out how to get the filetype? it isnt really necessary for roku
                 RokuId = rokuId
@@ -89,4 +94,49 @@ public class UploadImages
             _logger.LogWarning("Failed to set expire for user session after resource package delivery.");
 
     }
+    public byte[] FixOrientation(byte[] imageBytes)
+    {
+        using var image = Image.Load(imageBytes);
+
+        if (image.Metadata?.ExifProfile != null)
+        {
+            IExifValue<ushort>? orientation;
+            if (image.Metadata.ExifProfile.TryGetValue(ExifTag.Orientation, out orientation))
+            {
+                object? orientationVal;
+                if (orientation is not null)
+                    orientationVal = orientation.GetValue();
+                else
+                    return imageBytes;
+
+                UInt16 orientationShort;
+                if (orientationVal is not null)
+                    orientationShort = (UInt16)orientationVal;
+                else
+                    return imageBytes;
+
+                _logger.LogInformation("Rotating uploaded image. Orientation number: " + orientationShort);
+                switch (orientationShort)
+                {
+                    case 2: image.Mutate(x => x.Flip(FlipMode.Horizontal)); break;
+                    case 3: image.Mutate(x => x.Rotate(180)); break;
+                    case 4: image.Mutate(x => x.Flip(FlipMode.Vertical)); break;
+                    case 5: image.Mutate(x => { x.Rotate(90); x.Flip(FlipMode.Horizontal); }); break;
+                    case 6: image.Mutate(x => x.Rotate(90)); break;
+                    case 7: image.Mutate(x => { x.Rotate(-90); x.Flip(FlipMode.Horizontal); }); break;
+                    case 8: image.Mutate(x => x.Rotate(-90)); break;
+                }
+
+                // After fixing, remove orientation tag to avoid double-rotation later
+                image.Metadata.ExifProfile.RemoveValue(ExifTag.Orientation);
+            }
+
+        }
+
+        using var ms = new MemoryStream();
+        image.SaveAsJpeg(ms);
+        return ms.ToArray();
+    }
+
+
 }
