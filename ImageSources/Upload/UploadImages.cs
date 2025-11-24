@@ -15,19 +15,24 @@ public class UploadImages
     }
     public async Task<bool> UploadImageFlow(List<IFormFile> images, string sessionId)
     {
-        string? sessionCode = await _userSessionDb.Sessions
+        var sessionCode = await _userSessionDb.Sessions
                             .Where(s => s.Id == sessionId)
                             .Select(s => s.SessionCode)
                             .FirstOrDefaultAsync();
         if (sessionCode is null)
+        {
+            _logger.LogWarning("Failed to locate user session with sessionId " + sessionId);
             return false;
-
-        string? rokuId = await _rokuSessionDb.Sessions
+        }
+        var rokuId = await _rokuSessionDb.Sessions
                         .Where(s => s.SessionCode == sessionCode)
                         .Select(s => s.RokuId)
                         .FirstOrDefaultAsync();
         if (rokuId is null)
+        {
+            _logger.LogWarning("Failed to locate roku session with session code " + sessionCode);
             return false;
+        }
 
         foreach (var item in images)
         {

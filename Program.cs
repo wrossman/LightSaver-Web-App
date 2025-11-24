@@ -30,6 +30,8 @@ DESIGN ITEMS
 
 WEB APP TO-DO ITEMS
 -------------------
+- change using html agility pack to serve my html. there has to be a better way.
+- Set up antiforgery middleware
 - Evaluate whether there’s a better approach to managing image resolution.
 - remove user and roku sessions after flow failure
 - QR Code for LightSaver, could i make it so it verifys if the user enables cookies,
@@ -40,6 +42,7 @@ WEB APP TO-DO ITEMS
 - Create class to manage session and resource expiration
 ROKU TO-DO ITEMS
 -------------------
+- Verify polling stops if you exit out of the choose photos page
 - Fix issues with imgLinks not being initialized correctly on startup,
     if there are no links i should not be able to start the wallpaper and i should be directed elsewhere
 - on startup, if there are no links or if the links don't work, direct the user to the web app
@@ -145,6 +148,7 @@ builder.Services.AddScoped<UserSessions>();
 builder.Services.AddScoped<GoogleFlow>();
 builder.Services.AddScoped<GooglePhotosFlow>();
 builder.Services.AddScoped<UploadImages>();
+builder.Services.AddScoped<LightroomService>();
 
 // start all services at the same time so they dont block each other
 builder.Services.Configure<HostOptions>(options =>
@@ -155,6 +159,8 @@ builder.Services.Configure<HostOptions>(options =>
 var app = builder.Build();
 
 app.UseRateLimiter();
+
+app.UseStaticFiles();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -167,6 +173,8 @@ if (app.Environment.IsDevelopment())
 app.MapGooglePhotosEndpoints(); // Google Photos Feature Endpoints
 
 app.MapUploadPhotosEndpoints(); // Upload to web app feature enpoints
+
+app.MapLightroomEndpoints(); // Scrape public lightroom images
 
 app.MapRokuSessionEndpoints(); // Roku session code and image ready polling endpoints
 
