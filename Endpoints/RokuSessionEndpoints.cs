@@ -46,7 +46,7 @@ public static class RokuSessionEndpoints
 
         return Results.Json(new { RokuSessionCode = sessionCode });
     }
-    private static async Task<IResult> RokuReception(HttpContext context, RokuSessionDbContext rokuSessionDb, RokuSessions roku, ILogger<RokuSessions> logger)
+    private static async Task<IResult> RokuReception(HttpContext context, RokuSessions roku, ILogger<RokuSessions> logger)
     {    //be carefull about what i return to the user because they cant be able to see what is a valid session code
 
         //thanks copilot for helping me read the post request
@@ -77,7 +77,7 @@ public static class RokuSessionEndpoints
         else
             return Results.NotFound("Media is not ready to be transfered.");
     }
-    private static async Task<IResult> ProvideResourcePackage(HttpContext context, SessionHelpers sessions, GlobalStoreHelpers store, GlobalImageStoreDbContext resourceDbContext, ILogger<RokuSessions> logger, UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb)
+    private static async Task<IResult> ProvideResourcePackage(HttpContext context, SessionHelpers sessions, GlobalStoreHelpers store, ILogger<RokuSessions> logger)
     {
         var body = await RokuSessions.ReadRokuPost(context);
         if (body == "fail")
@@ -124,7 +124,7 @@ public static class RokuSessionEndpoints
         logger.LogInformation($"Sending resource package for session code {sessionCode} to IP: {context.Connection.RemoteIpAddress}");
         return Results.Json(links);
     }
-    private static IResult ProvideResource(HttpContext context, GlobalStoreHelpers store, GlobalImageStoreDbContext resourceDbContext, LightroomService lightroom, ILogger<RokuSessions> logger)
+    private static IResult ProvideResource(HttpContext context, GlobalStoreHelpers store, ILogger<RokuSessions> logger)
     {
         StringValues inputKey;
         StringValues inputLocation;
@@ -154,11 +154,11 @@ public static class RokuSessionEndpoints
         }
 
         // For testing image output - this thing is dangerous, dont let it run for a long time because it writes to desktop unless you stop it
-        // GlobalStoreHelpers.WritePhotosToLocal(image, fileType);
+        // store.WritePhotosToLocal(image, fileType);
 
         return Results.File(image, $"image/{fileType}");
     }
-    public static async Task<IResult> InitialStartWallpaper(HttpContext context, GlobalStoreHelpers store, GlobalImageStoreDbContext resourceDbContext, LightroomService lightroom, ILogger<RokuSessions> logger)
+    public static async Task<IResult> InitialStartWallpaper(HttpContext context, GlobalStoreHelpers store, LightroomService lightroom, ILogger<RokuSessions> logger)
     {
         StringValues inputKey;
         StringValues inputLocation;
@@ -188,7 +188,7 @@ public static class RokuSessionEndpoints
 
         return Results.Json(newPackage);
     }
-    private static async Task<IResult> RevokeAccess([FromBody] RevokeAccessPackage revokePackage, GlobalStoreHelpers store, HttpContext context, GlobalImageStoreDbContext resoucrceDb, ILogger<RokuSessions> logger)
+    private static async Task<IResult> RevokeAccess([FromBody] RevokeAccessPackage revokePackage, GlobalStoreHelpers store, ILogger<RokuSessions> logger)
     {
         logger.LogInformation("Received the following data from roku:");
         string receiveLog = "";

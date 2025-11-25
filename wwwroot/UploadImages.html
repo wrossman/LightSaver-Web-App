@@ -113,7 +113,7 @@
         <h1>Select Images to Upload</h1>
 
         <div class="upload-box">
-            <label for="imageInput"><strong>Choose up to 3 images:</strong></label>
+            <label for="imageInput"><strong>Choose up to 20 images:</strong></label>
             <br />
             <input id="imageInput" type="file" accept="image/*" multiple />
             <p class="hint">Images will be previewed locally before upload.</p>
@@ -128,7 +128,7 @@
         const input = document.getElementById('imageInput');
         const preview = document.getElementById('preview');
         const uploadBtn = document.getElementById('uploadBtn');
-        const MAX_FILES = 3;
+        const MAX_FILES = 20;
 
         input.addEventListener('change', () => {
             if (input.files.length > MAX_FILES) {

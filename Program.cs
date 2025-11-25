@@ -30,6 +30,7 @@ DESIGN ITEMS
 
 WEB APP TO-DO ITEMS
 -------------------
+- Add counter and upload animation
 - Add a prompt that the lightroom album you linked has zero images and ask to try again
 - limit the number of images to store for each upload method
 - Limit file size, the picture of latvia doesnt load on roku as a poster. I am assuming because it is too big?
@@ -41,7 +42,7 @@ WEB APP TO-DO ITEMS
   generate the qr code dynamically and include the session code in it, user scans
   code, the enpoint stores the code in cookies and then forwards them through the
   google oauth process without having to submit their session code
-- Create class to manage session and resource expiration
+
 ROKU TO-DO ITEMS
 -------------------
 - Retry logic for failed connections
@@ -60,6 +61,7 @@ ROKU TO-DO ITEMS
 -------------------
 DONE
 -------------------
+X Create class to manage session and resource expiration
 X check to see if lightroom album has changed before sending the images
 X change using html agility pack to serve my html. there has to be a better way.
 X Add a delete endpoint that lets you remove your files from lightsaver

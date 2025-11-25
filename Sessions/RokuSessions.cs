@@ -7,7 +7,6 @@ public class RokuSessions
 {
     private readonly ILogger<RokuSessions> _logger;
     private readonly RokuSessionDbContext _rokuSessionDb;
-
     public RokuSessions(ILogger<RokuSessions> logger, RokuSessionDbContext rokuSessionDb)
     {
         _logger = logger;
@@ -65,7 +64,6 @@ public class RokuSessions
 
         return session.SessionCode;
     }
-
     private static string GenerateSessionCode()
     {
         // thanks chat
@@ -86,8 +84,6 @@ public class RokuSessions
 
         return new string(result);
     }
-
-
     public async Task<bool> CheckReadyTransfer(string sessionCode, string rokuId)
     {
         var rokuSession = await _rokuSessionDb.Sessions
@@ -98,7 +94,6 @@ public class RokuSessions
         else
             return false;
     }
-
     public static async Task<string> ReadRokuPost(HttpContext context)
     {
         const int maxBytes = 512;

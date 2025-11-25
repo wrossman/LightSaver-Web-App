@@ -9,7 +9,7 @@ public static class UserSessionEndpoints
         group.MapGet("/session", CodeSubmissionPageUpload);
         group.MapPost("/source", SelectSource);
     }
-    private static IResult CodeSubmissionPageUpload(IWebHostEnvironment env, HttpContext context, ILogger<UserSessions> logger)
+    private static IResult CodeSubmissionPageUpload(IWebHostEnvironment env, HttpContext context)
     {
         // append test cookie to response, read it at code submission page and redirect if cookies arent allowed
         context.Response.Cookies.Append("AllowCookie", "LightSaver", new CookieOptions

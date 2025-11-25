@@ -12,25 +12,6 @@ public class GoogleFlow
     private readonly ILogger<GoogleFlow> _logger;
     private readonly IConfiguration _config;
     private readonly UserSessionDbContext _userSessionDb;
-    public async Task<string> GoogleAuthFlow(IPAddress ipAddress, string authCodeString, UserSessions user)
-    {
-
-        GoogleTokenResponse? accessTokenJson = await GetAccessToken(authCodeString);
-        // ADD TRACKING FOR ACCESSTOKENS
-        if (accessTokenJson is null)
-            throw new ArgumentException("Failed to retrieve Access Token");
-        string accessToken = accessTokenJson.AccessToken;
-
-        string userSessionId = await user.CreateGoogleUserSession(ipAddress, accessToken);
-        if (string.IsNullOrEmpty(userSessionId))
-        {
-            _logger.LogWarning("Failed to create user");
-            // add cleanup logic?
-            throw new ArgumentException("Failed to create User Session");
-        }
-
-        return userSessionId;
-    }
     public async Task<GoogleTokenResponse?> GetAccessToken(string code)
     {
         string clientId = _config["OAuth:ClientId"] ?? string.Empty;
@@ -56,8 +37,10 @@ public class GoogleFlow
 
         var jsonResponse = JsonSerializer.Deserialize<GoogleTokenResponse>(respContent);
         if (jsonResponse is null)
+        {
+            _logger.LogWarning("Recieved an empty response from google oauth server");
             return null;
-
+        }
         return jsonResponse;
     }
     public async Task<bool> LinkAccessToken(string accessToken, string userSessionId)
