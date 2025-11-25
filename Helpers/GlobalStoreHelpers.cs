@@ -1,13 +1,18 @@
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using SixLabors.ImageSharp;
 public class GlobalStoreHelpers
 {
-    public static int Filename { get; set; } = 0;
-    public static Dictionary<string, string>? GetResourcePackage(GlobalImageStoreDbContext resourceDbContext, string sessionCode, string rokuId)
+    private readonly ILogger<GlobalStoreHelpers> _logger;
+    private readonly GlobalImageStoreDbContext _resourceDb;
+    public GlobalStoreHelpers(GlobalImageStoreDbContext resourceDb, ILogger<GlobalStoreHelpers> logger)
     {
-        var links = resourceDbContext.Resources
+        _logger = logger;
+        _resourceDb = resourceDb;
+    }
+    public static int Filename { get; set; } = 0;
+    public Dictionary<string, string>? GetResourcePackage(string sessionCode, string rokuId)
+    {
+        var links = _resourceDb.Resources
             .Where(img => img.SessionCode == sessionCode && img.RokuId == rokuId)
             .ToDictionary(img => img.Id, img => img.Key);
         if (links is null)
@@ -24,9 +29,9 @@ public class GlobalStoreHelpers
         return links;
     }
 
-    public static (byte[]? image, string? fileType) GetResourceData(GlobalImageStoreDbContext resourceDbContext, string location, string key, string device)
+    public (byte[]? image, string? fileType) GetResourceData(string location, string key, string device)
     {
-        var item = resourceDbContext.Resources
+        var item = _resourceDb.Resources
         .Where(img => img.Id == location && img.Key == key && img.RokuId == device)
         .Select(img => img).SingleOrDefault();
 
@@ -36,9 +41,9 @@ public class GlobalStoreHelpers
             return (null, null);
 
     }
-    public static string GetResourceSource(GlobalImageStoreDbContext resourceDb, string location, string key, string device)
+    public string GetResourceSource(string location, string key, string device)
     {
-        var item = resourceDb.Resources
+        var item = _resourceDb.Resources
         .Where(img => img.Id == location && img.Key == key && img.RokuId == device)
         .Select(img => img.Source).SingleOrDefault();
 
@@ -47,9 +52,9 @@ public class GlobalStoreHelpers
 
         return item;
     }
-    public static string GetResourceLightroomAlbum(GlobalImageStoreDbContext resourceDb, string location, string key, string device)
+    public string GetResourceLightroomAlbum(string location, string key, string device)
     {
-        var item = resourceDb.Resources
+        var item = _resourceDb.Resources
         .Where(img => img.Id == location && img.Key == key && img.RokuId == device)
         .Select(img => img.LightroomAlbum).SingleOrDefault();
 
@@ -59,9 +64,9 @@ public class GlobalStoreHelpers
         return item;
     }
 
-    public static async Task<bool> ScrubSessionCode(GlobalImageStoreDbContext resourceDb, string sessionCode)
+    public async Task<bool> ScrubSessionCode(string sessionCode)
     {
-        var sessions = await resourceDb.Resources
+        var sessions = await _resourceDb.Resources
         .Where(s => s.SessionCode == sessionCode)
         .ToListAsync();
         if (sessions is null)
@@ -73,7 +78,7 @@ public class GlobalStoreHelpers
             foreach (var s in sessions)
                 s.SessionCode = string.Empty;
 
-            await resourceDb.SaveChangesAsync();
+            await _resourceDb.SaveChangesAsync();
             return true;
         }
     }
@@ -89,7 +94,7 @@ public class GlobalStoreHelpers
         }
 
     }
-    public static async Task<RevokeAccessPackage> RevokeResourcePackage(RevokeAccessPackage revokePackage, GlobalImageStoreDbContext resourceDb)
+    public async Task<RevokeAccessPackage> RevokeResourcePackage(RevokeAccessPackage revokePackage)
     {
         string rokuId = revokePackage.RokuId;
         var links = revokePackage.Links;
@@ -99,7 +104,7 @@ public class GlobalStoreHelpers
 
         foreach (var item in links)
         {
-            var session = await resourceDb.Resources
+            var session = await _resourceDb.Resources
             .FirstOrDefaultAsync(x => x.Key == item.Value && x.Id == item.Key && x.RokuId == rokuId);
 
             if (session == null)
@@ -108,8 +113,8 @@ public class GlobalStoreHelpers
                 continue;
             }
 
-            resourceDb.Resources.Remove(session);
-            await resourceDb.SaveChangesAsync();
+            _resourceDb.Resources.Remove(session);
+            await _resourceDb.SaveChangesAsync();
         }
 
         return failedRevoke;

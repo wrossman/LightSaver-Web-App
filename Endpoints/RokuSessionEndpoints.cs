@@ -2,8 +2,6 @@ using System.Text.Json;
 using System.Net;
 using Microsoft.Extensions.Primitives;
 using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
-using System.Drawing;
 public static class RokuSessionEndpoints
 {
     public static void MapRokuSessionEndpoints(this IEndpointRouteBuilder app)
@@ -20,9 +18,8 @@ public static class RokuSessionEndpoints
     }
     private static async Task<IResult> ProvideSessionCode(HttpContext context, RokuSessions roku, ILogger<RokuSessions> logger)
     {
-        var request = context.Request;
-        var remoteIpAddress = request.HttpContext.Connection.RemoteIpAddress ?? new IPAddress(new byte[4]);
 
+        // should i use middleware to manage size restriction for post bodies and then include the json body model in the signature
         var body = await RokuSessions.ReadRokuPost(context);
         if (body == "fail")
         {
@@ -30,7 +27,8 @@ public static class RokuSessionEndpoints
             return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
         }
 
-        var jsonBody = JsonSerializer.Deserialize<RokuIdPostBody>(body);
+        var remoteIpAddress = context.Request.HttpContext.Connection.RemoteIpAddress ?? new IPAddress(new byte[4]);
+        var jsonBody = JsonSerializer.Deserialize<RokuProvideSessionCodePostBody>(body);
         var rokuId = jsonBody?.RokuId;
 
         if (string.IsNullOrEmpty(rokuId))
@@ -54,26 +52,32 @@ public static class RokuSessionEndpoints
         //thanks copilot for helping me read the post request
         var body = await RokuSessions.ReadRokuPost(context);
         if (body == "fail")
+        {
+            logger.LogWarning("An oversized payload was received at roku session code provider endpoint");
             return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
-        var jsonBody = JsonSerializer.Deserialize<RokuSessionPostBody>(body);
-        var sessionCode = jsonBody?.RokuSessionCode;
+        }
+
+        var jsonBody = JsonSerializer.Deserialize<RokuReceptionPostBody>(body);
+        var sessionCode = jsonBody?.SessionCode;
+        var rokuId = jsonBody?.RokuId;
 
         if (string.IsNullOrEmpty(sessionCode))
         {
-            logger.LogWarning("An invalid SessionCode was tried at /google/roku-google-reception endpoint");
+            logger.LogWarning("An invalid SessionCode was tried at roku reception endpoint");
+            return Results.NotFound("Media is not ready to be transfered.");
+        }
+        if (string.IsNullOrEmpty(rokuId))
+        {
+            logger.LogWarning("An invalid rokuId was tried at roku reception endpoint");
             return Results.NotFound("Media is not ready to be transfered.");
         }
 
-        if (await roku.CheckReadyTransfer(sessionCode))
-        {
+        if (await roku.CheckReadyTransfer(sessionCode, rokuId))
             return Results.Content("Ready");
-        }
         else
-        {
             return Results.NotFound("Media is not ready to be transfered.");
-        }
     }
-    private static async Task<IResult> ProvideResourcePackage(HttpContext context, GlobalImageStoreDbContext resourceDbContext, ILogger<RokuSessions> logger, UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb)
+    private static async Task<IResult> ProvideResourcePackage(HttpContext context, GlobalStoreHelpers store, GlobalImageStoreDbContext resourceDbContext, ILogger<RokuSessions> logger, UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb)
     {
         var body = await RokuSessions.ReadRokuPost(context);
         if (body == "fail")
@@ -92,7 +96,7 @@ public static class RokuSessionEndpoints
             return Results.BadRequest("Failed to retrieve resource package.");
         }
 
-        var links = GlobalStoreHelpers.GetResourcePackage(resourceDbContext, sessionCode, rokuId);
+        var links = store.GetResourcePackage(sessionCode, rokuId);
 
         if (links is null || links.Count == 0)
         {
@@ -101,7 +105,7 @@ public static class RokuSessionEndpoints
         }
 
         //remove sessioncode reference from resources
-        if (await GlobalStoreHelpers.ScrubSessionCode(resourceDbContext, sessionCode))
+        if (await store.ScrubSessionCode(sessionCode))
             logger.LogInformation($"Scrubbed Image Resources of session code {sessionCode}");
         else
             logger.LogWarning($"Failed to scrub resources of session code {sessionCode}");
@@ -120,7 +124,7 @@ public static class RokuSessionEndpoints
         logger.LogInformation($"Sending resource package for session code {sessionCode} to IP: {context.Connection.RemoteIpAddress}");
         return Results.Json(links);
     }
-    private static async Task<IResult> ProvideResource(HttpContext context, GlobalImageStoreDbContext resourceDbContext, LightroomService lightroom, ILogger<RokuSessions> logger)
+    private static IResult ProvideResource(HttpContext context, GlobalStoreHelpers store, GlobalImageStoreDbContext resourceDbContext, LightroomService lightroom, ILogger<RokuSessions> logger)
     {
         StringValues inputKey;
         StringValues inputLocation;
@@ -141,7 +145,7 @@ public static class RokuSessionEndpoints
 
         logger.LogInformation($"Received key: {key} for file: {location} from device: {device}");
 
-        (byte[]? image, string? fileType) = GlobalStoreHelpers.GetResourceData(resourceDbContext, location.ToString(), key.ToString(), device.ToString());
+        (byte[]? image, string? fileType) = store.GetResourceData(location.ToString(), key.ToString(), device.ToString());
 
         if (image is null || fileType is null)
         {
@@ -154,7 +158,7 @@ public static class RokuSessionEndpoints
 
         return Results.File(image, $"image/{fileType}");
     }
-    public static async Task<IResult> InitialStartWallpaper(HttpContext context, GlobalImageStoreDbContext resourceDbContext, LightroomService lightroom, ILogger<RokuSessions> logger)
+    public static async Task<IResult> InitialStartWallpaper(HttpContext context, GlobalStoreHelpers store, GlobalImageStoreDbContext resourceDbContext, LightroomService lightroom, ILogger<RokuSessions> logger)
     {
         StringValues inputKey;
         StringValues inputLocation;
@@ -175,7 +179,7 @@ public static class RokuSessionEndpoints
 
         logger.LogInformation($"Initial connection with key: {key} for file: {location} from device: {device}");
 
-        if (!(GlobalStoreHelpers.GetResourceSource(resourceDbContext, location, key, device) == "lightroom"))
+        if (!(store.GetResourceSource(location, key, device) == "lightroom"))
             return Results.Ok();
 
         var newPackage = await lightroom.UpdateRokuLinks(location, key, device);
@@ -184,7 +188,7 @@ public static class RokuSessionEndpoints
 
         return Results.Json(newPackage);
     }
-    private static async Task<IResult> RevokeAccess([FromBody] RevokeAccessPackage revokePackage, HttpContext context, GlobalImageStoreDbContext resoucrceDb, ILogger<RokuSessions> logger)
+    private static async Task<IResult> RevokeAccess([FromBody] RevokeAccessPackage revokePackage, GlobalStoreHelpers store, HttpContext context, GlobalImageStoreDbContext resoucrceDb, ILogger<RokuSessions> logger)
     {
         logger.LogInformation("Received the following data from roku:");
         string receiveLog = "";
@@ -197,7 +201,7 @@ public static class RokuSessionEndpoints
         }
         logger.LogInformation(receiveLog);
 
-        var failedRevoke = await GlobalStoreHelpers.RevokeResourcePackage(revokePackage, resoucrceDb);
+        var failedRevoke = await store.RevokeResourcePackage(revokePackage);
 
         if (failedRevoke.Links.Count > 0)
         {
