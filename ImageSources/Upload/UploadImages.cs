@@ -9,12 +9,14 @@ public class UploadImages
     private readonly RokuSessionDbContext _rokuSessionDb;
     private readonly UserSessionDbContext _userSessionDb;
     private readonly GlobalImageStoreDbContext _resourceDbContext;
-    public UploadImages(ILogger<UserSessions> logger, UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb, GlobalImageStoreDbContext resourceDbContext)
+    private readonly GlobalStoreHelpers _store;
+    public UploadImages(ILogger<UserSessions> logger, UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb, GlobalImageStoreDbContext resourceDbContext, GlobalStoreHelpers store)
     {
         _logger = logger;
         _userSessionDb = userSessionDb;
         _rokuSessionDb = rokuSessionDb;
         _resourceDbContext = resourceDbContext;
+        _store = store;
     }
     public async Task<bool> UploadImageFlow(List<IFormFile> images, string sessionId)
     {
@@ -78,7 +80,7 @@ public class UploadImages
     public async Task ExpireCreds(string sessionCode)
     {
         //remove sessioncode reference from resources
-        if (await GlobalStoreHelpers.ScrubSessionCode(_resourceDbContext, sessionCode))
+        if (await _store.ScrubSessionCode(sessionCode))
             _logger.LogInformation($"Scrubbed Image Resources of session code {sessionCode}");
         else
             _logger.LogWarning($"Failed to scrub resources of session code {sessionCode}");

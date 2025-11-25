@@ -8,13 +8,15 @@ public sealed class LightroomService
     private readonly UserSessionDbContext _userSessionDb;
     private readonly RokuSessionDbContext _rokuSessionDb;
     private readonly GlobalImageStoreDbContext _resourceDb;
+    private readonly GlobalStoreHelpers _store;
 
-    public LightroomService(UserSessionDbContext userSessionDb, GlobalImageStoreDbContext resourceDb, RokuSessionDbContext rokuSessionDb, ILogger<LightroomService> logger)
+    public LightroomService(UserSessionDbContext userSessionDb, GlobalImageStoreDbContext resourceDb, RokuSessionDbContext rokuSessionDb, ILogger<LightroomService> logger, GlobalStoreHelpers store)
     {
         _userSessionDb = userSessionDb;
         _resourceDb = resourceDb;
         _rokuSessionDb = rokuSessionDb;
         _logger = logger;
+        _store = store;
     }
     public async Task<(List<string>, string)> GetImageUrisFromShortCodeAsync(string shortCode)
     {
@@ -312,7 +314,7 @@ public sealed class LightroomService
     }
     public async Task<Dictionary<string, string>?> UpdateRokuLinks(string location, string key, string device)
     {
-        string albumUrl = GlobalStoreHelpers.GetResourceLightroomAlbum(_resourceDb, location, key, device);
+        string albumUrl = _store.GetResourceLightroomAlbum(location, key, device);
         var result = await GetImageUrisFromShortCodeAsync(albumUrl);
         var newImgs = result.Item1;
 

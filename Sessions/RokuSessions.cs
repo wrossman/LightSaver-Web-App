@@ -88,10 +88,11 @@ public class RokuSessions
     }
 
 
-    public async Task<bool> CheckReadyTransfer(string sessionCode)
+    public async Task<bool> CheckReadyTransfer(string sessionCode, string rokuId)
     {
         var rokuSession = await _rokuSessionDb.Sessions
-            .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
+            .FirstOrDefaultAsync(s => s.SessionCode == sessionCode &&
+                                 s.RokuId == rokuId);
         if (rokuSession != null && rokuSession.ReadyForTransfer == true)
             return true;
         else
@@ -100,8 +101,6 @@ public class RokuSessions
 
     public static async Task<string> ReadRokuPost(HttpContext context)
     {
-        context.Request.EnableBuffering(); // allows re-reading the stream
-
         const int maxBytes = 512;
         var buffer = new byte[32];
         int totalBytes = 0;

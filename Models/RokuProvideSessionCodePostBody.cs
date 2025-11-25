@@ -1,4 +1,4 @@
-public record RokuIdPostBody
+public record RokuProvideSessionCodePostBody
 {
     public string RokuId { get; set; } = "";
 }

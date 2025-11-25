@@ -118,9 +118,6 @@ using System.Threading.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
@@ -161,6 +158,7 @@ builder.Services.AddScoped<GoogleFlow>();
 builder.Services.AddScoped<GooglePhotosFlow>();
 builder.Services.AddScoped<UploadImages>();
 builder.Services.AddScoped<LightroomService>();
+builder.Services.AddScoped<GlobalStoreHelpers>();
 
 // start all services at the same time so they dont block each other
 builder.Services.Configure<HostOptions>(options =>
