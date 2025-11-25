@@ -1,17 +1,16 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Security.Cryptography;
-using Microsoft.EntityFrameworkCore;
 public class GooglePhotosPoller
 {
     private readonly ILogger<GooglePhotosFlow> _logger;
     private readonly IConfiguration _config;
-    private readonly GlobalImageStoreDbContext _resourceDbContext;
-    public GooglePhotosPoller(IConfiguration config, ILogger<GooglePhotosFlow> logger, GlobalImageStoreDbContext resourceDbContext)
+    private readonly GlobalStoreHelpers _store;
+    public GooglePhotosPoller(IConfiguration config, ILogger<GooglePhotosFlow> logger, GlobalStoreHelpers store)
     {
         _logger = logger;
         _config = config;
-        _resourceDbContext = resourceDbContext;
+        _store = store;
     }
     public Dictionary<string, string> FileUrls { get; set; } = new();
 
@@ -48,7 +47,7 @@ public class GooglePhotosPoller
                 _logger.LogInformation("User finished selecting photos.");
                 string photoList = await GooglePhotosFlow.GetPhotoList(pickerSession, accessToken);
 
-                await RemoveOldPhotos(rokuId);
+                await _store.RemoveByRokuId(rokuId);
                 AddUrlsToList(photoList);
                 await WritePhotosToMemory(sessionCode, accessToken, rokuId);
                 UserSessions.CodesReadyForTransfer.Enqueue(sessionCode);
@@ -116,22 +115,7 @@ public class GooglePhotosPoller
                 Source = "google",
                 OriginUrl = item.Key
             };
-            _resourceDbContext.Resources.Add(share);
-            await _resourceDbContext.SaveChangesAsync();
-        }
-    }
-    public async Task RemoveOldPhotos(string rokuId)
-    {
-        var itemsToRemove = await _resourceDbContext.Resources
-        .Where(x => x.RokuId == rokuId)
-        .ToListAsync();
-
-        _resourceDbContext.Resources.RemoveRange(itemsToRemove);
-        await _resourceDbContext.SaveChangesAsync();
-
-        foreach (var item in itemsToRemove)
-        {
-            _logger.LogInformation("Removed " + item.Id + " from resource database.");
+            _store.WriteResourceToStore(share);
         }
     }
 }

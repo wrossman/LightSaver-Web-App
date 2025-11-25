@@ -77,7 +77,7 @@ public static class RokuSessionEndpoints
         else
             return Results.NotFound("Media is not ready to be transfered.");
     }
-    private static async Task<IResult> ProvideResourcePackage(HttpContext context, GlobalStoreHelpers store, GlobalImageStoreDbContext resourceDbContext, ILogger<RokuSessions> logger, UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb)
+    private static async Task<IResult> ProvideResourcePackage(HttpContext context, SessionHelpers sessions, GlobalStoreHelpers store, GlobalImageStoreDbContext resourceDbContext, ILogger<RokuSessions> logger, UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb)
     {
         var body = await RokuSessions.ReadRokuPost(context);
         if (body == "fail")
@@ -111,12 +111,12 @@ public static class RokuSessionEndpoints
             logger.LogWarning($"Failed to scrub resources of session code {sessionCode}");
 
         // expire user and roku session associated with session code
-        if (await GlobalHelpers.ExpireRokuSession(rokuSessionDb, sessionCode))
+        if (await sessions.ExpireRokuSession(sessionCode))
             logger.LogInformation("Set roku session for expiration due to resource package delivery.");
         else
             logger.LogWarning("Failed to set expire for roku session after resource package delivery.");
 
-        if (await GlobalHelpers.ExpireUserSession(userSessionDb, sessionCode))
+        if (await sessions.ExpireUserSession(sessionCode))
             logger.LogInformation("Set user session for expiration due to resource package delivery.");
         else
             logger.LogWarning("Failed to set expire for user session after resource package delivery.");

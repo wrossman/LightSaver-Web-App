@@ -1,7 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
 using HtmlAgilityPack;
-using Microsoft.EntityFrameworkCore;
 public class GlobalHelpers
 {
     public static IResult CreateErrorPage(string message, string action = "")
@@ -41,42 +40,5 @@ public class GlobalHelpers
         string googleAuthServer = config["OAuth:GoogleAuthServer"] ?? string.Empty;
         string googleQuery = $"{googleAuthServer}?scope={scope}&response_type={responseType}&redirect_uri={redirect}&client_id={clientId}";
         return googleQuery;
-    }
-    public static async Task<bool> ExpireUserSession(UserSessionDbContext userSessionDb, string sessionCode)
-    {
-        var session = await userSessionDb.Sessions
-        .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
-
-        if (session != null)
-        {
-            session.Expired = true;
-            session.SessionCode = "";
-
-            await userSessionDb.SaveChangesAsync();
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-
-    }
-    public static async Task<bool> ExpireRokuSession(RokuSessionDbContext rokuSessionDb, string sessionCode)
-    {
-        var session = await rokuSessionDb.Sessions
-        .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
-
-        if (session != null)
-        {
-            session.Expired = true;
-            session.SessionCode = "";
-
-            await rokuSessionDb.SaveChangesAsync();
-            return true;
-        }
-        else
-        {
-            return false;
-        }
     }
 }

@@ -9,7 +9,6 @@ public class GlobalStoreHelpers
         _logger = logger;
         _resourceDb = resourceDb;
     }
-    public static int Filename { get; set; } = 0;
     public Dictionary<string, string>? GetResourcePackage(string sessionCode, string rokuId)
     {
         var links = _resourceDb.Resources
@@ -28,7 +27,25 @@ public class GlobalStoreHelpers
 
         return links;
     }
+    public async void WriteResourceToStore(ImageShare resource)
+    {
+        _resourceDb.Resources.Add(resource);
+        await _resourceDb.SaveChangesAsync();
+    }
+    public async Task RemoveByRokuId(string rokuId)
+    {
+        var itemsToRemove = await _resourceDb.Resources
+        .Where(x => x.RokuId == rokuId)
+        .ToListAsync();
 
+        _resourceDb.Resources.RemoveRange(itemsToRemove);
+        await _resourceDb.SaveChangesAsync();
+
+        foreach (var item in itemsToRemove)
+        {
+            _logger.LogInformation("Removed " + item.Id + " from resource database.");
+        }
+    }
     public (byte[]? image, string? fileType) GetResourceData(string location, string key, string device)
     {
         var item = _resourceDb.Resources
@@ -63,7 +80,6 @@ public class GlobalStoreHelpers
 
         return item;
     }
-
     public async Task<bool> ScrubSessionCode(string sessionCode)
     {
         var sessions = await _resourceDb.Resources
@@ -82,11 +98,10 @@ public class GlobalStoreHelpers
             return true;
         }
     }
-    public static void WritePhotosToLocal(byte[] img, string fileType)
+    public void WritePhotosToLocal(byte[] img, string fileType)
     {
         string folderPath = @"C:\Users\billuswillus\Desktop\";
-        int file = Filename++;
-        var filePath = folderPath + "img" + file.ToString() + "." + fileType;
+        var filePath = folderPath + "img" + DateTime.UtcNow.ToString("HHmmssfff") + "." + fileType;
 
         using (FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
         {
@@ -118,5 +133,38 @@ public class GlobalStoreHelpers
         }
 
         return failedRevoke;
+    }
+    public async Task RemoveByLightroomAlbum(string albumUrl)
+    {
+        var items = await _resourceDb.Resources
+        .Where(x => x.LightroomAlbum == albumUrl)
+        .ToListAsync();
+
+        _resourceDb.Resources.RemoveRange(items);
+        await _resourceDb.SaveChangesAsync();
+    }
+    public async Task<List<string>?> GetLightroomOriginUrlsByRokuId(string rokuId)
+    {
+        return await _resourceDb.Resources
+            .Where(x => x.RokuId == rokuId &&
+                        x.Source == "lightroom")
+            .Select(x => x.OriginUrl)
+            .ToListAsync();
+    }
+    public async Task RemoveByOriginUrls(List<string>? originUrls)
+    {
+        if (originUrls is null)
+            return;
+
+        var itemsToRemove = await _resourceDb.Resources
+        .Where(x => originUrls.Contains(x.OriginUrl))
+        .ToListAsync();
+
+        _resourceDb.Resources.RemoveRange(itemsToRemove);
+        await _resourceDb.SaveChangesAsync();
+
+        _logger.LogInformation(
+        "Removed the following URLs from resource database: {RemovedUrls}",
+        string.Join("\n", itemsToRemove.Select(i => i.OriginUrl)));
     }
 }

@@ -159,6 +159,7 @@ builder.Services.AddScoped<GooglePhotosFlow>();
 builder.Services.AddScoped<UploadImages>();
 builder.Services.AddScoped<LightroomService>();
 builder.Services.AddScoped<GlobalStoreHelpers>();
+builder.Services.AddScoped<SessionHelpers>();
 
 // start all services at the same time so they dont block each other
 builder.Services.Configure<HostOptions>(options =>

@@ -10,13 +10,15 @@ public class UploadImages
     private readonly UserSessionDbContext _userSessionDb;
     private readonly GlobalImageStoreDbContext _resourceDbContext;
     private readonly GlobalStoreHelpers _store;
-    public UploadImages(ILogger<UserSessions> logger, UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb, GlobalImageStoreDbContext resourceDbContext, GlobalStoreHelpers store)
+    private readonly SessionHelpers _sessions;
+    public UploadImages(ILogger<UserSessions> logger, UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb, GlobalImageStoreDbContext resourceDbContext, GlobalStoreHelpers store, SessionHelpers sessions)
     {
         _logger = logger;
         _userSessionDb = userSessionDb;
         _rokuSessionDb = rokuSessionDb;
         _resourceDbContext = resourceDbContext;
         _store = store;
+        _sessions = sessions;
     }
     public async Task<bool> UploadImageFlow(List<IFormFile> images, string sessionId)
     {
@@ -86,12 +88,12 @@ public class UploadImages
             _logger.LogWarning($"Failed to scrub resources of session code {sessionCode}");
 
         // expire user and roku session associated with session code
-        if (await GlobalHelpers.ExpireRokuSession(_rokuSessionDb, sessionCode))
+        if (await _sessions.ExpireRokuSession(sessionCode))
             _logger.LogInformation("Set roku session for expiration due to resource package delivery.");
         else
             _logger.LogWarning("Failed to set expire for roku session after resource package delivery.");
 
-        if (await GlobalHelpers.ExpireUserSession(_userSessionDb, sessionCode))
+        if (await _sessions.ExpireUserSession(sessionCode))
             _logger.LogInformation("Set user session for expiration due to resource package delivery.");
         else
             _logger.LogWarning("Failed to set expire for user session after resource package delivery.");
