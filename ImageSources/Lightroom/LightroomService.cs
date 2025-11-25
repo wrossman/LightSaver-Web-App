@@ -7,13 +7,11 @@ public sealed class LightroomService
     private readonly ILogger<LightroomService> _logger;
     private readonly UserSessionDbContext _userSessionDb;
     private readonly RokuSessionDbContext _rokuSessionDb;
-    private readonly GlobalImageStoreDbContext _resourceDb;
     private readonly GlobalStoreHelpers _store;
 
-    public LightroomService(UserSessionDbContext userSessionDb, GlobalImageStoreDbContext resourceDb, RokuSessionDbContext rokuSessionDb, ILogger<LightroomService> logger, GlobalStoreHelpers store)
+    public LightroomService(UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb, ILogger<LightroomService> logger, GlobalStoreHelpers store)
     {
         _userSessionDb = userSessionDb;
-        _resourceDb = resourceDb;
         _rokuSessionDb = rokuSessionDb;
         _logger = logger;
         _store = store;
@@ -243,8 +241,7 @@ public sealed class LightroomService
                 OriginUrl = item,
                 LightroomAlbum = shortCode
             };
-            _resourceDb.Resources.Add(share);
-            await _resourceDb.SaveChangesAsync();
+            _store.WriteResourceToStore(share);
         }
 
         UserSessions.CodesReadyForTransfer.Enqueue(sessionCode);
@@ -312,20 +309,15 @@ public sealed class LightroomService
         // Never found matching closing brace
         return null;
     }
-    public async Task<Dictionary<string, string>?> UpdateRokuLinks(string location, string key, string device)
+    public async Task<Dictionary<string, string>?> UpdateRokuLinks(string location, string key, string rokuId)
     {
-        string albumUrl = _store.GetResourceLightroomAlbum(location, key, device);
+        string albumUrl = _store.GetResourceLightroomAlbum(location, key, rokuId);
         var result = await GetImageUrisFromShortCodeAsync(albumUrl);
         var newImgs = result.Item1;
 
         if (result.Item2 == "Failed to retrieve any images from album.")
         {
-            var items = await _resourceDb.Resources
-            .Where(x => x.LightroomAlbum == albumUrl)
-            .ToListAsync();
-
-            _resourceDb.Resources.RemoveRange(items);
-            await _resourceDb.SaveChangesAsync();
+            await _store.RemoveByLightroomAlbum(albumUrl);
             return null;
         }
 
@@ -336,12 +328,9 @@ public sealed class LightroomService
             return null;
         }
 
-        // thanks chat for the query and comparison snippet
-        var oldImgs = await _resourceDb.Resources
-            .Where(x => x.RokuId == device &&
-                        x.Source == "lightroom")
-            .Select(x => x.OriginUrl)
-            .ToListAsync();
+        var oldImgs = await _store.GetLightroomOriginUrlsByRokuId(rokuId);
+        if (oldImgs is null)
+            return null;
 
         bool equal = !oldImgs.Except(newImgs).Any() && !newImgs.Except(oldImgs).Any();
 
@@ -354,18 +343,7 @@ public sealed class LightroomService
         if (equal)
             return null;
 
-        var itemsToRemove = await _resourceDb.Resources
-            .Where(x => oldImgs.Contains(x.OriginUrl))
-            .ToListAsync();
-
-        _resourceDb.Resources.RemoveRange(itemsToRemove);
-        await _resourceDb.SaveChangesAsync();
-
-        _logger.LogInformation(
-            "Removed the following URLs from resource database: {RemovedUrls}",
-            string.Join("\n", itemsToRemove.Select(i => i.OriginUrl))
-        );
-
+        await _store.RemoveByOriginUrls(oldImgs);
 
         Dictionary<string, string> newPackage = new();
 
@@ -388,14 +366,13 @@ public sealed class LightroomService
                 ImageStream = data,
                 CreatedOn = DateTime.UtcNow,
                 FileType = "",
-                RokuId = device,
+                RokuId = rokuId,
                 Source = "lightroom",
                 OriginUrl = item,
                 LightroomAlbum = albumUrl
             };
             newPackage.Add(share.Id, share.Key);
-            _resourceDb.Resources.Add(share);
-            await _resourceDb.SaveChangesAsync();
+            _store.WriteResourceToStore(share);
         }
 
         return newPackage;

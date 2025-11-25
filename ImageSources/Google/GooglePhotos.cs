@@ -8,13 +8,13 @@ public class GooglePhotosFlow
     private readonly ILogger<GooglePhotosFlow> _logger;
     private readonly IConfiguration _config;
     private readonly UserSessionDbContext _userSessionDb;
-    private readonly IServiceProvider _serviceProvider;
-    public GooglePhotosFlow(ILogger<GooglePhotosFlow> logger, IConfiguration config, UserSessionDbContext userSessionDb, IServiceProvider serviceProvider)
+    private readonly IServiceScopeFactory _scopeFactory;
+    public GooglePhotosFlow(ILogger<GooglePhotosFlow> logger, IConfiguration config, UserSessionDbContext userSessionDb, IServiceScopeFactory scopeFactory)
     {
         _logger = logger;
         _config = config;
         _userSessionDb = userSessionDb;
-        _serviceProvider = serviceProvider;
+        _scopeFactory = scopeFactory;
     }
     public async Task<string> StartGooglePhotosFlow(string userSessionId)
     {
@@ -32,16 +32,21 @@ public class GooglePhotosFlow
 
         string pickerUri = pickerSession.PickerUri;
 
-        using (var scope = _serviceProvider.CreateScope())
+        _ = Task.Run(async () =>
         {
-            _ = Task.Run(() =>
+            using (var scope = _scopeFactory.CreateScope())
             {
-                var options = new DbContextOptionsBuilder<GlobalImageStoreDbContext>().UseInMemoryDatabase("GlobalImageStore").Options;
-                GlobalImageStoreDbContext resourceDbContext = new(options);
-                GooglePhotosPoller poller = new(_config, _logger, resourceDbContext);
-                _ = poller.PollPhotos(pickerSession, accessToken, sessionCode, rokuId);
-            });
-        }
+                var store = scope.ServiceProvider.GetRequiredService<GlobalStoreHelpers>();
+                if (store is null)
+                {
+                    _logger.LogWarning("Failed to start polling services for Google Photos");
+                    return;
+                }
+                GooglePhotosPoller poller = new(_config, _logger, store);
+                await poller.PollPhotos(pickerSession, accessToken, sessionCode, rokuId);
+            }
+        });
+
         return pickerUri;
 
     }
