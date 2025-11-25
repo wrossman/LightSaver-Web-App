@@ -1,38 +1,41 @@
 using Microsoft.EntityFrameworkCore;
-public class RemoveStaleRokuSessionsService(
-    IServiceProvider serviceProvider, ILogger<RemoveStaleRokuSessionsService> logger) : IHostedService
+public class RemoveStaleRokuSessionsService : BackgroundService
 {
-    private readonly ILogger<RemoveStaleRokuSessionsService> _logger = logger;
-    public async Task StartAsync(CancellationToken cancellationToken)
+    private readonly ILogger<RemoveStaleRokuSessionsService> _logger;
+    private readonly IServiceScopeFactory _scopeFactory;
+    public RemoveStaleRokuSessionsService(IServiceScopeFactory scopeFactory, ILogger<RemoveStaleRokuSessionsService> logger)
     {
-        while (true)
+        _logger = logger;
+        _scopeFactory = scopeFactory;
+    }
+    protected override async Task ExecuteAsync(CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
         {
-            using IServiceScope scope = serviceProvider.CreateScope();
-            var options = new DbContextOptionsBuilder<RokuSessionDbContext>().UseInMemoryDatabase("RokuSessionDb").Options;
-            using RokuSessionDbContext sessionDb = new(options);
-
-            await Task.Delay(10000, cancellationToken);
-
-            _logger.LogInformation("Running Roku Session Cleanup");
-            var cutoff = DateTime.UtcNow.AddSeconds(-480);
-
-            // Find expired sessions
-            var expiredSessions = await sessionDb.Sessions
-            .Where(s => s.Expired || s.CreatedAt < cutoff)
-            .ToListAsync();
-
-            sessionDb.Sessions.RemoveRange(expiredSessions);
-            await sessionDb.SaveChangesAsync();
-
-            foreach (RokuSession item in expiredSessions)
+            using (IServiceScope scope = _scopeFactory.CreateScope())
             {
-                if (item.Expired)
-                    _logger.LogInformation($"Removed Roku Session for IP: {item.SourceAddress} marked as expired.");
-                else
-                    _logger.LogWarning($"Removed Roku Session for IP: {item.SourceAddress} due to session timeout.");
+                RokuSessionDbContext sessionDb = scope.ServiceProvider.GetRequiredService<RokuSessionDbContext>();
+
+                _logger.LogInformation("Running roku Session Cleanup");
+                var cutoff = DateTime.UtcNow.AddSeconds(-480);
+
+                // Find expired sessions
+                var expiredSessions = await sessionDb.Sessions
+                .Where(s => s.Expired || s.CreatedAt < cutoff)
+                .ToListAsync(cancellationToken);
+
+                sessionDb.Sessions.RemoveRange(expiredSessions);
+                await sessionDb.SaveChangesAsync(cancellationToken);
+
+                foreach (RokuSession item in expiredSessions)
+                {
+                    if (item.Expired)
+                        _logger.LogInformation($"Removed roku Session for roku {item.SourceAddress} marked as expired.");
+                    else
+                        _logger.LogWarning($"Removed roku Session for roku {item.SourceAddress} due to session timeout.");
+                }
             }
+            await Task.Delay(10000, cancellationToken);
         }
     }
-    public Task StopAsync(CancellationToken cancellationToken)
-        => Task.CompletedTask;
 }
