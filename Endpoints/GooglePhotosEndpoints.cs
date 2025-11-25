@@ -1,7 +1,4 @@
 using Microsoft.Extensions.Primitives;
-using System.Net;
-using HtmlAgilityPack;
-using System.Text.Json;
 public static class GooglePhotosEndpoints
 {
     public static void MapGooglePhotosEndpoints(this IEndpointRouteBuilder app)

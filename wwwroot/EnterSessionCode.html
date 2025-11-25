@@ -86,13 +86,13 @@
 
 <body>
     <div class="container">
-        <h1>Enter your 6-character code</h1>
+        <h1>Enter your 7-character code</h1>
 
         <form action="/user/source" method="post" novalidate>
-            <label for="code">6-character code</label>
-            <input id="code" name="code" type="text" pattern="^[A-Z0-9]{6}$" maxlength="6" required placeholder="A1B2C3"
-                aria-describedby="codeHint" />
-            <div id="codeHint" class="hint">Exactly 6 letters or numbers.</div>
+            <label for="code">7-character code</label>
+            <input id="code" name="code" type="text" pattern="^[A-Z0-9]{7}$" maxlength="7" required
+                placeholder="A1B2C3D" aria-describedby="codeHint" />
+            <div id="codeHint" class="hint">Exactly 7 letters or numbers.</div>
 
             <button type="submit">Verify</button>
         </form>
@@ -101,7 +101,7 @@
     <script>
         const codeInput = document.getElementById('code');
         codeInput.addEventListener('input', () => {
-            codeInput.value = codeInput.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase();
+            codeInput.value = codeInput.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 7).toUpperCase();
         });
     </script>
 </body>

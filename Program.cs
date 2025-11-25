@@ -32,7 +32,6 @@ WEB APP TO-DO ITEMS
 -------------------
 - check to see if lightroom album has changed before sending the images
 - limit the number of images to store for each upload method
-- Add a delete endpoint that lets you remove your files from lightsaver
 - Limit file size, the picture of latvia doesnt load on roku as a poster. I am assuming because it is too big?
 - Expires credentials every they need to be
 - change using html agility pack to serve my html. there has to be a better way.
@@ -60,6 +59,7 @@ ROKU TO-DO ITEMS
 -------------------
 DONE
 -------------------
+X Add a delete endpoint that lets you remove your files from lightsaver
 X Upload images from device
 X Verify polling stops if you exit out of the choose photos page
 X add lightroom scraping flow
