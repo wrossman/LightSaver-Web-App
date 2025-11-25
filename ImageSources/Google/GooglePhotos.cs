@@ -50,7 +50,6 @@ public class GooglePhotosFlow
         return pickerUri;
 
     }
-
     public static async Task<string> GetPhotoList(PickerSession pickerSession, string accessToken)
     {
         using HttpClient client = new();

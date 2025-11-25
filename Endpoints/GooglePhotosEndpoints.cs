@@ -9,11 +9,11 @@ public static class GooglePhotosEndpoints
         group.MapGet("/google-redirect", GoogleOAuthRedirect);
         group.MapGet("/auth/google-callback", HandleOAuthResponse);
     }
-    private static IResult GoogleOAuthRedirect(IConfiguration config, ILogger<GoogleFlow> logger)
+    private static IResult GoogleOAuthRedirect(IConfiguration config)
     {
         return Results.Redirect(GlobalHelpers.BuildGoogleOAuthUrl(config));
     }
-    private static async Task<IResult> HandleOAuthResponse(HttpContext context, GooglePhotosFlow googlePhotos, GoogleFlow google, UserSessions user, ILogger<GoogleFlow> logger)
+    private static async Task<IResult> HandleOAuthResponse(HttpContext context, GooglePhotosFlow googlePhotos, GoogleFlow google, ILogger<GoogleFlow> logger)
     {
         var request = context.Request;
 
