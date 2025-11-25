@@ -1,6 +1,3 @@
-using System.Net;
-using System.Text.Json;
-using HtmlAgilityPack;
 public static class UploadPhotosEndpoints
 {
     public static void MapUploadPhotosEndpoints(this IEndpointRouteBuilder app)
@@ -11,14 +8,10 @@ public static class UploadPhotosEndpoints
         group.MapGet("/upload", UploadPage);
         group.MapPost("/post-images", ReceiveImages).DisableAntiforgery();
     }
-    public static IResult UploadPage()
+    public static IResult UploadPage(IWebHostEnvironment env)
     {
-        var doc = new HtmlDocument();
-        doc.LoadHtml(File.ReadAllText("./wwwroot/UploadImages.html"));
-        string uploadPage = doc.DocumentNode.OuterHtml;
-        return Results.Content(uploadPage, "text/html");
+        return Results.File(env.WebRootPath + "/UploadImages.html", "text/html");
     }
-
     public static async Task<IResult> ReceiveImages(UploadImages upload, IFormFileCollection imageCollection, HttpContext context, ILogger<UserSession> logger)
     {
         List<IFormFile> images = imageCollection.ToList();

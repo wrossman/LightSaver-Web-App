@@ -1,4 +1,3 @@
-using HtmlAgilityPack;
 using Microsoft.AspNetCore.Mvc;
 public static class LightroomEndpoints
 {
@@ -10,22 +9,12 @@ public static class LightroomEndpoints
         group.MapGet("/select-album", SelectAlbum);
         group.MapPost("/post-album", PostAlbum).DisableAntiforgery();
     }
-    public static IResult SelectAlbum()
+    public static IResult SelectAlbum(IWebHostEnvironment env)
     {
-        var doc = new HtmlDocument();
-        doc.LoadHtml(File.ReadAllText("./wwwroot/LightroomAlbumSubmit.html"));
-        string submitUrl = doc.DocumentNode.OuterHtml;
-        return Results.Content(submitUrl, "text/html");
+        return Results.File(env.WebRootPath + "/LightroomAlbumSubmit.html", "text/html");
     }
     public static async Task<IResult> PostAlbum([FromForm] string lrCode, HttpContext context, LightroomService lightroom, ILogger<LightroomService> logger)
     {
-        // var lrCode = context.Request.Form["lrCode"].ToString();
-        // if (string.IsNullOrEmpty(lrCode))
-        // {
-        //     logger.LogWarning("Failed to read lightroom album from submitted form");
-        //     return GlobalHelpers.CreateErrorPage("The Lightroom album URL you provided is invalid.");
-        // }
-
         string? userSessionId;
         if (!context.Request.Cookies.TryGetValue("UserSID", out userSessionId))
         {

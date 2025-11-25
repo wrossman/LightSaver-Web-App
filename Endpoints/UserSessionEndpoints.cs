@@ -1,5 +1,4 @@
 using System.Net;
-using HtmlAgilityPack;
 public static class UserSessionEndpoints
 {
     public static void MapUserSessionEndpoints(this IEndpointRouteBuilder app)
@@ -10,7 +9,7 @@ public static class UserSessionEndpoints
         group.MapGet("/session", CodeSubmissionPageUpload);
         group.MapPost("/source", SelectSource);
     }
-    private static IResult CodeSubmissionPageUpload(HttpContext context, ILogger<UserSessions> logger)
+    private static IResult CodeSubmissionPageUpload(IWebHostEnvironment env, HttpContext context, ILogger<UserSessions> logger)
     {
         // append test cookie to response, read it at code submission page and redirect if cookies arent allowed
         context.Response.Cookies.Append("AllowCookie", "LightSaver", new CookieOptions
@@ -20,12 +19,9 @@ public static class UserSessionEndpoints
             SameSite = SameSiteMode.Lax,
             Path = "/"
         });
-        var doc = new HtmlDocument();
-        doc.LoadHtml(File.ReadAllText("./wwwroot/EnterSessionCode.html"));
-        string codeSubmission = doc.DocumentNode.OuterHtml;
-        return Results.Content(codeSubmission, "text/html");
+        return Results.File(env.WebRootPath + "/EnterSessionCode.html", "text/html");
     }
-    private async static Task<IResult> SelectSource(UserSessions userSessions, HttpContext context, ILogger<UserSessions> logger)
+    private async static Task<IResult> SelectSource(IWebHostEnvironment env, UserSessions userSessions, HttpContext context, ILogger<UserSessions> logger)
     {
         // try get test cookie
         string? testCookie;
@@ -58,10 +54,6 @@ public static class UserSessionEndpoints
             Path = "/"
         });
 
-        var doc = new HtmlDocument();
-        doc.LoadHtml(File.ReadAllText("./wwwroot/SelectImgSource.html"));
-        string imgSourcePage = doc.DocumentNode.OuterHtml;
-
-        return Results.Content(imgSourcePage, "text/html");
+        return Results.File(env.WebRootPath + "/SelectImgSource.html", "text/html");
     }
 }
