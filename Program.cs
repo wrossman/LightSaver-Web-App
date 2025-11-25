@@ -31,11 +31,9 @@ DESIGN ITEMS
 WEB APP TO-DO ITEMS
 -------------------
 - Add a prompt that the lightroom album you linked has zero images and ask to try again
-- check to see if lightroom album has changed before sending the images
 - limit the number of images to store for each upload method
 - Limit file size, the picture of latvia doesnt load on roku as a poster. I am assuming because it is too big?
 - Expires credentials every they need to be
-- change using html agility pack to serve my html. there has to be a better way.
 - Set up antiforgery middleware
 - Evaluate whether there’s a better approach to managing image resolution.
 - remove user and roku sessions after flow failure
@@ -62,6 +60,8 @@ ROKU TO-DO ITEMS
 -------------------
 DONE
 -------------------
+X check to see if lightroom album has changed before sending the images
+X change using html agility pack to serve my html. there has to be a better way.
 X Add a delete endpoint that lets you remove your files from lightsaver
 X Upload images from device
 X Verify polling stops if you exit out of the choose photos page
