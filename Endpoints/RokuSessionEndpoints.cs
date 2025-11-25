@@ -2,6 +2,8 @@ using System.Text.Json;
 using System.Net;
 using Microsoft.Extensions.Primitives;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
+using System.Drawing;
 public static class RokuSessionEndpoints
 {
     public static void MapRokuSessionEndpoints(this IEndpointRouteBuilder app)
@@ -13,6 +15,7 @@ public static class RokuSessionEndpoints
         group.MapPost("/reception", RokuReception);
         group.MapPost("/resource-package", (Delegate)ProvideResourcePackage);
         group.MapGet("/get-resource", ProvideResource);
+        group.MapGet("/initial", InitialStartWallpaper);
         group.MapPost("/revoke", RevokeAccess);
     }
     private static async Task<IResult> ProvideSessionCode(HttpContext context, RokuSessions roku, ILogger<RokuSessions> logger)
@@ -117,22 +120,26 @@ public static class RokuSessionEndpoints
         logger.LogInformation($"Sending resource package for session code {sessionCode} to IP: {context.Connection.RemoteIpAddress}");
         return Results.Json(links);
     }
-    private static IResult ProvideResource(HttpContext context, GlobalImageStoreDbContext resourceDbContext, ILogger<RokuSessions> logger)
+    private static async Task<IResult> ProvideResource(HttpContext context, GlobalImageStoreDbContext resourceDbContext, LightroomService lightroom, ILogger<RokuSessions> logger)
     {
-        StringValues key;
-        StringValues location;
-        StringValues device;
-        if (!context.Request.Headers.TryGetValue("Authorization", out key))
+        StringValues inputKey;
+        StringValues inputLocation;
+        StringValues inputDevice;
+        if (!context.Request.Headers.TryGetValue("Authorization", out inputKey))
             return Results.Unauthorized();
-        if (!context.Request.Headers.TryGetValue("Location", out location))
+        if (!context.Request.Headers.TryGetValue("Location", out inputLocation))
             return Results.Unauthorized();
-        if (!context.Request.Headers.TryGetValue("Device", out device))
+        if (!context.Request.Headers.TryGetValue("Device", out inputDevice))
             return Results.Unauthorized();
 
-        logger.LogInformation($"Received key: {key} for file {location} from device {device}");
+        string? key = inputKey;
+        string? location = inputLocation;
+        string? device = inputDevice;
 
         if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(device) || string.IsNullOrEmpty(location))
             return Results.Unauthorized();
+
+        logger.LogInformation($"Received key: {key} for file: {location} from device: {device}");
 
         (byte[]? image, string? fileType) = GlobalStoreHelpers.GetResourceData(resourceDbContext, location.ToString(), key.ToString(), device.ToString());
 
@@ -146,6 +153,36 @@ public static class RokuSessionEndpoints
         // GlobalStoreHelpers.WritePhotosToLocal(image, fileType);
 
         return Results.File(image, $"image/{fileType}");
+    }
+    public static async Task<IResult> InitialStartWallpaper(HttpContext context, GlobalImageStoreDbContext resourceDbContext, LightroomService lightroom, ILogger<RokuSessions> logger)
+    {
+        StringValues inputKey;
+        StringValues inputLocation;
+        StringValues inputDevice;
+        if (!context.Request.Headers.TryGetValue("Authorization", out inputKey))
+            return Results.Unauthorized();
+        if (!context.Request.Headers.TryGetValue("Location", out inputLocation))
+            return Results.Unauthorized();
+        if (!context.Request.Headers.TryGetValue("Device", out inputDevice))
+            return Results.Unauthorized();
+
+        string? key = inputKey;
+        string? location = inputLocation;
+        string? device = inputDevice;
+
+        if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(device) || string.IsNullOrEmpty(location))
+            return Results.Unauthorized();
+
+        logger.LogInformation($"Initial connection with key: {key} for file: {location} from device: {device}");
+
+        if (!(GlobalStoreHelpers.GetResourceSource(resourceDbContext, location, key, device) == "lightroom"))
+            return Results.Ok();
+
+        var newPackage = await lightroom.UpdateRokuLinks(location, key, device);
+        if (newPackage is null)
+            return Results.Ok();
+
+        return Results.Json(newPackage);
     }
     private static async Task<IResult> RevokeAccess([FromBody] RevokeAccessPackage revokePackage, HttpContext context, GlobalImageStoreDbContext resoucrceDb, ILogger<RokuSessions> logger)
     {

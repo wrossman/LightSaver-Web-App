@@ -26,15 +26,37 @@ public class GlobalStoreHelpers
 
     public static (byte[]? image, string? fileType) GetResourceData(GlobalImageStoreDbContext resourceDbContext, string location, string key, string device)
     {
-        var test = resourceDbContext.Resources
+        var item = resourceDbContext.Resources
         .Where(img => img.Id == location && img.Key == key && img.RokuId == device)
         .Select(img => img).SingleOrDefault();
 
-        if (test is not null)
-            return (test.ImageStream, test.FileType);
+        if (item is not null)
+            return (item.ImageStream, item.FileType);
         else
             return (null, null);
 
+    }
+    public static string GetResourceSource(GlobalImageStoreDbContext resourceDb, string location, string key, string device)
+    {
+        var item = resourceDb.Resources
+        .Where(img => img.Id == location && img.Key == key && img.RokuId == device)
+        .Select(img => img.Source).SingleOrDefault();
+
+        if (string.IsNullOrEmpty(item))
+            return "Unkown";
+
+        return item;
+    }
+    public static string GetResourceLightroomAlbum(GlobalImageStoreDbContext resourceDb, string location, string key, string device)
+    {
+        var item = resourceDb.Resources
+        .Where(img => img.Id == location && img.Key == key && img.RokuId == device)
+        .Select(img => img.LightroomAlbum).SingleOrDefault();
+
+        if (string.IsNullOrEmpty(item))
+            return "Unkown";
+
+        return item;
     }
 
     public static async Task<bool> ScrubSessionCode(GlobalImageStoreDbContext resourceDb, string sessionCode)

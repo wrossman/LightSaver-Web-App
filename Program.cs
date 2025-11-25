@@ -30,6 +30,7 @@ DESIGN ITEMS
 
 WEB APP TO-DO ITEMS
 -------------------
+- Add a prompt that the lightroom album you linked has zero images and ask to try again
 - check to see if lightroom album has changed before sending the images
 - limit the number of images to store for each upload method
 - Limit file size, the picture of latvia doesnt load on roku as a poster. I am assuming because it is too big?
@@ -45,6 +46,8 @@ WEB APP TO-DO ITEMS
 - Create class to manage session and resource expiration
 ROKU TO-DO ITEMS
 -------------------
+- Retry logic for failed connections
+- Track if session code that was provided expired and then refresh
 - Limit the number of keys stored on roku registry
 - Adjust polling times, maybe create an account linked dialog, and then show that the images are being transferred.
 - Add fade in animation for session code label, since it processes later

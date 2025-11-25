@@ -32,7 +32,7 @@ public static class LightroomEndpoints
             return GlobalHelpers.CreateErrorPage("Failed to get images from Lightroom album");
         }
 
-        if (!await lightroom.LightroomFlow(urlList, userSessionId))
+        if (!await lightroom.LightroomFlow(urlList, userSessionId, lrCode))
         {
             logger.LogWarning("Failed to retreive images from Lightroom album");
             return GlobalHelpers.CreateErrorPage("Failed to retreive Lightroom album images.");

@@ -112,7 +112,9 @@ public class GooglePhotosPoller
                 ImageStream = data,
                 CreatedOn = DateTime.UtcNow,
                 FileType = item.Value,
-                RokuId = rokuId
+                RokuId = rokuId,
+                Source = "google",
+                OriginUrl = item.Key
             };
             _resourceDbContext.Resources.Add(share);
             await _resourceDbContext.SaveChangesAsync();

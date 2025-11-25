@@ -194,9 +194,7 @@ public sealed class LightroomService
             }
         }
     }
-
-
-    public async Task<bool> LightroomFlow(List<string> urls, string userSessionId)
+    public async Task<bool> LightroomFlow(List<string> urls, string userSessionId, string shortCode)
     {
         var sessionCode = await _userSessionDb.Sessions
                     .Where(s => s.Id == userSessionId)
@@ -238,7 +236,10 @@ public sealed class LightroomService
                 ImageStream = data,
                 CreatedOn = DateTime.UtcNow,
                 FileType = "",
-                RokuId = rokuId
+                RokuId = rokuId,
+                Source = "lightroom",
+                OriginUrl = item,
+                LightroomAlbum = shortCode
             };
             _resourceDb.Resources.Add(share);
             await _resourceDb.SaveChangesAsync();
@@ -309,6 +310,93 @@ public sealed class LightroomService
         // Never found matching closing brace
         return null;
     }
+    public async Task<Dictionary<string, string>?> UpdateRokuLinks(string location, string key, string device)
+    {
+        string albumUrl = GlobalStoreHelpers.GetResourceLightroomAlbum(_resourceDb, location, key, device);
+        var result = await GetImageUrisFromShortCodeAsync(albumUrl);
+        var newImgs = result.Item1;
+
+        if (result.Item2 == "Failed to retrieve any images from album.")
+        {
+            var items = await _resourceDb.Resources
+            .Where(x => x.LightroomAlbum == albumUrl)
+            .ToListAsync();
+
+            _resourceDb.Resources.RemoveRange(items);
+            await _resourceDb.SaveChangesAsync();
+            return null;
+        }
+
+        if (result.Item2 != "success" || newImgs is null)
+        {
+            _logger.LogWarning("Failed to get url list from lightroom album");
+            _logger.LogWarning("Failed with error: " + result.Item2);
+            return null;
+        }
+
+        // thanks chat for the query and comparison snippet
+        var oldImgs = await _resourceDb.Resources
+            .Where(x => x.RokuId == device &&
+                        x.Source == "lightroom")
+            .Select(x => x.OriginUrl)
+            .ToListAsync();
+
+        bool equal = !oldImgs.Except(newImgs).Any() && !newImgs.Except(oldImgs).Any();
+
+        //thanks chat for cleaning up my janky writelines
+        _logger.LogInformation($"Old images: {string.Join("\n", oldImgs)}");
+        _logger.LogInformation($"New images: {string.Join("\n", newImgs)}");
+
+        _logger.LogInformation("Image list equality check result: {Equal}", equal);
+
+        if (equal)
+            return null;
+
+        var itemsToRemove = await _resourceDb.Resources
+            .Where(x => oldImgs.Contains(x.OriginUrl))
+            .ToListAsync();
+
+        _resourceDb.Resources.RemoveRange(itemsToRemove);
+        await _resourceDb.SaveChangesAsync();
+
+        _logger.LogInformation(
+            "Removed the following URLs from resource database: {RemovedUrls}",
+            string.Join("\n", itemsToRemove.Select(i => i.OriginUrl))
+        );
 
 
+        Dictionary<string, string> newPackage = new();
+
+        using HttpClient client = new();
+        foreach (var item in newImgs)
+        {
+            var bytes = new byte[32];
+            RandomNumberGenerator.Fill(bytes);
+            var newKey = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+            _logger.LogInformation("Trying to get image from: " + item);
+            byte[] data = await client.GetByteArrayAsync(item);
+            string hash = GlobalHelpers.ComputeHashFromBytes(data);
+            hash = hash + "-" + DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
+
+            ImageShare share = new()
+            {
+                Id = hash,
+                Key = newKey,
+                SessionCode = "",
+                ImageStream = data,
+                CreatedOn = DateTime.UtcNow,
+                FileType = "",
+                RokuId = device,
+                Source = "lightroom",
+                OriginUrl = item,
+                LightroomAlbum = albumUrl
+            };
+            newPackage.Add(share.Id, share.Key);
+            _resourceDb.Resources.Add(share);
+            await _resourceDb.SaveChangesAsync();
+        }
+
+        return newPackage;
+
+    }
 }

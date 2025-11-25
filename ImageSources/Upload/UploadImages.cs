@@ -65,7 +65,8 @@ public class UploadImages
                 ImageStream = finalImg,
                 CreatedOn = DateTime.UtcNow,
                 FileType = "", // should i figure out how to get the filetype? it isnt really necessary for roku
-                RokuId = rokuId
+                RokuId = rokuId,
+                Source = "upload"
             };
             _resourceDbContext.Resources.Add(share);
             await _resourceDbContext.SaveChangesAsync();
