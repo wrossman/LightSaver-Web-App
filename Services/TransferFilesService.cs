@@ -19,7 +19,7 @@ public class TransferFilesService : BackgroundService
                     UserSessionDbContext userSessionDb = scope.ServiceProvider.GetRequiredService<UserSessionDbContext>();
                     RokuSessionDbContext rokuSessionDb = scope.ServiceProvider.GetRequiredService<RokuSessionDbContext>();
 
-                    var userSession = await userSessionDb.Sessions
+                    var userSession = await userSessionDb.UserSessions
                     .FirstOrDefaultAsync(s => s.SessionCode == sessionCode, cancellationToken);
                     if (userSession != null)
                     {
@@ -31,7 +31,7 @@ public class TransferFilesService : BackgroundService
                         _logger.LogWarning($"TestSessionCode Failed getting userSession for session code {sessionCode}");
                     }
 
-                    var rokuSession = await rokuSessionDb.Sessions
+                    var rokuSession = await rokuSessionDb.RokuSessions
                     .FirstOrDefaultAsync(s => s.SessionCode == sessionCode, cancellationToken);
                     if (rokuSession != null)
                     {

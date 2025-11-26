@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 public class UserSessionDbContext : DbContext
 {
-    public DbSet<UserSession> Sessions { get; set; }
+    public DbSet<UserSession> UserSessions { get; set; }
 
     public UserSessionDbContext(DbContextOptions<UserSessionDbContext> options)
         : base(options) { }

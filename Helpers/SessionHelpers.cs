@@ -12,7 +12,7 @@ public class SessionHelpers
     }
     public async Task<bool> ExpireUserSession(string sessionCode)
     {
-        var session = await _userSessionDb.Sessions
+        var session = await _userSessionDb.UserSessions
         .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
 
         if (session != null)
@@ -30,7 +30,7 @@ public class SessionHelpers
     }
     public async Task<bool> ExpireRokuSession(string sessionCode)
     {
-        var session = await _rokuSessionDb.Sessions
+        var session = await _rokuSessionDb.RokuSessions
         .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
 
         if (session != null)
@@ -45,5 +45,19 @@ public class SessionHelpers
         {
             return false;
         }
+    }
+    public async Task<string?> GetSessionCodeFromUserId(string userId)
+    {
+        return await _userSessionDb.UserSessions
+                            .Where(s => s.Id == userId)
+                            .Select(s => s.SessionCode)
+                            .FirstOrDefaultAsync();
+    }
+    public async Task<string?> GetRokuIdFromSessionCode(string sessionCode)
+    {
+        return await _rokuSessionDb.RokuSessions
+                        .Where(s => s.SessionCode == sessionCode)
+                        .Select(s => s.RokuId)
+                        .FirstOrDefaultAsync();
     }
 }

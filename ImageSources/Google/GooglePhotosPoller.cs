@@ -115,7 +115,7 @@ public class GooglePhotosPoller
                 Source = "google",
                 OriginUrl = item.Key
             };
-            _store.WriteResourceToStore(share);
+            await _store.WriteResourceToStore(share);
         }
     }
 }

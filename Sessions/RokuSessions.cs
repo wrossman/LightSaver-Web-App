@@ -15,12 +15,12 @@ public class RokuSessions
     public async Task<string> CreateRokuSession(IPAddress ipAddress, string rokuId)
     {
         // remove session if one exists with provided rokuID
-        var item = await _rokuSessionDb.Sessions
+        var item = await _rokuSessionDb.RokuSessions
         .FirstOrDefaultAsync(x => x.RokuId == rokuId);
 
         if (item != null)
         {
-            _rokuSessionDb.Sessions.Remove(item);
+            _rokuSessionDb.RokuSessions.Remove(item);
             await _rokuSessionDb.SaveChangesAsync();
         }
 
@@ -86,7 +86,7 @@ public class RokuSessions
     }
     public async Task<bool> CheckReadyTransfer(string sessionCode, string rokuId)
     {
-        var rokuSession = await _rokuSessionDb.Sessions
+        var rokuSession = await _rokuSessionDb.RokuSessions
             .FirstOrDefaultAsync(s => s.SessionCode == sessionCode &&
                                  s.RokuId == rokuId);
         if (rokuSession != null && rokuSession.ReadyForTransfer == true)

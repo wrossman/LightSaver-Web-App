@@ -6,35 +6,23 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 public class UploadImages
 {
     private readonly ILogger<UserSessions> _logger;
-    private readonly RokuSessionDbContext _rokuSessionDb;
-    private readonly UserSessionDbContext _userSessionDb;
-    private readonly GlobalImageStoreDbContext _resourceDbContext;
     private readonly GlobalStoreHelpers _store;
     private readonly SessionHelpers _sessions;
-    public UploadImages(ILogger<UserSessions> logger, UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb, GlobalImageStoreDbContext resourceDbContext, GlobalStoreHelpers store, SessionHelpers sessions)
+    public UploadImages(ILogger<UserSessions> logger, GlobalStoreHelpers store, SessionHelpers sessions)
     {
         _logger = logger;
-        _userSessionDb = userSessionDb;
-        _rokuSessionDb = rokuSessionDb;
-        _resourceDbContext = resourceDbContext;
         _store = store;
         _sessions = sessions;
     }
     public async Task<bool> UploadImageFlow(List<IFormFile> images, string sessionId)
     {
-        var sessionCode = await _userSessionDb.Sessions
-                            .Where(s => s.Id == sessionId)
-                            .Select(s => s.SessionCode)
-                            .FirstOrDefaultAsync();
+        var sessionCode = await _sessions.GetSessionCodeFromUserId(sessionId);
         if (sessionCode is null)
         {
             _logger.LogWarning("Failed to locate user session with sessionId " + sessionId);
             return false;
         }
-        var rokuId = await _rokuSessionDb.Sessions
-                        .Where(s => s.SessionCode == sessionCode)
-                        .Select(s => s.RokuId)
-                        .FirstOrDefaultAsync();
+        var rokuId = await _sessions.GetRokuIdFromSessionCode(sessionCode);
         if (rokuId is null)
         {
             _logger.LogWarning("Failed to locate roku session with session code " + sessionCode);
@@ -72,8 +60,7 @@ public class UploadImages
                 RokuId = rokuId,
                 Source = "upload"
             };
-            _resourceDbContext.Resources.Add(share);
-            await _resourceDbContext.SaveChangesAsync();
+            await _store.WriteResourceToStore(share);
         }
 
         UserSessions.CodesReadyForTransfer.Enqueue(sessionCode);

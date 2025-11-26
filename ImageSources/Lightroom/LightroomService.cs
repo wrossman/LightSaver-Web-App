@@ -196,7 +196,7 @@ public sealed class LightroomService
     }
     public async Task<bool> LightroomFlow(List<string> urls, string userSessionId, string shortCode)
     {
-        var sessionCode = await _userSessionDb.Sessions
+        var sessionCode = await _userSessionDb.UserSessions
                     .Where(s => s.Id == userSessionId)
                     .Select(s => s.SessionCode)
                     .FirstOrDefaultAsync();
@@ -206,7 +206,7 @@ public sealed class LightroomService
             return false;
         }
 
-        var rokuId = await _rokuSessionDb.Sessions
+        var rokuId = await _rokuSessionDb.RokuSessions
                 .Where(s => s.SessionCode == sessionCode)
                 .Select(s => s.RokuId)
                 .FirstOrDefaultAsync();
@@ -241,7 +241,7 @@ public sealed class LightroomService
                 OriginUrl = item,
                 LightroomAlbum = shortCode
             };
-            _store.WriteResourceToStore(share);
+            await _store.WriteResourceToStore(share);
         }
 
         UserSessions.CodesReadyForTransfer.Enqueue(sessionCode);
@@ -372,7 +372,7 @@ public sealed class LightroomService
                 LightroomAlbum = albumUrl
             };
             newPackage.Add(share.Id, share.Key);
-            _store.WriteResourceToStore(share);
+            await _store.WriteResourceToStore(share);
         }
 
         return newPackage;

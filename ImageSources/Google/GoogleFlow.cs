@@ -45,7 +45,7 @@ public class GoogleFlow
     }
     public async Task<bool> LinkAccessToken(string accessToken, string userSessionId)
     {
-        var userSession = await _userSessionDb.Sessions.FirstOrDefaultAsync(u => u.Id == userSessionId);
+        var userSession = await _userSessionDb.UserSessions.FirstOrDefaultAsync(u => u.Id == userSessionId);
 
         if (userSession is null)
             return false;

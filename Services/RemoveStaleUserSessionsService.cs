@@ -20,11 +20,11 @@ public class RemoveStaleUserSessionsService : BackgroundService
                 var cutoff = DateTime.UtcNow.AddSeconds(-480);
 
                 // Find expired sessions
-                var expiredSessions = await sessionDb.Sessions
+                var expiredSessions = await sessionDb.UserSessions
                 .Where(s => s.Expired || s.CreatedAt < cutoff)
                 .ToListAsync(cancellationToken);
 
-                sessionDb.Sessions.RemoveRange(expiredSessions);
+                sessionDb.UserSessions.RemoveRange(expiredSessions);
                 await sessionDb.SaveChangesAsync(cancellationToken);
 
                 foreach (UserSession item in expiredSessions)

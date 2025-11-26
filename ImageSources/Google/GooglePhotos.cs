@@ -18,7 +18,7 @@ public class GooglePhotosFlow
     }
     public async Task<string> StartGooglePhotosFlow(string userSessionId)
     {
-        var session = await _userSessionDb.Sessions.FindAsync(userSessionId);
+        var session = await _userSessionDb.UserSessions.FindAsync(userSessionId);
         string? accessToken = session?.AccessToken;
         string? sessionCode = session?.SessionCode;
         string? rokuId = session?.RokuId;
