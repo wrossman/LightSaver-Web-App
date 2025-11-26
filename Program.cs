@@ -118,6 +118,7 @@ To secure access and ensure users retain proper authorization:
 
 using System.Threading.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Logging.ClearProviders();
@@ -141,12 +142,18 @@ builder.Services.AddRateLimiter(options =>
 });
 
 //add databases
+// builder.Services.AddDbContext<UserSessionDbContext>(options =>
+//     options.UseInMemoryDatabase("UserSessionDb"));
+// builder.Services.AddDbContext<RokuSessionDbContext>(options =>
+//     options.UseInMemoryDatabase("RokuSessionDb"));
+// builder.Services.AddDbContext<GlobalImageStoreDbContext>(options =>
+//     options.UseInMemoryDatabase("GlobalImageStore"));
 builder.Services.AddDbContext<UserSessionDbContext>(options =>
-    options.UseInMemoryDatabase("UserSessionDb"));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 builder.Services.AddDbContext<RokuSessionDbContext>(options =>
-    options.UseInMemoryDatabase("RokuSessionDb"));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 builder.Services.AddDbContext<GlobalImageStoreDbContext>(options =>
-    options.UseInMemoryDatabase("GlobalImageStore"));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
 //add hosted services for session management and file transfers
 builder.Services.AddHostedService<RemoveStaleUserSessionsService>();
@@ -170,6 +177,15 @@ builder.Services.Configure<HostOptions>(options =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+
+    services.GetRequiredService<UserSessionDbContext>().Database.Migrate();
+    services.GetRequiredService<RokuSessionDbContext>().Database.Migrate();
+    services.GetRequiredService<GlobalImageStoreDbContext>().Database.Migrate();
+}
 
 app.UseRateLimiter();
 

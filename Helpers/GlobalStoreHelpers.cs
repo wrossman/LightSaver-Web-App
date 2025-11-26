@@ -27,7 +27,7 @@ public class GlobalStoreHelpers
 
         return links;
     }
-    public async void WriteResourceToStore(ImageShare resource)
+    public async Task WriteResourceToStore(ImageShare resource)
     {
         _resourceDb.Resources.Add(resource);
         await _resourceDb.SaveChangesAsync();

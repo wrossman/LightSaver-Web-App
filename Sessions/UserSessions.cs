@@ -117,7 +117,7 @@ public class UserSessions
             RandomNumberGenerator.Fill(bytes);
             // Convert to hex string (32 hex chars)
             userSessionId = Convert.ToHexString(bytes); // e.g., "A1B2C3D4..."
-            session = await _userSessionDb.Sessions
+            session = await _userSessionDb.UserSessions
             .FirstOrDefaultAsync(x => x.Id == userSessionId);
 
         } while (session is not null);
@@ -128,11 +128,11 @@ public class UserSessions
     public async Task<bool> AssociateToRoku(string userSessionId)
     {
         // THIS METHOD IS A LITTLE OVER KILL I SHOULD PROBABLY FIX IT
-        var userSession = await _userSessionDb.Sessions.FindAsync(userSessionId);
+        var userSession = await _userSessionDb.UserSessions.FindAsync(userSessionId);
         if (userSession == null)
             return false;
 
-        var rokuSession = await _rokuSessionDb.Sessions.FirstOrDefaultAsync(r => r.SessionCode == userSession.SessionCode);
+        var rokuSession = await _rokuSessionDb.RokuSessions.FirstOrDefaultAsync(r => r.SessionCode == userSession.SessionCode);
         if (rokuSession == null)
             return false;
 

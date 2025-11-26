@@ -20,11 +20,11 @@ public class RemoveStaleRokuSessionsService : BackgroundService
                 var cutoff = DateTime.UtcNow.AddSeconds(-480);
 
                 // Find expired sessions
-                var expiredSessions = await sessionDb.Sessions
+                var expiredSessions = await sessionDb.RokuSessions
                 .Where(s => s.Expired || s.CreatedAt < cutoff)
                 .ToListAsync(cancellationToken);
 
-                sessionDb.Sessions.RemoveRange(expiredSessions);
+                sessionDb.RokuSessions.RemoveRange(expiredSessions);
                 await sessionDb.SaveChangesAsync(cancellationToken);
 
                 foreach (RokuSession item in expiredSessions)
