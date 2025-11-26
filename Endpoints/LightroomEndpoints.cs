@@ -29,7 +29,7 @@ public static class LightroomEndpoints
         {
             logger.LogWarning("Failed to get url list from lightroom album");
             logger.LogWarning("Failed with error: " + result.Item2);
-            return GlobalHelpers.CreateErrorPage("Failed to get images from Lightroom album");
+            return GlobalHelpers.CreateErrorPage("Failed to get images from Lightroom album", "Please ensure that your album has synced and contains photos.");
         }
 
         if (!await lightroom.LightroomFlow(urlList, userSessionId, lrCode))
