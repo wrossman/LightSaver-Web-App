@@ -12,7 +12,7 @@ public class RokuSessions
         _logger = logger;
         _rokuSessionDb = rokuSessionDb;
     }
-    public async Task<string> CreateRokuSession(IPAddress ipAddress, string rokuId)
+    public async Task<RokuSession> CreateRokuSession(IPAddress ipAddress, string rokuId, int maxScreenSize)
     {
         // remove session if one exists with provided rokuID
         var item = await _rokuSessionDb.RokuSessions
@@ -39,7 +39,8 @@ public class RokuSessions
                     SourceAddress = ipAddress.ToString(),
                     SessionCode = GenerateSessionCode(),
                     ReadyForTransfer = false,
-                    Expired = false
+                    Expired = false,
+                    MaxScreenSize = maxScreenSize
                 };
 
                 _rokuSessionDb.Add(session);
@@ -62,7 +63,7 @@ public class RokuSessions
         }
         _logger.LogInformation(rokuSessionLog);
 
-        return session.SessionCode;
+        return session;
     }
     private static string GenerateSessionCode()
     {
@@ -93,6 +94,12 @@ public class RokuSessions
             return true;
         else
             return false;
+    }
+    public async Task<RokuSession?> GetRokuSession(string sessionCode, string rokuId)
+    {
+        return await _rokuSessionDb.RokuSessions
+                        .FirstOrDefaultAsync(s => s.SessionCode == sessionCode &&
+                         s.RokuId == rokuId);
     }
     public static async Task<string> ReadRokuPost(HttpContext context)
     {

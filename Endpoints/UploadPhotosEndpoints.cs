@@ -12,7 +12,7 @@ public static class UploadPhotosEndpoints
     {
         return Results.File(env.WebRootPath + "/UploadImages.html", "text/html");
     }
-    public static async Task<IResult> ReceiveImages(UploadImages upload, IFormFileCollection imageCollection, HttpContext context, ILogger<UserSession> logger)
+    public static async Task<IResult> ReceiveImages(UploadImages upload, UserSessions users, IFormFileCollection imageCollection, HttpContext context, ILogger<UserSession> logger)
     {
         List<IFormFile> images = imageCollection.ToList();
         logger.LogInformation("Client reached receive image endpoint");
@@ -24,9 +24,16 @@ public static class UploadPhotosEndpoints
         }
         logger.LogInformation($"Session endpoint accessed sid {userSessionId} from cookie.");
 
-        if (!await upload.UploadImageFlow(images, userSessionId))
+        UserSession? userSession = await users.GetUserSession(userSessionId);
+        if (userSession is null)
         {
-            logger.LogWarning("Failed to upload photos for user session with session id " + userSessionId);
+            logger.LogWarning("Failed to get usersession from user id at upload receive images endpoint");
+            return GlobalHelpers.CreateErrorPage("Failed to retrieve your user session.", "Please Try Again");
+        }
+
+        if (!await upload.UploadImageFlow(images, userSession))
+        {
+            logger.LogWarning("Failed to upload photos for user session with session id " + userSession.Id);
             return GlobalHelpers.CreateErrorPage("Failed to upload images.");
         }
 

@@ -14,21 +14,8 @@ public class UploadImages
         _store = store;
         _sessions = sessions;
     }
-    public async Task<bool> UploadImageFlow(List<IFormFile> images, string sessionId)
+    public async Task<bool> UploadImageFlow(List<IFormFile> images, UserSession userSession)
     {
-        var sessionCode = await _sessions.GetSessionCodeFromUserId(sessionId);
-        if (sessionCode is null)
-        {
-            _logger.LogWarning("Failed to locate user session with sessionId " + sessionId);
-            return false;
-        }
-        var rokuId = await _sessions.GetRokuIdFromSessionCode(sessionCode);
-        if (rokuId is null)
-        {
-            _logger.LogWarning("Failed to locate roku session with session code " + sessionCode);
-            return false;
-        }
-
         foreach (var item in images)
         {
             if (item.Length <= 0) continue;
@@ -53,17 +40,17 @@ public class UploadImages
             {
                 Id = hash,
                 Key = key,
-                SessionCode = sessionCode,
+                SessionCode = userSession.SessionCode,
                 ImageStream = finalImg,
                 CreatedOn = DateTime.UtcNow,
                 FileType = "", // should i figure out how to get the filetype? it isnt really necessary for roku
-                RokuId = rokuId,
+                RokuId = userSession.RokuId,
                 Source = "upload"
             };
-            await _store.WriteResourceToStore(share);
+            await _store.WriteResourceToStore(share, userSession.MaxScreenSize);
         }
 
-        UserSessions.CodesReadyForTransfer.Enqueue(sessionCode);
+        UserSessions.CodesReadyForTransfer.Enqueue(userSession.SessionCode);
         return true;
     }
     public async Task ExpireCreds(string sessionCode)

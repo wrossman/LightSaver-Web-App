@@ -7,5 +7,6 @@ public record RokuSession
     public string SessionCode { get; set; } = "";
     public bool ReadyForTransfer { get; set; } = false;
     public bool Expired { get; set; } = false;
+    public int MaxScreenSize { get; set; } = 1920;
 
 }

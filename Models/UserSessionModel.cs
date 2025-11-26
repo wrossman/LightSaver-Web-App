@@ -8,4 +8,5 @@ public record UserSession
     public bool ReadyForTransfer { get; set; } = false;
     public string RokuId { get; set; } = "";
     public bool Expired { get; set; } = false;
+    public int MaxScreenSize { get; set; } = 1920;
 }

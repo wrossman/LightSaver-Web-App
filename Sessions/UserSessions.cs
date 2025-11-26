@@ -76,7 +76,7 @@ public class UserSessions
         _logger.LogInformation(sessionLog);
         return session.Id;
     }
-    public async Task<string> CreateUserSession(IPAddress ipAddress, string sessionCode)
+    public async Task<UserSession> CreateUserSession(IPAddress ipAddress, string sessionCode)
     {
         string ipAddressStr = ipAddress.ToString();
 
@@ -102,7 +102,7 @@ public class UserSessions
             sessionLog += $"\n{name} = {value}";
         }
         _logger.LogInformation(sessionLog);
-        return session.Id;
+        return session;
     }
     private async Task<string> GenerateSessionId()
     {
@@ -125,21 +125,22 @@ public class UserSessions
         return userSessionId;
     }
 
-    public async Task<bool> AssociateToRoku(string userSessionId)
+    public async Task<bool> AssociateToRoku(UserSession userSession)
     {
-        // THIS METHOD IS A LITTLE OVER KILL I SHOULD PROBABLY FIX IT
-        var userSession = await _userSessionDb.UserSessions.FindAsync(userSessionId);
-        if (userSession == null)
-            return false;
-
         var rokuSession = await _rokuSessionDb.RokuSessions.FirstOrDefaultAsync(r => r.SessionCode == userSession.SessionCode);
         if (rokuSession == null)
             return false;
 
         userSession.RokuId = rokuSession.RokuId;
+        userSession.MaxScreenSize = rokuSession.MaxScreenSize;
         await _userSessionDb.SaveChangesAsync();
-        _logger.LogInformation("Successfully updated UserSession with RokuId");
+        _logger.LogInformation("Successfully updated UserSession with RokuId and MaxScreenSize");
 
         return true;
+    }
+    public async Task<UserSession?> GetUserSession(string userSessiondId)
+    {
+        return await _userSessionDb.UserSessions
+                        .FirstOrDefaultAsync(s => s.Id == userSessiondId);
     }
 }

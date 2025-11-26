@@ -30,21 +30,18 @@ public static class RokuSessionEndpoints
         var remoteIpAddress = context.Request.HttpContext.Connection.RemoteIpAddress ?? new IPAddress(new byte[4]);
         var jsonBody = JsonSerializer.Deserialize<RokuProvideSessionCodePostBody>(body);
         var rokuId = jsonBody?.RokuId;
+        var maxScreenSize = jsonBody?.MaxScreenSize;
 
-        if (string.IsNullOrEmpty(rokuId))
+        if (string.IsNullOrEmpty(rokuId) || maxScreenSize is null)
         {
             logger.LogWarning("Roku Id was not found in roku session code provider endpoint connection.");
             return Results.BadRequest();
         }
+        int maxScreenSizeInt = (int)maxScreenSize;
 
-        string sessionCode = await roku.CreateRokuSession(remoteIpAddress, rokuId);
-        if (sessionCode == string.Empty)
-        {
-            logger.LogWarning($"Failed to create roku session for  {remoteIpAddress}");
-            return Results.StatusCode(StatusCodes.Status429TooManyRequests);
-        }
+        var rokuSession = await roku.CreateRokuSession(remoteIpAddress, rokuId, maxScreenSizeInt);
 
-        return Results.Json(new { RokuSessionCode = sessionCode });
+        return Results.Json(new { RokuSessionCode = rokuSession.SessionCode });
     }
     private static async Task<IResult> RokuReception(HttpContext context, RokuSessions roku, ILogger<RokuSessions> logger)
     {    //be carefull about what i return to the user because they cant be able to see what is a valid session code
@@ -77,7 +74,7 @@ public static class RokuSessionEndpoints
         else
             return Results.NotFound("Media is not ready to be transfered.");
     }
-    private static async Task<IResult> ProvideResourcePackage(HttpContext context, SessionHelpers sessions, GlobalStoreHelpers store, ILogger<RokuSessions> logger)
+    private static async Task<IResult> ProvideResourcePackage(HttpContext context, SessionHelpers sessions, RokuSessions rokuSessions, GlobalStoreHelpers store, ILogger<RokuSessions> logger)
     {
         var body = await RokuSessions.ReadRokuPost(context);
         if (body == "fail")
@@ -96,8 +93,14 @@ public static class RokuSessionEndpoints
             return Results.BadRequest("Failed to retrieve resource package.");
         }
 
-        var links = store.GetResourcePackage(sessionCode, rokuId);
+        var rokuSession = await rokuSessions.GetRokuSession(sessionCode, rokuId);
+        if (rokuSession is null)
+        {
+            logger.LogWarning($"IP: {context.Connection.RemoteIpAddress} failed to retrieve resource package. Session could not be found for provided session code and roku id");
+            return Results.BadRequest("Failed to retrieve resource package.");
+        }
 
+        var links = store.GetResourcePackage(rokuSession);
         if (links is null || links.Count == 0)
         {
             logger.LogWarning($"IP: {context.Connection.RemoteIpAddress} failed to retrieve resource package. Provided RokuId or SessionCode was invalid.");
@@ -106,23 +109,23 @@ public static class RokuSessionEndpoints
 
         //remove images from resource store that are from this roku but from old sessions
         // this protects from storing old images that the device cant access
-        if (await store.ScrubOldImages(sessionCode, rokuId))
-            logger.LogInformation($"Scrubbed Image Resources of session code {sessionCode}");
+        if (await store.ScrubOldImages(rokuSession))
+            logger.LogInformation($"Scrubbed Image Resources of session code {rokuSession.SessionCode}");
         else
-            logger.LogWarning($"Failed to scrub resources of session code {sessionCode}");
+            logger.LogWarning($"Failed to scrub resources of session code {rokuSession.SessionCode}");
 
         // expire user and roku session associated with session code
-        if (await sessions.ExpireRokuSession(sessionCode))
+        if (await sessions.ExpireRokuSession(rokuSession.SessionCode))
             logger.LogInformation("Set roku session for expiration due to resource package delivery.");
         else
             logger.LogWarning("Failed to set expire for roku session after resource package delivery.");
 
-        if (await sessions.ExpireUserSession(sessionCode))
+        if (await sessions.ExpireUserSession(rokuSession.SessionCode))
             logger.LogInformation("Set user session for expiration due to resource package delivery.");
         else
             logger.LogWarning("Failed to set expire for user session after resource package delivery.");
 
-        logger.LogInformation($"Sending resource package for session code {sessionCode} to IP: {context.Connection.RemoteIpAddress}");
+        logger.LogInformation($"Sending resource package for session code {rokuSession.SessionCode} to IP: {context.Connection.RemoteIpAddress}");
         return Results.Json(links);
     }
     private static IResult ProvideResource(HttpContext context, GlobalStoreHelpers store, ILogger<RokuSessions> logger)
@@ -144,8 +147,6 @@ public static class RokuSessionEndpoints
         if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(device) || string.IsNullOrEmpty(location))
             return Results.Unauthorized();
 
-        // logger.LogInformation($"Received key: {key} for file: {location} from device: {device}");
-
         (byte[]? image, string? fileType) = store.GetResourceData(location.ToString(), key.ToString(), device.ToString());
 
         if (image is null || fileType is null)
@@ -161,29 +162,37 @@ public static class RokuSessionEndpoints
     }
     public static async Task<IResult> InitialStartWallpaper(HttpContext context, GlobalStoreHelpers store, LightroomService lightroom, ILogger<RokuSessions> logger)
     {
+        logger.LogInformation("Roku accessed initial start wallpaper endpoint");
         StringValues inputKey;
         StringValues inputLocation;
         StringValues inputDevice;
+        StringValues inputMaxScreenSize;
         if (!context.Request.Headers.TryGetValue("Authorization", out inputKey))
             return Results.Unauthorized();
         if (!context.Request.Headers.TryGetValue("Location", out inputLocation))
             return Results.Unauthorized();
         if (!context.Request.Headers.TryGetValue("Device", out inputDevice))
             return Results.Unauthorized();
+        if (!context.Request.Headers.TryGetValue("MaxScreenSize", out inputMaxScreenSize))
+            return Results.Unauthorized();
 
         string? key = inputKey;
         string? location = inputLocation;
-        string? device = inputDevice;
+        string? rokuId = inputDevice;
+        int maxScreenSize;
 
-        if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(device) || string.IsNullOrEmpty(location))
+        if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(rokuId) || string.IsNullOrEmpty(location) || !Int32.TryParse(inputMaxScreenSize, out maxScreenSize))
             return Results.Unauthorized();
 
-        logger.LogInformation($"Initial connection with key: {key} for file: {location} from device: {device}");
+        logger.LogInformation($"Initial connection with key: {key} for file: {location} from device: {rokuId} with max size of {maxScreenSize}");
 
-        if (!(store.GetResourceSource(location, key, device) == "lightroom"))
+        var resourceReq = new ResourceRequest(location, key, rokuId);
+        resourceReq.MaxScreenSize = maxScreenSize;
+
+        if (!(store.GetResourceSource(resourceReq) == "lightroom"))
             return Results.Ok();
 
-        var newPackage = await lightroom.UpdateRokuLinks(location, key, device);
+        var newPackage = await lightroom.UpdateRokuLinks(resourceReq);
         if (newPackage is null)
             return Results.Ok();
 
