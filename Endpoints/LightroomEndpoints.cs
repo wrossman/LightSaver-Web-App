@@ -13,7 +13,7 @@ public static class LightroomEndpoints
     {
         return Results.File(env.WebRootPath + "/LightroomAlbumSubmit.html", "text/html");
     }
-    public static async Task<IResult> PostAlbum([FromForm] string lrCode, HttpContext context, LightroomService lightroom, ILogger<LightroomService> logger)
+    public static async Task<IResult> PostAlbum([FromForm] string lrCode, HttpContext context, UserSessions users, LightroomService lightroom, ILogger<LightroomService> logger)
     {
         string? userSessionId;
         if (!context.Request.Cookies.TryGetValue("UserSID", out userSessionId))
@@ -22,6 +22,13 @@ public static class LightroomEndpoints
             return GlobalHelpers.CreateErrorPage("LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
         }
         logger.LogInformation($"Session endpoint accessed sid {userSessionId} from cookie.");
+
+        UserSession? userSession = await users.GetUserSession(userSessionId);
+        if (userSession is null)
+        {
+            logger.LogWarning("Failed to get userssion from userid at upload receive images endpoint");
+            return GlobalHelpers.CreateErrorPage("Unable to retrieve your user session.", "Please Try Again");
+        }
 
         var result = await lightroom.GetImageUrisFromShortCodeAsync(lrCode);
         var urlList = result.Item1;
@@ -32,7 +39,7 @@ public static class LightroomEndpoints
             return GlobalHelpers.CreateErrorPage("Failed to get images from Lightroom album", "Please ensure that your album has synced and contains photos.");
         }
 
-        if (!await lightroom.LightroomFlow(urlList, userSessionId, lrCode))
+        if (!await lightroom.LightroomFlow(urlList, userSession, lrCode))
         {
             logger.LogWarning("Failed to retreive images from Lightroom album");
             return GlobalHelpers.CreateErrorPage("Failed to retreive Lightroom album images.");

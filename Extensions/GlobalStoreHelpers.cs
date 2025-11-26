@@ -1,16 +1,25 @@
 using Microsoft.EntityFrameworkCore;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Processing;
 public class GlobalStoreHelpers
 {
     private readonly ILogger<GlobalStoreHelpers> _logger;
     private readonly GlobalImageStoreDbContext _resourceDb;
-    public GlobalStoreHelpers(GlobalImageStoreDbContext resourceDb, ILogger<GlobalStoreHelpers> logger)
+    private readonly IConfiguration _config;
+    public GlobalStoreHelpers(GlobalImageStoreDbContext resourceDb, ILogger<GlobalStoreHelpers> logger, IConfiguration config)
     {
         _logger = logger;
         _resourceDb = resourceDb;
+        _config = config;
     }
-    public Dictionary<string, string>? GetResourcePackage(string sessionCode, string rokuId)
+    public Dictionary<string, string>? GetResourcePackage(RokuSession rokuSession)
     {
+        string sessionCode = rokuSession.SessionCode;
+        string rokuId = rokuSession.RokuId;
+
         var links = _resourceDb.Resources
             .Where(img => img.SessionCode == sessionCode && img.RokuId == rokuId)
             .ToDictionary(img => img.Id, img => img.Key);
@@ -27,8 +36,9 @@ public class GlobalStoreHelpers
 
         return links;
     }
-    public async Task WriteResourceToStore(ImageShare resource)
+    public async Task WriteResourceToStore(ImageShare resource, int maxScreenSize)
     {
+        resource.ImageStream = ResizeToMaxBox(resource.ImageStream, maxScreenSize);
         _resourceDb.Resources.Add(resource);
         await _resourceDb.SaveChangesAsync();
     }
@@ -44,10 +54,14 @@ public class GlobalStoreHelpers
             return (null, null);
 
     }
-    public string GetResourceSource(string location, string key, string device)
+    public string GetResourceSource(ResourceRequest resourceReq)
     {
+        string location = resourceReq.Location;
+        string key = resourceReq.Key;
+        string rokuId = resourceReq.RokuId;
+
         var item = _resourceDb.Resources
-        .Where(img => img.Id == location && img.Key == key && img.RokuId == device)
+        .Where(img => img.Id == location && img.Key == key && img.RokuId == rokuId)
         .Select(img => img.Source).SingleOrDefault();
 
         if (string.IsNullOrEmpty(item))
@@ -55,10 +69,10 @@ public class GlobalStoreHelpers
 
         return item;
     }
-    public string GetResourceLightroomAlbum(string location, string key, string device)
+    public string GetResourceLightroomAlbum(ResourceRequest resourceReq)
     {
         var item = _resourceDb.Resources
-        .Where(img => img.Id == location && img.Key == key && img.RokuId == device)
+        .Where(img => img.Id == resourceReq.Location && img.Key == resourceReq.Key && img.RokuId == resourceReq.RokuId)
         .Select(img => img.LightroomAlbum).SingleOrDefault();
 
         if (string.IsNullOrEmpty(item))
@@ -66,8 +80,11 @@ public class GlobalStoreHelpers
 
         return item;
     }
-    public async Task<bool> ScrubOldImages(string sessionCode, string rokuId)
+    public async Task<bool> ScrubOldImages(RokuSession rokuSession)
     {
+        string sessionCode = rokuSession.SessionCode;
+        string rokuId = rokuSession.RokuId;
+
         var sessions = await _resourceDb.Resources
             .Where(s => s.RokuId == rokuId && s.SessionCode != sessionCode)
             .ToListAsync();
@@ -150,5 +167,29 @@ public class GlobalStoreHelpers
         _logger.LogInformation(
         "Removed the following URLs from resource database: {RemovedUrls}",
         string.Join("\n", itemsToRemove.Select(i => i.OriginUrl)));
+    }
+    public byte[] ResizeToMaxBox(byte[] input, int maxScreenSize)
+    {
+        using var image = Image.Load(input);
+
+        _logger.LogInformation($"Checking if image with height: {image.Height} and width: {image.Width} needs resizing.");
+
+        if (image.Width > maxScreenSize || image.Height > maxScreenSize)
+        {
+            _logger.LogInformation($"Resizing image with dimensions Width: {image.Width} Height: {image.Height}");
+            var options = new ResizeOptions
+            {
+                Mode = ResizeMode.Max, // maintain aspect ratio
+                Size = new Size(maxScreenSize, maxScreenSize)
+            };
+
+            image.Mutate(x => x.Resize(options));
+            _logger.LogInformation($"New dimensions: Width: {image.Width} Height: {image.Height}");
+        }
+
+        using var outputStream = new MemoryStream();
+        image.Save(outputStream, new JpegEncoder());
+
+        return outputStream.ToArray();
     }
 }

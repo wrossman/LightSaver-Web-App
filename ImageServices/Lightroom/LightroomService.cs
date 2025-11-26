@@ -1,7 +1,6 @@
 using System.Text.Json;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
-using System.Text.RegularExpressions;
 public sealed class LightroomService
 {
     private readonly ILogger<LightroomService> _logger;
@@ -18,6 +17,7 @@ public sealed class LightroomService
     }
     public async Task<(List<string>, string)> GetImageUrisFromShortCodeAsync(string shortCode)
     {
+        // thanks chat for helping me translate from brs, even though you did a bad job
         const string lightroomShortPrefix = "https://adobe.ly/";
         var url = lightroomShortPrefix + shortCode;
 
@@ -194,29 +194,8 @@ public sealed class LightroomService
             }
         }
     }
-    public async Task<bool> LightroomFlow(List<string> urls, string userSessionId, string shortCode)
+    public async Task<bool> LightroomFlow(List<string> urls, UserSession userSession, string shortCode)
     {
-        var sessionCode = await _userSessionDb.UserSessions
-                    .Where(s => s.Id == userSessionId)
-                    .Select(s => s.SessionCode)
-                    .FirstOrDefaultAsync();
-        if (sessionCode is null)
-        {
-            _logger.LogWarning("Failed to locate user session with sessionId " + userSessionId);
-            return false;
-        }
-
-        var rokuId = await _rokuSessionDb.RokuSessions
-                .Where(s => s.SessionCode == sessionCode)
-                .Select(s => s.RokuId)
-                .FirstOrDefaultAsync();
-        if (rokuId is null)
-        {
-            _logger.LogWarning("Failed to locate roku session with session code " + sessionCode);
-            return false;
-        }
-
-
         using HttpClient client = new();
         foreach (var item in urls)
         {
@@ -232,19 +211,19 @@ public sealed class LightroomService
             {
                 Id = hash,
                 Key = key,
-                SessionCode = sessionCode,
+                SessionCode = userSession.SessionCode,
                 ImageStream = data,
                 CreatedOn = DateTime.UtcNow,
                 FileType = "",
-                RokuId = rokuId,
+                RokuId = userSession.RokuId,
                 Source = "lightroom",
                 OriginUrl = item,
                 LightroomAlbum = shortCode
             };
-            await _store.WriteResourceToStore(share);
+            await _store.WriteResourceToStore(share, userSession.MaxScreenSize);
         }
 
-        UserSessions.CodesReadyForTransfer.Enqueue(sessionCode);
+        UserSessions.CodesReadyForTransfer.Enqueue(userSession.SessionCode);
         return true;
     }
     private static string? ExtractAlbumAttributesJson(string html)
@@ -309,9 +288,9 @@ public sealed class LightroomService
         // Never found matching closing brace
         return null;
     }
-    public async Task<Dictionary<string, string>?> UpdateRokuLinks(string location, string key, string rokuId)
+    public async Task<Dictionary<string, string>?> UpdateRokuLinks(ResourceRequest resourceReq)
     {
-        string albumUrl = _store.GetResourceLightroomAlbum(location, key, rokuId);
+        string albumUrl = _store.GetResourceLightroomAlbum(resourceReq);
         var result = await GetImageUrisFromShortCodeAsync(albumUrl);
         var newImgs = result.Item1;
 
@@ -328,7 +307,7 @@ public sealed class LightroomService
             return null;
         }
 
-        var oldImgs = await _store.GetLightroomOriginUrlsByRokuId(rokuId);
+        var oldImgs = await _store.GetLightroomOriginUrlsByRokuId(resourceReq.RokuId);
         if (oldImgs is null)
             return null;
 
@@ -366,13 +345,13 @@ public sealed class LightroomService
                 ImageStream = data,
                 CreatedOn = DateTime.UtcNow,
                 FileType = "",
-                RokuId = rokuId,
+                RokuId = resourceReq.RokuId,
                 Source = "lightroom",
                 OriginUrl = item,
                 LightroomAlbum = albumUrl
             };
             newPackage.Add(share.Id, share.Key);
-            await _store.WriteResourceToStore(share);
+            await _store.WriteResourceToStore(share, resourceReq.MaxScreenSize);
         }
 
         return newPackage;

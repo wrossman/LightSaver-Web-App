@@ -16,16 +16,9 @@ public class GooglePhotosFlow
         _userSessionDb = userSessionDb;
         _scopeFactory = scopeFactory;
     }
-    public async Task<string> StartGooglePhotosFlow(string userSessionId)
+    public async Task<string> StartGooglePhotosFlow(UserSession userSession)
     {
-        var session = await _userSessionDb.UserSessions.FindAsync(userSessionId);
-        string? accessToken = session?.AccessToken;
-        string? sessionCode = session?.SessionCode;
-        string? rokuId = session?.RokuId;
-        if (accessToken is null || rokuId is null || sessionCode is null)
-            throw new ArgumentException("Failed to locate User Session");
-
-        PickerSession pickerSession = await GetPickerSession(accessToken);
+        PickerSession pickerSession = await GetPickerSession(userSession);
         // CREATE POLLING INSTANCE FOR PICKERSESSION
         if (pickerSession.PickerUri == string.Empty || pickerSession.PollingConfig.PollInterval == string.Empty)
             throw new ArgumentException("Failed to retrieve Picker URI");
@@ -43,7 +36,7 @@ public class GooglePhotosFlow
                     return;
                 }
                 GooglePhotosPoller poller = new(_config, _logger, store);
-                await poller.PollPhotos(pickerSession, accessToken, sessionCode, rokuId);
+                await poller.PollPhotos(pickerSession, userSession);
             }
         });
 
@@ -58,8 +51,9 @@ public class GooglePhotosFlow
         string response = await client.GetStringAsync($"https://photospicker.googleapis.com/v1/mediaItems?sessionId={pickerSession.Id}");
         return response;
     }
-    public async Task<PickerSession> GetPickerSession(string accessToken)
+    public async Task<PickerSession> GetPickerSession(UserSession userSession)
     {
+        string accessToken = userSession.AccessToken;
         using HttpClient photosClient = new();
 
         var pickerRequest = new HttpRequestMessage(HttpMethod.Post, "https://photospicker.googleapis.com/v1/sessions");

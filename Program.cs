@@ -45,6 +45,9 @@ WEB APP TO-DO ITEMS
 
 ROKU TO-DO ITEMS
 -------------------
+- if the lightroom album changes and there are a fuckload of images then the httprequest will time out in intiial get
+- there is a method that wakes up the screensaver. have this go off when the successfully added photos dialog appears
+- Pass device image dimensions to web app so it can set the max image size for each device
 - Retry logic for failed connections
 - Track if session code that was provided expired and then refresh
 - Limit the number of keys stored on roku registry

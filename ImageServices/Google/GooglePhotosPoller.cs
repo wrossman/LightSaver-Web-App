@@ -14,7 +14,7 @@ public class GooglePhotosPoller
     }
     public Dictionary<string, string> FileUrls { get; set; } = new();
 
-    public async Task PollPhotos(PickerSession pickerSession, string accessToken, string sessionCode, string rokuId)
+    public async Task PollPhotos(PickerSession pickerSession, UserSession userSession)
     {
         int interval;
         decimal timeoutDecimal;
@@ -32,7 +32,7 @@ public class GooglePhotosPoller
         {
             await Task.Delay(interval * 1000);
             pollClient.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", accessToken);
+                new AuthenticationHeaderValue("Bearer", userSession.AccessToken);
 
             var response = await pollClient.GetStringAsync($"https://photospicker.googleapis.com/v1/sessions/{sessionId}");
             var responseJson = JsonSerializer.Deserialize<PickerSession>(response);
@@ -45,11 +45,11 @@ public class GooglePhotosPoller
             else if (responseJson.MediaItemsSet == true)
             {
                 _logger.LogInformation("User finished selecting photos.");
-                string photoList = await GooglePhotosFlow.GetPhotoList(pickerSession, accessToken);
+                string photoList = await GooglePhotosFlow.GetPhotoList(pickerSession, userSession.AccessToken);
 
                 AddUrlsToList(photoList);
-                await WritePhotosToDb(sessionCode, accessToken, rokuId);
-                UserSessions.CodesReadyForTransfer.Enqueue(sessionCode);
+                await WritePhotosToDb(userSession);
+                UserSessions.CodesReadyForTransfer.Enqueue(userSession.SessionCode);
 
                 break;
             }
@@ -70,7 +70,7 @@ public class GooglePhotosPoller
     {
         MediaItemsResponse photoListJson = JsonSerializer.Deserialize<MediaItemsResponse>(photoList) ?? new();
         List<MediaItem> mediaItems = photoListJson.MediaItems;
-        string maxSize = _config["MaxPhotoDimensions"] ?? "w3840-h2160";
+        string maxScreenSize = _config["MaxGooglePhotoDimensions"] ?? "w3840-h2160";
 
         foreach (MediaItem item in mediaItems)
         {
@@ -83,15 +83,15 @@ public class GooglePhotosPoller
             string.Equals(fileType, "gif", StringComparison.OrdinalIgnoreCase)))
             {
                 MediaFile tempFile = item.MediaFile;
-                FileUrls.Add($"{tempFile.BaseUrl}={maxSize}", fileType);
+                FileUrls.Add($"{tempFile.BaseUrl}={maxScreenSize}", fileType);
             }
         }
     }
-    public async Task WritePhotosToDb(string sessionCode, string accessToken, string rokuId)
+    public async Task WritePhotosToDb(UserSession userSession)
     {
         using HttpClient client = new();
         client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", accessToken);
+            new AuthenticationHeaderValue("Bearer", userSession.AccessToken);
         foreach (KeyValuePair<string, string> item in FileUrls)
         {
             var bytes = new byte[32];
@@ -106,15 +106,15 @@ public class GooglePhotosPoller
             {
                 Id = hash,
                 Key = key,
-                SessionCode = sessionCode,
+                SessionCode = userSession.SessionCode,
                 ImageStream = data,
                 CreatedOn = DateTime.UtcNow,
                 FileType = item.Value,
-                RokuId = rokuId,
+                RokuId = userSession.RokuId,
                 Source = "google",
                 OriginUrl = item.Key
             };
-            await _store.WriteResourceToStore(share);
+            await _store.WriteResourceToStore(share, userSession.MaxScreenSize);
         }
     }
 }

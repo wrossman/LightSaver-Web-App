@@ -43,13 +43,8 @@ public class GoogleFlow
         }
         return jsonResponse;
     }
-    public async Task<bool> LinkAccessToken(string accessToken, string userSessionId)
+    public async Task<bool> LinkAccessToken(string accessToken, UserSession userSession)
     {
-        var userSession = await _userSessionDb.UserSessions.FirstOrDefaultAsync(u => u.Id == userSessionId);
-
-        if (userSession is null)
-            return false;
-
         userSession.AccessToken = accessToken;
 
         await _userSessionDb.SaveChangesAsync();

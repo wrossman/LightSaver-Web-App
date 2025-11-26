@@ -36,6 +36,9 @@ namespace LightSaver.Migrations
                     b.Property<bool>("Expired")
                         .HasColumnType("boolean");
 
+                    b.Property<int>("MaxScreenSize")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("ReadyForTransfer")
                         .HasColumnType("boolean");
 
