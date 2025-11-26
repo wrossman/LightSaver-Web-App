@@ -47,9 +47,8 @@ public class GooglePhotosPoller
                 _logger.LogInformation("User finished selecting photos.");
                 string photoList = await GooglePhotosFlow.GetPhotoList(pickerSession, accessToken);
 
-                await _store.RemoveByRokuId(rokuId);
                 AddUrlsToList(photoList);
-                await WritePhotosToMemory(sessionCode, accessToken, rokuId);
+                await WritePhotosToDb(sessionCode, accessToken, rokuId);
                 UserSessions.CodesReadyForTransfer.Enqueue(sessionCode);
 
                 break;
@@ -88,7 +87,7 @@ public class GooglePhotosPoller
             }
         }
     }
-    public async Task WritePhotosToMemory(string sessionCode, string accessToken, string rokuId)
+    public async Task WritePhotosToDb(string sessionCode, string accessToken, string rokuId)
     {
         using HttpClient client = new();
         client.DefaultRequestHeaders.Authorization =

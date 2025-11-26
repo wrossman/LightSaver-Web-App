@@ -68,12 +68,6 @@ public class UploadImages
     }
     public async Task ExpireCreds(string sessionCode)
     {
-        //remove sessioncode reference from resources
-        if (await _store.ScrubSessionCode(sessionCode))
-            _logger.LogInformation($"Scrubbed Image Resources of session code {sessionCode}");
-        else
-            _logger.LogWarning($"Failed to scrub resources of session code {sessionCode}");
-
         // expire user and roku session associated with session code
         if (await _sessions.ExpireRokuSession(sessionCode))
             _logger.LogInformation("Set roku session for expiration due to resource package delivery.");
