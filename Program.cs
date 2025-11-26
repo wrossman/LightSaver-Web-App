@@ -195,6 +195,7 @@ app.UseStaticFiles();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    System.Console.WriteLine("Running in development");
 }
 
 // app.UseHttpsRedirection(); //enable this once im done with getting the app service up
