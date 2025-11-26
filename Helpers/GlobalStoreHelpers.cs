@@ -32,20 +32,6 @@ public class GlobalStoreHelpers
         _resourceDb.Resources.Add(resource);
         await _resourceDb.SaveChangesAsync();
     }
-    public async Task RemoveByRokuId(string rokuId)
-    {
-        var itemsToRemove = await _resourceDb.Resources
-        .Where(x => x.RokuId == rokuId)
-        .ToListAsync();
-
-        _resourceDb.Resources.RemoveRange(itemsToRemove);
-        await _resourceDb.SaveChangesAsync();
-
-        foreach (var item in itemsToRemove)
-        {
-            _logger.LogInformation("Removed " + item.Id + " from resource database.");
-        }
-    }
     public (byte[]? image, string? fileType) GetResourceData(string location, string key, string device)
     {
         var item = _resourceDb.Resources
@@ -80,23 +66,21 @@ public class GlobalStoreHelpers
 
         return item;
     }
-    public async Task<bool> ScrubSessionCode(string sessionCode)
+    public async Task<bool> ScrubOldImages(string sessionCode, string rokuId)
     {
         var sessions = await _resourceDb.Resources
-        .Where(s => s.SessionCode == sessionCode)
-        .ToListAsync();
-        if (sessions is null)
+            .Where(s => s.RokuId == rokuId && s.SessionCode != sessionCode)
+            .ToListAsync();
+
+        if (sessions is null || sessions.Count == 0)
         {
             return false;
         }
-        else
-        {
-            foreach (var s in sessions)
-                s.SessionCode = string.Empty;
 
-            await _resourceDb.SaveChangesAsync();
-            return true;
-        }
+        _resourceDb.Resources.RemoveRange(sessions);
+        await _resourceDb.SaveChangesAsync();
+
+        return true;
     }
     public void WritePhotosToLocal(byte[] img, string fileType)
     {

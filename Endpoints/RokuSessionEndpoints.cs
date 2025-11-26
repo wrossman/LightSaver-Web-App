@@ -104,8 +104,9 @@ public static class RokuSessionEndpoints
             return Results.BadRequest("Failed to retrieve resource package.");
         }
 
-        //remove sessioncode reference from resources
-        if (await store.ScrubSessionCode(sessionCode))
+        //remove images from resource store that are from this roku but from old sessions
+        // this protects from storing old images that the device cant access
+        if (await store.ScrubOldImages(sessionCode, rokuId))
             logger.LogInformation($"Scrubbed Image Resources of session code {sessionCode}");
         else
             logger.LogWarning($"Failed to scrub resources of session code {sessionCode}");
@@ -143,7 +144,7 @@ public static class RokuSessionEndpoints
         if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(device) || string.IsNullOrEmpty(location))
             return Results.Unauthorized();
 
-        logger.LogInformation($"Received key: {key} for file: {location} from device: {device}");
+        // logger.LogInformation($"Received key: {key} for file: {location} from device: {device}");
 
         (byte[]? image, string? fileType) = store.GetResourceData(location.ToString(), key.ToString(), device.ToString());
 
