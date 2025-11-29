@@ -62,7 +62,7 @@ public class GlobalStoreHelpers
 
         using var image = Image.Load(item.ImageStream);
 
-        image.Mutate(x => x.GaussianBlur(40f).Resize(width, height));
+        image.Mutate(x => x.GaussianBlur(50f).Resize(width, height));
 
         using var outputStream = new MemoryStream();
         image.Save(outputStream, new JpegEncoder());

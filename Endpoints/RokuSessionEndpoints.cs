@@ -261,6 +261,8 @@ public static class RokuSessionEndpoints
             return Results.Unauthorized();
         }
 
+        logger.LogInformation($"key: {key}\nlocation: {location}\ndevice: {device}\nheight: {height}\nwidth: {width}");
+
         byte[]? image = store.GetBackgroundData(location.ToString(), key.ToString(), device.ToString(), height, width);
 
         if (image is null)
