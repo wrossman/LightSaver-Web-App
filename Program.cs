@@ -31,7 +31,7 @@ DESIGN ITEMS
 
 WEB APP TO-DO ITEMS
 -------------------
-- Create a background for each image that is just the image but super blurred. Send the background with the image if roku chooses the setting for a blurred image background.
+- create separate polling endpoint for initial get
 - Limit image upload size
 - Add counter and upload animation
 - Add a prompt that the lightroom album you linked has zero images and ask to try again
@@ -39,16 +39,17 @@ WEB APP TO-DO ITEMS
 
 ROKU TO-DO ITEMS
 -------------------
+- handle all response codes from httpclients
 - find a way to get background image in parallel
 - if the lightroom album changes and there are a fuckload of images then the httprequest will time out in intiial get
-- Pass device image dimensions to web app so it can set the max image size for each device
 - Retry logic for failed connections
 - Limit the number of keys stored on roku registry
 - create an account linked progress dialog, and then show that the images are being transferred.
-
 -------------------
 DONE
 -------------------
+X Pass device image dimensions to web app so it can set the max image size for each device
+X Create a background for each image that is just the image but super blurred. Send the background with the image if roku chooses the setting for a blurred image background.
 X remove user and roku sessions after flow failure
 X Evaluate whether there’s a better approach to managing image resolution.
     for google and lightroom, image resolution is chosen based off of the roku devices preferred size
@@ -133,8 +134,8 @@ builder.Services.AddRateLimiter(options =>
 
         return RateLimitPartition.GetFixedWindowLimiter(partitionKey: ip, factory: key => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 20,
-            Window = TimeSpan.FromSeconds(10),
+            PermitLimit = 50,
+            Window = TimeSpan.FromSeconds(20),
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             QueueLimit = 0
         });
