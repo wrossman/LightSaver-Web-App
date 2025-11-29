@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Net;
 using Microsoft.Extensions.Primitives;
 using Microsoft.AspNetCore.Mvc;
+using System.Runtime.CompilerServices;
 public static class RokuSessionEndpoints
 {
     public static void MapRokuSessionEndpoints(this IEndpointRouteBuilder app)
@@ -16,6 +17,7 @@ public static class RokuSessionEndpoints
         group.MapGet("/initial", InitialStartWallpaper);
         group.MapPost("/revoke", RevokeAccess);
         group.MapGet("/background", ProvideBackground);
+        group.MapPost("/update", PollUpdateLightroom);
     }
     private static async Task<IResult> ProvideSessionCode(HttpContext context, RokuSessions roku, ILogger<RokuSessions> logger)
     {
@@ -195,11 +197,13 @@ public static class RokuSessionEndpoints
         if (!(store.GetResourceSource(resourceReq) == "lightroom"))
             return Results.Ok();
 
-        var newPackage = await lightroom.UpdateRokuLinks(resourceReq, maxScreenSize);
-        if (newPackage is null)
+        var sessionKey = await lightroom.UpdateRokuLinks(resourceReq, maxScreenSize);
+        if (sessionKey is null)
             return Results.Ok();
 
-        return Results.Json(newPackage);
+        logger.LogInformation($"Returning sessionKey for update: {sessionKey}");
+
+        return Results.Content(sessionKey);
     }
     private static async Task<IResult> RevokeAccess([FromBody] RevokeAccessPackage revokePackage, GlobalStoreHelpers store, ILogger<RokuSessions> logger)
     {
@@ -275,5 +279,40 @@ public static class RokuSessionEndpoints
         // store.WritePhotosToLocal(image, fileType);
 
         return Results.File(image, "image/jpeg");
+    }
+    public static async Task<IResult> PollUpdateLightroom(HttpContext context, ILogger<LightrooomUpdateSessions> logger, LightrooomUpdateSessions updateSessions)
+    {
+        var body = await RokuSessions.ReadRokuPost(context);
+        if (body == "fail")
+        {
+            logger.LogWarning("An oversized payload was received at roku session code provider endpoint");
+            return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
+        }
+
+        var jsonBody = JsonSerializer.Deserialize<RokuUpdateLightroomPostBody>(body);
+        var key = jsonBody?.Key;
+        var rokuId = jsonBody?.RokuId;
+
+        if (string.IsNullOrEmpty(key))
+        {
+            logger.LogWarning("An invalid SessionCode was tried at roku reception endpoint");
+            return Results.Content("Media is not ready to be transfered.");
+        }
+        if (string.IsNullOrEmpty(rokuId))
+        {
+            logger.LogWarning("An invalid rokuId was tried at roku reception endpoint");
+            return Results.Content("Media is not ready to be transfered.");
+        }
+        LightroomUpdateSession? updateSession = await updateSessions.GetUpdateSession(key, rokuId);
+        if (updateSession is null)
+        {
+            logger.LogWarning("An invalid rokuId was tried at roku reception endpoint");
+            return Results.Content("Media is not ready to be transfered.");
+        }
+
+        if (updateSession.ReadyForTransfer)
+            return Results.Json(updateSession.Links);
+        else
+            return Results.Content("Media is not ready to be transfered.");
     }
 }

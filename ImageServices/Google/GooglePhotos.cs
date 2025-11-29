@@ -7,13 +7,11 @@ public class GooglePhotosFlow
 {
     private readonly ILogger<GooglePhotosFlow> _logger;
     private readonly IConfiguration _config;
-    private readonly UserSessionDbContext _userSessionDb;
     private readonly IServiceScopeFactory _scopeFactory;
-    public GooglePhotosFlow(ILogger<GooglePhotosFlow> logger, IConfiguration config, UserSessionDbContext userSessionDb, IServiceScopeFactory scopeFactory)
+    public GooglePhotosFlow(ILogger<GooglePhotosFlow> logger, IConfiguration config, IServiceScopeFactory scopeFactory)
     {
         _logger = logger;
         _config = config;
-        _userSessionDb = userSessionDb;
         _scopeFactory = scopeFactory;
     }
     public async Task<string> StartGooglePhotosFlow(UserSession userSession)
