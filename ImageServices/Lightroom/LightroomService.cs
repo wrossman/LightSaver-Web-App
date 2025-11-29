@@ -5,11 +5,14 @@ public sealed class LightroomService
 {
     private readonly ILogger<LightroomService> _logger;
     private readonly GlobalStoreHelpers _store;
-
-    public LightroomService(ILogger<LightroomService> logger, GlobalStoreHelpers store)
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly LightrooomUpdateSessions _updateSessions;
+    public LightroomService(ILogger<LightroomService> logger, GlobalStoreHelpers store, IServiceScopeFactory scopeFactory, LightrooomUpdateSessions updateSessions)
     {
         _logger = logger;
         _store = store;
+        _scopeFactory = scopeFactory;
+        _updateSessions = updateSessions;
     }
     public async Task<(List<string>, string)> GetImageUrisFromShortCodeAsync(string shortCode, int maxScreenSize)
     {
@@ -230,7 +233,6 @@ public sealed class LightroomService
             var bytes = new byte[32];
             RandomNumberGenerator.Fill(bytes);
             var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-            _logger.LogInformation("Trying to get image from: " + item);
             byte[] data = await client.GetByteArrayAsync(item);
             string hash = GlobalHelpers.ComputeHashFromBytes(data);
             hash = hash + "-" + DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
@@ -316,7 +318,7 @@ public sealed class LightroomService
         // Never found matching closing brace
         return null;
     }
-    public async Task<Dictionary<string, string>?> UpdateRokuLinks(ResourceRequest resourceReq, int maxScreenSize)
+    public async Task<string?> UpdateRokuLinks(ResourceRequest resourceReq, int maxScreenSize)
     {
         string albumUrl = _store.GetResourceLightroomAlbum(resourceReq);
         var result = await GetImageUrisFromShortCodeAsync(albumUrl, maxScreenSize);
@@ -345,7 +347,23 @@ public sealed class LightroomService
 
         if (equal)
             return null;
+        else
+        {
+            LightroomUpdateSession session = await _updateSessions.CreateUpdateSession(resourceReq.RokuId);
+            _ = Task.Run(async () =>
+            {
+                using (var scope = _scopeFactory.CreateScope())
+                {
+                    var lightroom = scope.ServiceProvider.GetRequiredService<LightroomService>();
+                    await lightroom.UpdateLightroomImagesAsync(oldImgs, newImgs, albumUrl, resourceReq, session);
+                }
+            });
 
+            return session.Id;
+        }
+    }
+    public async Task UpdateLightroomImagesAsync(List<string> oldImgs, List<string> newImgs, string albumUrl, ResourceRequest resourceReq, LightroomUpdateSession session)
+    {
         List<string>? imgsToRemove = new();
         List<string>? imgsToKeep = new();
 
@@ -380,7 +398,6 @@ public sealed class LightroomService
             var bytes = new byte[32];
             RandomNumberGenerator.Fill(bytes);
             var newKey = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-            _logger.LogInformation("Trying to get image from: " + item);
             byte[] data = await client.GetByteArrayAsync(item);
             string hash = GlobalHelpers.ComputeHashFromBytes(data);
             hash = hash + "-" + DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
@@ -401,10 +418,8 @@ public sealed class LightroomService
             updatePackage.Add(share.Id, share.Key);
             await _store.WriteResourceToStore(share, resourceReq.MaxScreenSize);
         }
-
-        _logger.LogInformation($"Sending {updatePackage.Count} images in update package.");
-
-        return updatePackage;
-
+        session.Links = updatePackage;
+        session.ReadyForTransfer = true;
+        _updateSessions.SetReadyForTransfer(session);
     }
 }

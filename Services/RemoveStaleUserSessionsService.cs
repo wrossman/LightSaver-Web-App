@@ -18,7 +18,7 @@ public class RemoveStaleUserSessionsService : BackgroundService
             {
                 UserSessionDbContext sessionDb = scope.ServiceProvider.GetRequiredService<UserSessionDbContext>();
 
-                _logger.LogInformation("Running User Session Cleanup");
+                // _logger.LogInformation("Running User Session Cleanup");
                 string expireString = _config["SessionExpiration"] ?? "-480";
                 double expire;
                 if (!double.TryParse(expireString, out expire))

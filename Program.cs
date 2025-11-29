@@ -13,6 +13,7 @@ FINAL ITEMS
 - Create Terms and Conditions
 - Check for uncaught exceptions
 - how can a user report their roku lost or stolen
+- verify that all images are being saved only as the max size the roku device can handle
 
 NEW Feature ideas
 -------------------
@@ -31,6 +32,9 @@ DESIGN ITEMS
 
 WEB APP TO-DO ITEMS
 -------------------
+- expire lightroom update sesssions
+- remove transfer file service and just set ready to transfer at methods that upload
+- verify that everytime i generate a key, that it does not already exist in the db
 - create separate polling endpoint for initial get
 - Limit image upload size
 - Add counter and upload animation
@@ -149,6 +153,8 @@ builder.Services.AddDbContext<RokuSessionDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 builder.Services.AddDbContext<GlobalImageStoreDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+builder.Services.AddDbContext<LightroomUpdateSessionDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
 //add hosted services for session management and file transfers
 builder.Services.AddHostedService<RemoveStaleUserSessionsService>();
@@ -164,6 +170,7 @@ builder.Services.AddScoped<UploadImages>();
 builder.Services.AddScoped<LightroomService>();
 builder.Services.AddScoped<GlobalStoreHelpers>();
 builder.Services.AddScoped<SessionHelpers>();
+builder.Services.AddScoped<LightrooomUpdateSessions>();
 
 // start all services at the same time so they dont block each other
 builder.Services.Configure<HostOptions>(options =>
@@ -180,6 +187,7 @@ using (var scope = app.Services.CreateScope())
     services.GetRequiredService<UserSessionDbContext>().Database.Migrate();
     services.GetRequiredService<RokuSessionDbContext>().Database.Migrate();
     services.GetRequiredService<GlobalImageStoreDbContext>().Database.Migrate();
+    services.GetRequiredService<LightroomUpdateSessionDbContext>().Database.Migrate();
 }
 
 app.UseRateLimiter();
