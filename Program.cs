@@ -13,10 +13,9 @@ FINAL ITEMS
 - Create Terms and Conditions
 - Check for uncaught exceptions
 
-NEW FEATURES
+NEW Feature ideas
 -------------------
 - Create an album that lets you add pictures from multiple sources. share with friends from a link.
-- Create a background for each image that is just the image but super blurred. Send the background with the image if roku chooses the setting for a blurred image background.
 
 DESIGN ITEMS
 -------------------
@@ -31,6 +30,7 @@ DESIGN ITEMS
 
 WEB APP TO-DO ITEMS
 -------------------
+- Create a background for each image that is just the image but super blurred. Send the background with the image if roku chooses the setting for a blurred image background.
 - Limit image upload size
 - Add counter and upload animation
 - Add a prompt that the lightroom album you linked has zero images and ask to try again
@@ -39,23 +39,14 @@ WEB APP TO-DO ITEMS
 ROKU TO-DO ITEMS
 -------------------
 - if the lightroom album changes and there are a fuckload of images then the httprequest will time out in intiial get
-- there is a method that wakes up the screensaver. have this go off when the successfully added photos dialog appears
-- Pass device image dimensions to web app so it can set the max image size for each device
 - Retry logic for failed connections
 - Limit the number of keys stored on roku registry
-- Adjust polling times, maybe create an account linked dialog, and then show that the images are being transferred.
-- Fix issues with imgLinks not being initialized correctly on startup,
-    if there are no links i should not be able to start the wallpaper and i should be directed elsewhere
-- on startup, if there are no links or if the links don't work, direct the user to the web app
-    enter session code page, then let them select the source of there images,
-    for now it will be public lightroom files, Google photos, or upload photos,
-    then you will finish the flow based off o the selection. Remove the get image source
-    from menu and add a section in the menu that let's you update your images by directing
-    yoh to the web app and re grabbing images.
+- create an account linked progress dialog, and then show that the images are being transferred.
 
 -------------------
 DONE
 -------------------
+X Pass device image dimensions to web app so it can set the max image size for each device
 X remove user and roku sessions after flow failure
 X Evaluate whether there’s a better approach to managing image resolution.
     for google and lightroom, image resolution is chosen based off of the roku devices preferred size
