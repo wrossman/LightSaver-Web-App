@@ -33,7 +33,6 @@ WEB APP TO-DO ITEMS
 - Add counter and upload animation
 - Add a prompt that the lightroom album you linked has zero images and ask to try again
 - limit the number of images to store for each upload method
-- Limit file size, the picture of latvia doesnt load on roku as a poster. I am assuming because it is too big?
 - Expires credentials every they need to be
 - Set up antiforgery middleware
 - Evaluate whether there’s a better approach to managing image resolution.
@@ -42,7 +41,7 @@ WEB APP TO-DO ITEMS
   generate the qr code dynamically and include the session code in it, user scans
   code, the enpoint stores the code in cookies and then forwards them through the
   google oauth process without having to submit their session code
-
+192.168.4.68
 ROKU TO-DO ITEMS
 -------------------
 - if the lightroom album changes and there are a fuckload of images then the httprequest will time out in intiial get
@@ -64,6 +63,8 @@ ROKU TO-DO ITEMS
 -------------------
 DONE
 -------------------
+X Test sesssion code expiration with roku app
+X Limit file size, the picture of latvia doesnt load on roku as a poster. I am assuming because it is too big?
 X Create class to manage session and resource expiration
 X check to see if lightroom album has changed before sending the images
 X change using html agility pack to serve my html. there has to be a better way.

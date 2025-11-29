@@ -56,15 +56,10 @@ public class UploadImages
     public async Task ExpireCreds(string sessionCode)
     {
         // expire user and roku session associated with session code
-        if (await _sessions.ExpireRokuSession(sessionCode))
-            _logger.LogInformation("Set roku session for expiration due to resource package delivery.");
+        if (await _sessions.ExpireSessionsBySessionCode(sessionCode))
+            _logger.LogInformation($"Set roku and user session with session code {sessionCode} for expiration due to resource package delivery.");
         else
-            _logger.LogWarning("Failed to set expire for roku session after resource package delivery.");
-
-        if (await _sessions.ExpireUserSession(sessionCode))
-            _logger.LogInformation("Set user session for expiration due to resource package delivery.");
-        else
-            _logger.LogWarning("Failed to set expire for user session after resource package delivery.");
+            _logger.LogWarning($"Failed to set expire for user and roku session with session code {sessionCode} after resource package delivery.");
 
     }
     public byte[] FixOrientation(byte[] imageBytes)

@@ -3,10 +3,12 @@ public class RemoveStaleRokuSessionsService : BackgroundService
 {
     private readonly ILogger<RemoveStaleRokuSessionsService> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
-    public RemoveStaleRokuSessionsService(IServiceScopeFactory scopeFactory, ILogger<RemoveStaleRokuSessionsService> logger)
+    private readonly IConfiguration _config;
+    public RemoveStaleRokuSessionsService(IServiceScopeFactory scopeFactory, ILogger<RemoveStaleRokuSessionsService> logger, IConfiguration config)
     {
         _logger = logger;
         _scopeFactory = scopeFactory;
+        _config = config;
     }
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
@@ -17,7 +19,13 @@ public class RemoveStaleRokuSessionsService : BackgroundService
                 RokuSessionDbContext sessionDb = scope.ServiceProvider.GetRequiredService<RokuSessionDbContext>();
 
                 _logger.LogInformation("Running roku Session Cleanup");
-                var cutoff = DateTime.UtcNow.AddSeconds(-480);
+                string expireString = _config["SessionExpiration"] ?? "-480";
+                double expire;
+                if (!double.TryParse(expireString, out expire))
+                {
+                    expire = -480;
+                }
+                var cutoff = DateTime.UtcNow.AddSeconds(expire);
 
                 // Find expired sessions
                 var expiredSessions = await sessionDb.RokuSessions

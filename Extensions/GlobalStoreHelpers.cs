@@ -164,9 +164,7 @@ public class GlobalStoreHelpers
         _resourceDb.Resources.RemoveRange(itemsToRemove);
         await _resourceDb.SaveChangesAsync();
 
-        _logger.LogInformation(
-        "Removed the following URLs from resource database: {RemovedUrls}",
-        string.Join("\n", itemsToRemove.Select(i => i.OriginUrl)));
+        _logger.LogInformation($"Removed {itemsToRemove.Count} lightroom resources from resource database");
     }
     public byte[] ResizeToMaxBox(byte[] input, int maxScreenSize)
     {
@@ -191,5 +189,26 @@ public class GlobalStoreHelpers
         image.Save(outputStream, new JpegEncoder());
 
         return outputStream.ToArray();
+    }
+    public async Task<Dictionary<string, string>> GetOldImgsForUpdatePackage(List<string>? imgsToKeep)
+    {
+        Dictionary<string, string> imgs = new();
+
+        if (imgsToKeep is null)
+            return imgs;
+
+        foreach (var item in imgsToKeep)
+        {
+            var resource = await _resourceDb.Resources
+            .FirstOrDefaultAsync(r => r.OriginUrl == item);
+
+            if (resource is null)
+                continue;
+
+            imgs.Add(resource.Id, resource.Key);
+            _logger.LogInformation($"Added still valid image: {item} to updatePackage");
+        }
+
+        return imgs;
     }
 }

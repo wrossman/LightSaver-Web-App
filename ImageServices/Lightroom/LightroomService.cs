@@ -4,14 +4,10 @@ using Microsoft.EntityFrameworkCore;
 public sealed class LightroomService
 {
     private readonly ILogger<LightroomService> _logger;
-    private readonly UserSessionDbContext _userSessionDb;
-    private readonly RokuSessionDbContext _rokuSessionDb;
     private readonly GlobalStoreHelpers _store;
 
-    public LightroomService(UserSessionDbContext userSessionDb, RokuSessionDbContext rokuSessionDb, ILogger<LightroomService> logger, GlobalStoreHelpers store)
+    public LightroomService(ILogger<LightroomService> logger, GlobalStoreHelpers store)
     {
-        _userSessionDb = userSessionDb;
-        _rokuSessionDb = rokuSessionDb;
         _logger = logger;
         _store = store;
     }
@@ -313,22 +309,42 @@ public sealed class LightroomService
 
         bool equal = !oldImgs.Except(newImgs).Any() && !newImgs.Except(oldImgs).Any();
 
-        //thanks chat for cleaning up my janky writelines
-        _logger.LogInformation($"Old images: {string.Join("\n", oldImgs)}");
-        _logger.LogInformation($"New images: {string.Join("\n", newImgs)}");
-
         _logger.LogInformation("Image list equality check result: {Equal}", equal);
 
         if (equal)
             return null;
 
-        await _store.RemoveByOriginUrls(oldImgs);
+        List<string>? imgsToRemove = new();
+        List<string>? imgsToKeep = new();
 
-        Dictionary<string, string> newPackage = new();
+        foreach (var item in oldImgs)
+        {
+            if (!newImgs.Contains(item))
+                imgsToRemove.Add(item);
+            else
+                imgsToKeep.Add(item);
+        }
 
-        using HttpClient client = new();
+        List<string>? imgsToAdd = new();
+
         foreach (var item in newImgs)
         {
+            if (!oldImgs.Contains(item))
+                imgsToAdd.Add(item);
+        }
+
+        _logger.LogInformation($"Found {imgsToRemove.Count} to remove.");
+        _logger.LogInformation($"Found {imgsToKeep.Count} to keep.");
+        _logger.LogInformation($"Found {imgsToAdd.Count} to add.");
+
+        await _store.RemoveByOriginUrls(imgsToRemove);
+
+        Dictionary<string, string> updatePackage = await _store.GetOldImgsForUpdatePackage(imgsToKeep);
+
+        using HttpClient client = new();
+        foreach (var item in imgsToAdd)
+        {
+            _logger.LogInformation($"Downloading image {item} to add to updatePackage");
             var bytes = new byte[32];
             RandomNumberGenerator.Fill(bytes);
             var newKey = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
@@ -350,11 +366,13 @@ public sealed class LightroomService
                 OriginUrl = item,
                 LightroomAlbum = albumUrl
             };
-            newPackage.Add(share.Id, share.Key);
+            updatePackage.Add(share.Id, share.Key);
             await _store.WriteResourceToStore(share, resourceReq.MaxScreenSize);
         }
 
-        return newPackage;
+        _logger.LogInformation($"Sending {updatePackage.Count} images in update package.");
+
+        return updatePackage;
 
     }
 }
