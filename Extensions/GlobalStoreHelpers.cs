@@ -1,7 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
 public class GlobalStoreHelpers
@@ -52,7 +50,24 @@ public class GlobalStoreHelpers
             return (item.ImageStream, item.FileType);
         else
             return (null, null);
+    }
+    public byte[]? GetBackgroundData(string location, string key, string device, int height, int width)
+    {
+        var item = _resourceDb.Resources
+        .Where(img => img.Id == location && img.Key == key && img.RokuId == device)
+        .Select(img => img).SingleOrDefault();
 
+        if (item is null)
+            return null;
+
+        using var image = Image.Load(item.ImageStream);
+
+        image.Mutate(x => x.GaussianBlur(40f).Resize(width, height));
+
+        using var outputStream = new MemoryStream();
+        image.Save(outputStream, new JpegEncoder());
+
+        return outputStream.ToArray();
     }
     public string GetResourceSource(ResourceRequest resourceReq)
     {

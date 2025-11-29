@@ -31,6 +31,7 @@ DESIGN ITEMS
 
 WEB APP TO-DO ITEMS
 -------------------
+- Limit image upload size
 - Add counter and upload animation
 - Add a prompt that the lightroom album you linked has zero images and ask to try again
 - limit the number of images to store for each upload method
