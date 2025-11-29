@@ -12,6 +12,7 @@ FINAL ITEMS
 - Create Privacy Policy
 - Create Terms and Conditions
 - Check for uncaught exceptions
+- how can a user report their roku lost or stolen
 
 NEW Feature ideas
 -------------------
