@@ -3,10 +3,12 @@ public class RemoveStaleUserSessionsService : BackgroundService
 {
     private readonly ILogger<RemoveStaleUserSessionsService> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
-    public RemoveStaleUserSessionsService(IServiceScopeFactory scopeFactory, ILogger<RemoveStaleUserSessionsService> logger)
+    private readonly IConfiguration _config;
+    public RemoveStaleUserSessionsService(IServiceScopeFactory scopeFactory, ILogger<RemoveStaleUserSessionsService> logger, IConfiguration config)
     {
         _logger = logger;
         _scopeFactory = scopeFactory;
+        _config = config;
     }
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
@@ -17,7 +19,13 @@ public class RemoveStaleUserSessionsService : BackgroundService
                 UserSessionDbContext sessionDb = scope.ServiceProvider.GetRequiredService<UserSessionDbContext>();
 
                 _logger.LogInformation("Running User Session Cleanup");
-                var cutoff = DateTime.UtcNow.AddSeconds(-480);
+                string expireString = _config["SessionExpiration"] ?? "-480";
+                double expire;
+                if (!double.TryParse(expireString, out expire))
+                {
+                    expire = -480;
+                }
+                var cutoff = DateTime.UtcNow.AddSeconds(expire);
 
                 // Find expired sessions
                 var expiredSessions = await sessionDb.UserSessions

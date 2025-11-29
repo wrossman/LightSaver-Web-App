@@ -68,11 +68,18 @@ public static class RokuSessionEndpoints
             logger.LogWarning("An invalid rokuId was tried at roku reception endpoint");
             return Results.NotFound("Media is not ready to be transfered.");
         }
+        RokuSession? rokuSession = await roku.GetRokuSession(sessionCode, rokuId);
+        if (rokuSession is null)
+        {
+            logger.LogWarning("An invalid rokuId was tried at roku reception endpoint");
+            return Results.Content("Expired");
+        }
 
-        if (await roku.CheckReadyTransfer(sessionCode, rokuId))
+        if (rokuSession.ReadyForTransfer)
             return Results.Content("Ready");
         else
             return Results.NotFound("Media is not ready to be transfered.");
+
     }
     private static async Task<IResult> ProvideResourcePackage(HttpContext context, SessionHelpers sessions, RokuSessions rokuSessions, GlobalStoreHelpers store, ILogger<RokuSessions> logger)
     {
@@ -115,15 +122,10 @@ public static class RokuSessionEndpoints
             logger.LogWarning($"Failed to scrub resources of session code {rokuSession.SessionCode}");
 
         // expire user and roku session associated with session code
-        if (await sessions.ExpireRokuSession(rokuSession.SessionCode))
-            logger.LogInformation("Set roku session for expiration due to resource package delivery.");
+        if (await sessions.ExpireSessionsBySessionCode(sessionCode))
+            logger.LogInformation($"Set roku and user session with session code {sessionCode} for expiration due to resource package delivery.");
         else
-            logger.LogWarning("Failed to set expire for roku session after resource package delivery.");
-
-        if (await sessions.ExpireUserSession(rokuSession.SessionCode))
-            logger.LogInformation("Set user session for expiration due to resource package delivery.");
-        else
-            logger.LogWarning("Failed to set expire for user session after resource package delivery.");
+            logger.LogWarning($"Failed to set expire for user and roku session with session code {sessionCode} after resource package delivery.");
 
         logger.LogInformation($"Sending resource package for session code {rokuSession.SessionCode} to IP: {context.Connection.RemoteIpAddress}");
         return Results.Json(links);

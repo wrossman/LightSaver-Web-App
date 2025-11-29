@@ -10,35 +10,20 @@ public class SessionHelpers
         _userSessionDb = userSessionDb;
         _rokuSessionDb = rokuSessionDb;
     }
-    public async Task<bool> ExpireUserSession(string sessionCode)
+    public async Task<bool> ExpireSessionsBySessionCode(string sessionCode)
     {
-        var session = await _userSessionDb.UserSessions
+        var rokuSession = await _rokuSessionDb.RokuSessions
+        .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
+        var userSession = await _userSessionDb.UserSessions
         .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
 
-        if (session != null)
+        if (rokuSession != null && userSession != null)
         {
-            session.Expired = true;
-            session.SessionCode = "";
-
-            await _userSessionDb.SaveChangesAsync();
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-    public async Task<bool> ExpireRokuSession(string sessionCode)
-    {
-        var session = await _rokuSessionDb.RokuSessions
-        .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
-
-        if (session != null)
-        {
-            session.Expired = true;
-            session.SessionCode = "";
-
+            rokuSession.Expired = true;
             await _rokuSessionDb.SaveChangesAsync();
+
+            userSession.Expired = true;
+            await _userSessionDb.SaveChangesAsync();
             return true;
         }
         else
