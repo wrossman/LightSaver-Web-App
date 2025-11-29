@@ -34,8 +34,7 @@ WEB APP TO-DO ITEMS
 - Add counter and upload animation
 - Add a prompt that the lightroom album you linked has zero images and ask to try again
 - limit the number of images to store for each upload method
-- Evaluate whether there’s a better approach to managing image resolution.
-- remove user and roku sessions after flow failure
+
 ROKU TO-DO ITEMS
 -------------------
 - if the lightroom album changes and there are a fuckload of images then the httprequest will time out in intiial get
@@ -52,9 +51,14 @@ ROKU TO-DO ITEMS
     then you will finish the flow based off o the selection. Remove the get image source
     from menu and add a section in the menu that let's you update your images by directing
     yoh to the web app and re grabbing images.
+
 -------------------
 DONE
 -------------------
+X remove user and roku sessions after flow failure
+X Evaluate whether there’s a better approach to managing image resolution.
+    for google and lightroom, image resolution is chosen based off of the roku devices preferred size
+    upload image gets reformatted to the max size of roku device
 X Expire user credentials at flow failure
 X Set up antiforgery middleware
 X Add fade in animation for session code label, since it processes later

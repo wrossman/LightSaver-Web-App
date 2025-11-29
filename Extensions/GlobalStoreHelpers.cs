@@ -170,6 +170,8 @@ public class GlobalStoreHelpers
     {
         using var image = Image.Load(input);
 
+        _logger.LogInformation($"Loaded image with height: {image.Height} and width {image.Width}");
+
         if (image.Width > maxScreenSize || image.Height > maxScreenSize)
         {
             _logger.LogInformation($"Resizing image with dimensions Width: {image.Width} Height: {image.Height} to max screen size of {maxScreenSize}");

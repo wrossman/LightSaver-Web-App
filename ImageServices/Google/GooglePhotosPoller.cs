@@ -13,7 +13,6 @@ public class GooglePhotosPoller
         _store = store;
     }
     public Dictionary<string, string> FileUrls { get; set; } = new();
-
     public async Task PollPhotos(PickerSession pickerSession, UserSession userSession)
     {
         int interval;
@@ -47,7 +46,7 @@ public class GooglePhotosPoller
                 _logger.LogInformation("User finished selecting photos.");
                 string photoList = await GooglePhotosFlow.GetPhotoList(pickerSession, userSession.AccessToken);
 
-                AddUrlsToList(photoList);
+                AddUrlsToList(photoList, userSession);
                 await WritePhotosToDb(userSession);
                 UserSessions.CodesReadyForTransfer.Enqueue(userSession.SessionCode);
 
@@ -66,11 +65,11 @@ public class GooglePhotosPoller
 
         }
     }
-    public void AddUrlsToList(string photoList)
+    public void AddUrlsToList(string photoList, UserSession userSession)
     {
         MediaItemsResponse photoListJson = JsonSerializer.Deserialize<MediaItemsResponse>(photoList) ?? new();
         List<MediaItem> mediaItems = photoListJson.MediaItems;
-        string maxScreenSize = _config["MaxGooglePhotoDimensions"] ?? "w3840-h2160";
+        string maxScreenSize = $"w{userSession.MaxScreenSize}-h{userSession.MaxScreenSize}";
 
         foreach (MediaItem item in mediaItems)
         {
