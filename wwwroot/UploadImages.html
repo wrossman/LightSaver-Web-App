@@ -6,145 +6,293 @@
     <title>Select Images to Upload</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: system-ui, Arial, sans-serif;
-            background: #f4f8ff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, Arial, sans-serif;
+            background: linear-gradient(135deg, #001f3f 0%, #003d7a 100%);
             margin: 0;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             text-align: center;
+            padding: 20px;
         }
 
         .container {
-            background: white;
-            padding: 40px;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            max-width: 640px;
+            background: #ffffff;
+            padding: 48px 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
             width: 100%;
             position: relative;
         }
 
         h1 {
-            margin-bottom: 24px;
-            color: #1a4fdd;
-            font-size: 26px;
+            margin-bottom: 32px;
+            color: #001f3f;
+            font-size: 32px;
+            font-weight: 600;
         }
 
         h2 {
-            margin-top: 24px;
-            margin-bottom: 16px;
-            color: #1a4fdd;
+            margin-top: 32px;
+            margin-bottom: 20px;
+            color: #001f3f;
             font-size: 20px;
+            font-weight: 500;
         }
 
-        .upload-box {
-            border: 2px dashed #1a4fdd;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 24px;
-            background: #f7faff;
+        .upload-area {
+            margin-bottom: 32px;
         }
 
-        .upload-box label {
-            font-size: 1rem;
-            color: #333;
+        .file-input-wrapper {
+            position: relative;
+            margin-bottom: 20px;
         }
 
         input[type="file"] {
-            margin-top: 12px;
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
         }
 
-        button {
-            margin-top: 18px;
-            padding: 14px;
-            font-size: 1.05rem;
+        .file-input-label {
+            display: block;
+            padding: 60px 40px;
+            border: 3px dashed #001f3f;
+            border-radius: 16px;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .file-input-label:hover {
+            border-color: #003d7a;
+            background: #f0f4f8;
+            transform: translateY(-2px);
+        }
+
+        .file-input-label.drag-over {
+            border-color: #003d7a;
+            background: #e8f0f8;
+            border-style: solid;
+        }
+
+        .file-input-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 16px;
+            display: block;
+        }
+
+        .file-input-icon svg {
             width: 100%;
-            max-width: 260px;
-            background: #1a4fdd;
+            height: 100%;
+            stroke: #001f3f;
+            fill: none;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .file-input-label:hover .file-input-icon svg {
+            stroke: #003d7a;
+        }
+
+        .file-input-text {
+            font-size: 18px;
+            color: #001f3f;
+            font-weight: 500;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .file-input-hint {
+            font-size: 14px;
+            color: #6b6b6b;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .file-input-limit {
+            font-size: 13px;
+            color: #001f3f;
+            font-weight: 500;
+            display: block;
+        }
+
+        .upload-button {
+            width: 100%;
+            padding: 18px 32px;
+            font-size: 18px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #001f3f 0%, #003d7a 100%);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
-            transition: 0.2s ease;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(0, 31, 63, 0.3);
+            letter-spacing: 0.5px;
         }
 
-        button:hover {
-            background: #163fb1;
+        .upload-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 31, 63, 0.4);
+            background: linear-gradient(135deg, #003d7a 0%, #0056b3 100%);
         }
 
-        button:disabled {
-            opacity: 0.6;
+        .upload-button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .upload-button:disabled {
+            opacity: 0.5;
             cursor: not-allowed;
+            transform: none;
         }
 
-        p.hint {
-            font-size: 0.9rem;
+        .file-count {
+            font-size: 14px;
             color: #6b6b6b;
-            margin-top: 8px;
-            margin-bottom: 0;
+            margin-top: 12px;
+            display: block;
         }
 
         #preview {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            justify-content: center;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 16px;
+            margin-top: 8px;
         }
 
         .thumb {
-            width: 140px;
-            height: 140px;
-            border-radius: 10px;
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 12px;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #eef3ff;
-            border: 2px solid #d5e2ff;
+            background: #f0f4f8;
+            border: 2px solid #e0e0e0;
+            box-shadow: 0 2px 8px rgba(0, 31, 63, 0.1);
+            transition: all 0.2s ease;
+        }
+
+        .thumb:hover {
+            border-color: #001f3f;
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0, 31, 63, 0.2);
         }
 
         .thumb img {
-            max-width: 100%;
-            max-height: 100%;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
             display: block;
         }
 
-        /* Loading overlay */
+        /* Modern Loading overlay */
         .loading-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.35);
+            background: rgba(0, 31, 63, 0.85);
+            backdrop-filter: blur(4px);
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 9999;
+            animation: fadeIn 0.3s ease;
         }
 
         .loading-overlay[hidden] {
             display: none;
         }
 
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
         .loading-box {
             background: #ffffff;
-            padding: 24px 32px;
-            border-radius: 12px;
-            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
+            padding: 40px 48px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px;
+            gap: 24px;
+            min-width: 280px;
         }
 
-        .spinner {
-            width: 40px;
-            height: 40px;
+        .loading-animation {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-wave {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .loading-wave::before,
+        .loading-wave::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 4px solid #001f3f;
             border-radius: 50%;
-            border: 4px solid #d5e2ff;
-            border-top-color: #1a4fdd;
+            opacity: 0.3;
+            animation: wave 1.5s ease-in-out infinite;
+        }
+
+        .loading-wave::after {
+            animation-delay: 0.75s;
+        }
+
+        .loading-inner {
+            position: absolute;
+            width: 60%;
+            height: 60%;
+            border: 4px solid #001f3f;
+            border-top-color: transparent;
+            border-radius: 50%;
             animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes wave {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.3;
+            }
+
+            50% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
         }
 
         @keyframes spin {
@@ -154,33 +302,86 @@
         }
 
         .loading-text {
-            font-size: 0.95rem;
-            color: #1a1a1a;
+            font-size: 1rem;
+            color: #001f3f;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .loading-progress {
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .loading-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #001f3f, #003d7a);
+            border-radius: 2px;
+            animation: progress 1.5s ease-in-out infinite;
+        }
+
+        @keyframes progress {
+            0% {
+                width: 0%;
+                margin-left: 0%;
+            }
+
+            50% {
+                width: 70%;
+                margin-left: 15%;
+            }
+
+            100% {
+                width: 0%;
+                margin-left: 100%;
+            }
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>Select Images to Upload</h1>
+        <h1>Upload Images</h1>
 
-        <div class="upload-box">
-            <label for="imageInput"><strong>Choose up to 20 images:</strong></label>
-            <br />
-            <input id="imageInput" type="file" accept="image/*" multiple />
-            <p class="hint">Images will be previewed locally before upload.</p>
-            <button id="uploadBtn" type="button">Upload</button>
+        <div class="upload-area">
+            <div class="file-input-wrapper">
+                <input id="imageInput" type="file" accept="image/*" multiple />
+                <label for="imageInput" class="file-input-label" id="fileInputLabel">
+                    <span class="file-input-icon">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M3 7V5C3 3.89543 3.89543 3 5 3H9.58579C9.851 3 10.1054 3.10536 10.2929 3.29289L12.7071 5.70711C12.8946 5.89464 13.149 6 13.4142 6H19C20.1046 6 21 6.89543 21 8V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V7Z" />
+                            <path d="M9 3V7C9 7.55228 9.44772 8 10 8H14" />
+                        </svg>
+                    </span>
+                    <span class="file-input-text">Click to select images</span>
+                    <span class="file-input-hint">or drag and drop here</span>
+                    <span class="file-input-limit">Up to 20 images</span>
+                </label>
+            </div>
+            <span class="file-count" id="fileCount"></span>
+            <button id="uploadBtn" type="button" class="upload-button" disabled>Upload Images</button>
         </div>
 
-        <h2>Preview</h2>
+        <h2 id="previewTitle" style="display: none;">Selected Images</h2>
         <div id="preview"></div>
     </div>
 
     <!-- Loading overlay -->
     <div id="loadingOverlay" class="loading-overlay" hidden>
         <div class="loading-box">
-            <div class="spinner"></div>
+            <div class="loading-animation">
+                <div class="loading-wave"></div>
+                <div class="loading-inner"></div>
+            </div>
             <div class="loading-text">Uploading images, please wait…</div>
+            <div class="loading-progress">
+                <div class="loading-progress-bar"></div>
+            </div>
         </div>
     </div>
 
@@ -191,26 +392,34 @@
         const loadingOverlay = document.getElementById('loadingOverlay');
         const MAX_FILES = 20;
 
-        input.addEventListener('change', () => {
-            if (input.files.length > MAX_FILES) {
-                alert(`You can only select up to ${MAX_FILES} images.`);
-                input.value = "";
-                preview.innerHTML = '';
-                return;
-            }
+        const fileCount = document.getElementById('fileCount');
+        const fileInputLabel = document.getElementById('fileInputLabel');
+        const previewTitle = document.getElementById('previewTitle');
 
+        function updateFileCount(count) {
+            if (count === 0) {
+                fileCount.textContent = '';
+                uploadBtn.disabled = true;
+                previewTitle.style.display = 'none';
+            } else {
+                fileCount.textContent = `${count} image${count !== 1 ? 's' : ''} selected`;
+                uploadBtn.disabled = false;
+                previewTitle.style.display = 'block';
+            }
+        }
+
+        function updatePreview(files) {
             preview.innerHTML = '';
 
-            const files = input.files;
             if (!files || !files.length) {
+                updateFileCount(0);
                 return;
             }
 
-            Array.from(files).forEach(file => {
-                if (!file.type.startsWith('image/')) {
-                    return;
-                }
+            const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+            updateFileCount(imageFiles.length);
 
+            imageFiles.forEach(file => {
                 const reader = new FileReader();
                 reader.onload = e => {
                     const div = document.createElement('div');
@@ -226,6 +435,48 @@
 
                 reader.readAsDataURL(file);
             });
+        }
+
+        // Drag and drop handlers
+        fileInputLabel.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileInputLabel.classList.add('drag-over');
+        });
+
+        fileInputLabel.addEventListener('dragleave', () => {
+            fileInputLabel.classList.remove('drag-over');
+        });
+
+        fileInputLabel.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileInputLabel.classList.remove('drag-over');
+
+            const files = e.dataTransfer.files;
+            if (files.length > MAX_FILES) {
+                alert(`You can only select up to ${MAX_FILES} images.`);
+                return;
+            }
+
+            // Create a new FileList-like object
+            const dataTransfer = new DataTransfer();
+            Array.from(files).forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    dataTransfer.items.add(file);
+                }
+            });
+            input.files = dataTransfer.files;
+            updatePreview(input.files);
+        });
+
+        input.addEventListener('change', () => {
+            if (input.files.length > MAX_FILES) {
+                alert(`You can only select up to ${MAX_FILES} images.`);
+                input.value = "";
+                updatePreview(null);
+                return;
+            }
+
+            updatePreview(input.files);
         });
 
         uploadBtn.addEventListener('click', async () => {
