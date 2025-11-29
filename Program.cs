@@ -38,8 +38,8 @@ WEB APP TO-DO ITEMS
 
 ROKU TO-DO ITEMS
 -------------------
+- find a way to get background image in parallel
 - if the lightroom album changes and there are a fuckload of images then the httprequest will time out in intiial get
-- there is a method that wakes up the screensaver. have this go off when the successfully added photos dialog appears
 - Pass device image dimensions to web app so it can set the max image size for each device
 - Retry logic for failed connections
 - Limit the number of keys stored on roku registry
@@ -56,6 +56,7 @@ ROKU TO-DO ITEMS
 -------------------
 DONE
 -------------------
+X Put keylist in a global variable
 X remove user and roku sessions after flow failure
 X Evaluate whether there’s a better approach to managing image resolution.
     for google and lightroom, image resolution is chosen based off of the roku devices preferred size
@@ -140,8 +141,8 @@ builder.Services.AddRateLimiter(options =>
 
         return RateLimitPartition.GetFixedWindowLimiter(partitionKey: ip, factory: key => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 10,
-            Window = TimeSpan.FromSeconds(30),
+            PermitLimit = 20,
+            Window = TimeSpan.FromSeconds(10),
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             QueueLimit = 0
         });
