@@ -169,6 +169,7 @@
         </p>
 
         <form id="lrForm" action="/lightroom/post-album" method="post" novalidate>
+            <input type="hidden" name="__RequestVerificationToken" value="{{CSRF_TOKEN}}">
             <label for="lrCode">Lightroom album code</label>
 
             <div class="input-row">

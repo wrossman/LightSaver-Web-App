@@ -194,7 +194,7 @@ public static class RokuSessionEndpoints
         if (!(store.GetResourceSource(resourceReq) == "lightroom"))
             return Results.Ok();
 
-        var newPackage = await lightroom.UpdateRokuLinks(resourceReq);
+        var newPackage = await lightroom.UpdateRokuLinks(resourceReq, maxScreenSize);
         if (newPackage is null)
             return Results.Ok();
 

@@ -248,7 +248,10 @@
             try {
                 const response = await fetch('/upload/post-images', {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    headers: {
+                        "RequestVerificationToken": "{{CSRF_TOKEN}}"
+                    }
                 });
 
                 if (!response.ok && !response.redirected) {
