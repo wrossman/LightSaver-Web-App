@@ -15,6 +15,7 @@ public static class RokuSessionEndpoints
         group.MapGet("/get-resource", ProvideResource);
         group.MapGet("/initial", InitialStartWallpaper);
         group.MapPost("/revoke", RevokeAccess);
+        group.MapGet("/background", ProvideBackground);
     }
     private static async Task<IResult> ProvideSessionCode(HttpContext context, RokuSessions roku, ILogger<RokuSessions> logger)
     {
@@ -228,5 +229,49 @@ public static class RokuSessionEndpoints
         }
 
         return Results.Ok();
+    }
+    private static IResult ProvideBackground(HttpContext context, GlobalStoreHelpers store, ILogger<RokuSessions> logger)
+    {
+        StringValues inputKey;
+        StringValues inputLocation;
+        StringValues inputDevice;
+        StringValues inputHeight;
+        StringValues inputWidth;
+        if (!context.Request.Headers.TryGetValue("Authorization", out inputKey))
+            return Results.Unauthorized();
+        if (!context.Request.Headers.TryGetValue("Location", out inputLocation))
+            return Results.Unauthorized();
+        if (!context.Request.Headers.TryGetValue("Device", out inputDevice))
+            return Results.Unauthorized();
+        if (!context.Request.Headers.TryGetValue("Height", out inputHeight))
+            return Results.Unauthorized();
+        if (!context.Request.Headers.TryGetValue("Width", out inputWidth))
+            return Results.Unauthorized();
+
+        string? key = inputKey;
+        string? location = inputLocation;
+        string? device = inputDevice;
+
+        if (string.IsNullOrEmpty(key) ||
+        string.IsNullOrEmpty(device) ||
+        string.IsNullOrEmpty(location) ||
+        !int.TryParse(inputHeight, out var height) ||
+        !int.TryParse(inputWidth, out var width))
+        {
+            return Results.Unauthorized();
+        }
+
+        byte[]? image = store.GetBackgroundData(location.ToString(), key.ToString(), device.ToString(), height, width);
+
+        if (image is null)
+        {
+            logger.LogInformation("Old or incorrect keys were tried against the database.");
+            return Results.Unauthorized();
+        }
+
+        // For testing image output - this thing is dangerous, dont let it run for a long time because it writes to desktop unless you stop it
+        // store.WritePhotosToLocal(image, fileType);
+
+        return Results.File(image, "image/jpeg");
     }
 }
