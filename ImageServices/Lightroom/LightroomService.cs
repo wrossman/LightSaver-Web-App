@@ -11,7 +11,7 @@ public sealed class LightroomService
         _logger = logger;
         _store = store;
     }
-    public async Task<(List<string>, string)> GetImageUrisFromShortCodeAsync(string shortCode)
+    public async Task<(List<string>, string)> GetImageUrisFromShortCodeAsync(string shortCode, int maxScreenSize)
     {
         // thanks chat for helping me translate from brs, even though you did a bad job
         const string lightroomShortPrefix = "https://adobe.ly/";
@@ -163,11 +163,43 @@ public sealed class LightroomService
 
                 foreach (JsonElement item in resources.EnumerateArray())
                 {
-                    // item.asset.links["/rels/rendition_type/1280"].href
+                    // /rels/rendition_type/2048
+                    // /rels/rendition_type/1280
+                    // /rels/rendition_type/640
+
                     if (!item.TryGetProperty("asset", out var asset) ||
-                        !asset.TryGetProperty("links", out var links) ||
-                        !links.TryGetProperty("/rels/rendition_type/1280", out var rendition) ||
-                        !rendition.TryGetProperty("href", out var hrefElement))
+                        !asset.TryGetProperty("links", out var links))
+                    {
+                        continue;
+                    }
+
+                    string[] preferredRendition =
+                    {
+                        "/rels/rendition_type/2048",
+                        "/rels/rendition_type/1280",
+                        "/rels/rendition_type/640"
+                    };
+
+                    JsonElement rendition;
+                    JsonElement hrefElement = default;
+
+                    int renditionStart = 0;
+                    if (maxScreenSize <= 1280)
+                    {
+                        renditionStart = 1;
+                    }
+
+                    for (int i = renditionStart; i < preferredRendition.Length; i++)
+                    {
+                        if (links.TryGetProperty(preferredRendition[i], out rendition) &&
+                        rendition.TryGetProperty("href", out hrefElement))
+                        {
+                            _logger.LogInformation($"Got lightrooom item from rendition {preferredRendition[i]}");
+                            break;
+                        }
+                    }
+
+                    if (hrefElement.ValueKind == JsonValueKind.Undefined)
                     {
                         continue;
                     }
@@ -284,10 +316,10 @@ public sealed class LightroomService
         // Never found matching closing brace
         return null;
     }
-    public async Task<Dictionary<string, string>?> UpdateRokuLinks(ResourceRequest resourceReq)
+    public async Task<Dictionary<string, string>?> UpdateRokuLinks(ResourceRequest resourceReq, int maxScreenSize)
     {
         string albumUrl = _store.GetResourceLightroomAlbum(resourceReq);
-        var result = await GetImageUrisFromShortCodeAsync(albumUrl);
+        var result = await GetImageUrisFromShortCodeAsync(albumUrl, maxScreenSize);
         var newImgs = result.Item1;
 
         if (result.Item2 == "Failed to retrieve any images from album.")

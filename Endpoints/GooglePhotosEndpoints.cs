@@ -44,6 +44,7 @@ public static class GooglePhotosEndpoints
         if (accessTokenJson is null)
         {
             logger.LogWarning("Failed to retrieve access token from google oauth server");
+            await users.ExpireUserSession(userSession.Id);
             return GlobalHelpers.CreateErrorPage("There was a problem linking your google account to lightsaver.");
         }
 
@@ -52,6 +53,7 @@ public static class GooglePhotosEndpoints
         if (!await google.LinkAccessToken(accessToken, userSession))
         {
             logger.LogWarning("Failed to link access token with userSessionId");
+            await users.ExpireUserSession(userSession.Id);
             return GlobalHelpers.CreateErrorPage("LightSaver failed to link to google.");
         }
 
@@ -63,6 +65,7 @@ public static class GooglePhotosEndpoints
         catch
         {
             logger.LogWarning("Failed to start google photo flow for user session id " + userSession.Id);
+            await users.ExpireUserSession(userSession.Id);
             return GlobalHelpers.CreateErrorPage("LightSaver is unable to connect to Google Photos.");
         }
 

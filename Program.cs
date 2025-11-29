@@ -27,31 +27,23 @@ DESIGN ITEMS
 - Web App error page creation
 - Web App Code Submit Page
 - Web App home page with information
+- QR Code for link to code submission
 
 WEB APP TO-DO ITEMS
 -------------------
 - Add counter and upload animation
 - Add a prompt that the lightroom album you linked has zero images and ask to try again
 - limit the number of images to store for each upload method
-- Expires credentials every they need to be
-- Set up antiforgery middleware
 - Evaluate whether there’s a better approach to managing image resolution.
 - remove user and roku sessions after flow failure
-- QR Code for LightSaver, could i make it so it verifys if the user enables cookies,
-  generate the qr code dynamically and include the session code in it, user scans
-  code, the enpoint stores the code in cookies and then forwards them through the
-  google oauth process without having to submit their session code
-192.168.4.68
 ROKU TO-DO ITEMS
 -------------------
 - if the lightroom album changes and there are a fuckload of images then the httprequest will time out in intiial get
 - there is a method that wakes up the screensaver. have this go off when the successfully added photos dialog appears
 - Pass device image dimensions to web app so it can set the max image size for each device
 - Retry logic for failed connections
-- Track if session code that was provided expired and then refresh
 - Limit the number of keys stored on roku registry
 - Adjust polling times, maybe create an account linked dialog, and then show that the images are being transferred.
-- Add fade in animation for session code label, since it processes later
 - Fix issues with imgLinks not being initialized correctly on startup,
     if there are no links i should not be able to start the wallpaper and i should be directed elsewhere
 - on startup, if there are no links or if the links don't work, direct the user to the web app
@@ -63,6 +55,10 @@ ROKU TO-DO ITEMS
 -------------------
 DONE
 -------------------
+X Expire user credentials at flow failure
+X Set up antiforgery middleware
+X Add fade in animation for session code label, since it processes later
+X Track if session code that was provided expired and then refresh
 X Test sesssion code expiration with roku app
 X Limit file size, the picture of latvia doesnt load on roku as a poster. I am assuming because it is too big?
 X Create class to manage session and resource expiration
@@ -128,6 +124,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
+builder.Services.AddAntiforgery();
+
 builder.Services.AddOpenApi();
 builder.Services.AddRateLimiter(options =>
 {
@@ -146,12 +144,6 @@ builder.Services.AddRateLimiter(options =>
 });
 
 //add databases
-// builder.Services.AddDbContext<UserSessionDbContext>(options =>
-//     options.UseInMemoryDatabase("UserSessionDb"));
-// builder.Services.AddDbContext<RokuSessionDbContext>(options =>
-//     options.UseInMemoryDatabase("RokuSessionDb"));
-// builder.Services.AddDbContext<GlobalImageStoreDbContext>(options =>
-//     options.UseInMemoryDatabase("GlobalImageStore"));
 builder.Services.AddDbContext<UserSessionDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 builder.Services.AddDbContext<RokuSessionDbContext>(options =>
@@ -203,6 +195,8 @@ if (app.Environment.IsDevelopment())
 }
 
 // app.UseHttpsRedirection(); //enable this once im done with getting the app service up
+
+app.UseAntiforgery();
 
 app.MapGooglePhotosEndpoints(); // Google Photos Feature Endpoints
 

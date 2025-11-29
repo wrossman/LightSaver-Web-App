@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Antiforgery;
+
 public static class UploadPhotosEndpoints
 {
     public static void MapUploadPhotosEndpoints(this IEndpointRouteBuilder app)
@@ -6,23 +8,31 @@ public static class UploadPhotosEndpoints
             .RequireRateLimiting("by-ip-policy");
 
         group.MapGet("/upload", UploadPage);
-        group.MapPost("/post-images", ReceiveImages).DisableAntiforgery();
+        group.MapPost("/post-images", ReceiveImages);
     }
-    public static IResult UploadPage(IWebHostEnvironment env)
+    public static IResult UploadPage(IWebHostEnvironment env, IAntiforgery af, HttpContext context)
     {
-        return Results.File(env.WebRootPath + "/UploadImages.html", "text/html");
+        var tokens = af.GetAndStoreTokens(context);
+
+        var path = Path.Combine(env.WebRootPath, "UploadImages.html");
+        var html = File.ReadAllText(path);
+
+        html = html.Replace("{{CSRF_TOKEN}}", tokens.RequestToken);
+
+        return Results.Text(html, "text/html");
     }
-    public static async Task<IResult> ReceiveImages(UploadImages upload, UserSessions users, IFormFileCollection imageCollection, HttpContext context, ILogger<UserSession> logger)
+    public static async Task<IResult> ReceiveImages(UploadImages upload, UserSessions users, IFormFileCollection imageCollection, HttpContext context, ILogger<UserSession> logger, IAntiforgery af)
     {
+        await af.ValidateRequestAsync(context);
+
         List<IFormFile> images = imageCollection.ToList();
-        logger.LogInformation("Client reached receive image endpoint");
+
         string? userSessionId;
         if (!context.Request.Cookies.TryGetValue("UserSID", out userSessionId))
         {
             logger.LogWarning("Failed to get userid at upload receive images endpoint");
             return GlobalHelpers.CreateErrorPage("LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
         }
-        logger.LogInformation($"Session endpoint accessed sid {userSessionId} from cookie.");
 
         UserSession? userSession = await users.GetUserSession(userSessionId);
         if (userSession is null)
@@ -34,6 +44,7 @@ public static class UploadPhotosEndpoints
         if (!await upload.UploadImageFlow(images, userSession))
         {
             logger.LogWarning("Failed to upload photos for user session with session id " + userSession.Id);
+            await users.ExpireUserSession(userSessionId);
             return GlobalHelpers.CreateErrorPage("Failed to upload images.");
         }
 

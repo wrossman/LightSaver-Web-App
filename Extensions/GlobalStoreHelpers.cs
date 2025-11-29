@@ -170,11 +170,9 @@ public class GlobalStoreHelpers
     {
         using var image = Image.Load(input);
 
-        _logger.LogInformation($"Checking if image with height: {image.Height} and width: {image.Width} needs resizing.");
-
         if (image.Width > maxScreenSize || image.Height > maxScreenSize)
         {
-            _logger.LogInformation($"Resizing image with dimensions Width: {image.Width} Height: {image.Height}");
+            _logger.LogInformation($"Resizing image with dimensions Width: {image.Width} Height: {image.Height} to max screen size of {maxScreenSize}");
             var options = new ResizeOptions
             {
                 Mode = ResizeMode.Max, // maintain aspect ratio

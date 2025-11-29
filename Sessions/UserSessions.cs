@@ -143,4 +143,15 @@ public class UserSessions
         return await _userSessionDb.UserSessions
                         .FirstOrDefaultAsync(s => s.Id == userSessiondId);
     }
+    public async Task ExpireUserSession(string userSessionId)
+    {
+        var userSession = await _userSessionDb.UserSessions.FirstOrDefaultAsync(s => s.Id == userSessionId);
+
+        if (userSession is null)
+            return;
+
+        userSession.Expired = true;
+
+        await _userSessionDb.SaveChangesAsync();
+    }
 }
