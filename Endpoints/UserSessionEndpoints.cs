@@ -43,7 +43,7 @@ public static class UserSessionEndpoints
         if (!await userSessions.AssociateToRoku(userSession))
         {
             logger.LogWarning("Failed to associate roku session and user session");
-            return GlobalHelpers.CreateErrorPage("The session code you entered was unable to be found.", "<a href=https://10.0.0.15:8443/user/session>Please Try Again</a>");
+            return GlobalHelpers.CreateErrorPage("The session code you entered was unable to be found.", "<a href=\"/user/session\">Please Try Again</a>");
         }
 
         context.Response.Cookies.Append("UserSID", userSession.Id, new CookieOptions

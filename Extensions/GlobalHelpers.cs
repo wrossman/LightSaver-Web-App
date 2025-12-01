@@ -18,6 +18,20 @@ public class GlobalHelpers
         string errorPage = doc.DocumentNode.OuterHtml;
         return Results.Content(errorPage, "text/html");
     }
+    public static string CreateLightroomOverflowPage(string message, string action = "")
+    {
+        var doc = new HtmlDocument();
+        doc.LoadHtml(File.ReadAllText("./wwwroot/Error.html"));
+
+        var erroNode = doc.GetElementbyId("ErrorMessage");
+        var actionNode = doc.GetElementbyId("Action");
+        if (erroNode is not null && actionNode is not null)
+        {
+            erroNode.InnerHtml = message;
+            actionNode.InnerHtml = action;
+        }
+        return doc.DocumentNode.OuterHtml;
+    }
     public static string ComputeHashFromBytes(byte[] data)
     {
         //thanks copilot

@@ -18,12 +18,8 @@ public class RemoveStaleLightroomUpdateSessionsService : BackgroundService
             {
                 LightroomUpdateSessionDbContext sessionDb = scope.ServiceProvider.GetRequiredService<LightroomUpdateSessionDbContext>();
 
-                string expireString = _config["SessionExpiration"] ?? "-480";
-                double expire;
-                if (!double.TryParse(expireString, out expire))
-                {
-                    expire = -480;
-                }
+                double expire = _config.GetValue<double>("SessionExpiration");
+
                 var cutoff = DateTime.UtcNow.AddSeconds(expire);
 
                 // Find expired sessions

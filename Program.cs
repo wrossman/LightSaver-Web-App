@@ -14,6 +14,7 @@ FINAL ITEMS
 - Check for uncaught exceptions
 - how can a user report their roku lost or stolen
 - verify that all images are being saved only as the max size the roku device can handle
+- remove unused dependencies 
 
 NEW Feature ideas
 -------------------
@@ -32,8 +33,9 @@ DESIGN ITEMS
 
 WEB APP TO-DO ITEMS
 -------------------
-- expire lightroom update sesssions
-- remove transfer file service and just set ready to transfer at methods that upload
+- fix upload image source not taking a bunch of pics
+- limit uploading random garbage to endpoints
+- limit file counts on upload img source endpoint
 - verify that everytime i generate a key, that it does not already exist in the db
 - create separate polling endpoint for initial get
 - Limit image upload size
@@ -52,6 +54,8 @@ ROKU TO-DO ITEMS
 -------------------
 DONE
 -------------------
+X remove transfer file service and just set ready to transfer at methods that upload
+X expire lightroom update sesssions
 X Pass device image dimensions to web app so it can set the max image size for each device
 X Create a background for each image that is just the image but super blurred. Send the background with the image if roku chooses the setting for a blurred image background.
 X remove user and roku sessions after flow failure

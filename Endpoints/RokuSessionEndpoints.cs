@@ -165,7 +165,7 @@ public static class RokuSessionEndpoints
 
         return Results.File(image, $"image/{fileType}");
     }
-    public static async Task<IResult> InitialStartWallpaper(HttpContext context, GlobalStoreHelpers store, LightroomService lightroom, ILogger<RokuSessions> logger)
+    public static async Task<IResult> InitialStartWallpaper(IConfiguration config, HttpContext context, GlobalStoreHelpers store, LightroomService lightroom, ILogger<RokuSessions> logger)
     {
         StringValues inputKey;
         StringValues inputLocation;
@@ -196,8 +196,17 @@ public static class RokuSessionEndpoints
         if (!(store.GetResourceSource(resourceReq) == "lightroom"))
             return Results.Ok();
 
-        var sessionKey = await lightroom.UpdateRokuLinks(resourceReq, maxScreenSize);
-        if (sessionKey is null)
+        string? sessionKey;
+        try
+        {
+            sessionKey = await lightroom.UpdateRokuLinks(resourceReq, maxScreenSize);
+        }
+        catch (InvalidOperationException)
+        {
+            logger.LogWarning("Roku device tried to update a lightroom album but it had more than the max files allowed.");
+            return Results.Json(new { maxImages = config.GetValue<int>("MaxImages") });
+        }
+        if (string.IsNullOrEmpty(sessionKey))
             return Results.Ok();
 
         logger.LogInformation($"Returning sessionKey for update: {sessionKey}");
@@ -311,6 +320,7 @@ public static class RokuSessionEndpoints
 
         if (updateSession.ReadyForTransfer)
         {
+            await updateSessions.ExpireUpdateSession(updateSession);
             return Results.Json(updateSession.Links);
         }
         else

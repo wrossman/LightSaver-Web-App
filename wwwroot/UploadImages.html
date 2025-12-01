@@ -360,7 +360,7 @@
                     </span>
                     <span class="file-input-text">Click to select images</span>
                     <span class="file-input-hint">or drag and drop here</span>
-                    <span class="file-input-limit">Up to 20 images</span>
+                    <span id="inputLimit" class="file-input-limit"></span>
                 </label>
             </div>
             <span class="file-count" id="fileCount"></span>
@@ -390,11 +390,14 @@
         const preview = document.getElementById('preview');
         const uploadBtn = document.getElementById('uploadBtn');
         const loadingOverlay = document.getElementById('loadingOverlay');
-        const MAX_FILES = 20;
+        const MAX_FILES = MaxImages;
 
         const fileCount = document.getElementById('fileCount');
         const fileInputLabel = document.getElementById('fileInputLabel');
         const previewTitle = document.getElementById('previewTitle');
+
+        // set upload image limit
+        document.getElementById("inputLimit").textContent = `Select up to ${MAX_FILES} images`;
 
         function updateFileCount(count) {
             if (count === 0) {
