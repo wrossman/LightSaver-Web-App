@@ -50,7 +50,7 @@ public static class GooglePhotosEndpoints
 
         string accessToken = accessTokenJson.AccessToken;
 
-        if (!await google.LinkAccessToken(accessToken, userSession))
+        if (!await users.LinkAccessToken(accessToken, userSession))
         {
             logger.LogWarning("Failed to link access token with userSessionId");
             await users.ExpireUserSession(userSession.Id);
