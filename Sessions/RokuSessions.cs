@@ -33,7 +33,7 @@ public class RokuSessions
             {
                 session = new()
                 {
-                    Id = 0,
+                    Id = await GenerateSessionId(),
                     RokuId = rokuId,
                     CreatedAt = DateTime.UtcNow,
                     SourceAddress = ipAddress.ToString(),
@@ -64,6 +64,26 @@ public class RokuSessions
         _logger.LogInformation(rokuSessionLog);
 
         return session;
+    }
+    private async Task<string> GenerateSessionId()
+    {
+        using var rng = RandomNumberGenerator.Create();
+        string rokuSessionId;
+        RokuSession? session;
+        //thanks copilot ish
+        do
+        {
+            // Generate 16 random bytes (128 bits)
+            var bytes = new byte[16];
+            RandomNumberGenerator.Fill(bytes);
+            // Convert to hex string (32 hex chars)
+            rokuSessionId = Convert.ToHexString(bytes); // e.g., "A1B2C3D4..."
+            session = await _rokuSessionDb.RokuSessions
+            .FirstOrDefaultAsync(x => x.Id == rokuSessionId);
+
+        } while (session is not null);
+
+        return rokuSessionId;
     }
     private static string GenerateSessionCode()
     {

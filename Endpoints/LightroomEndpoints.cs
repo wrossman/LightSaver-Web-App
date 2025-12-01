@@ -31,7 +31,6 @@ public static class LightroomEndpoints
             logger.LogWarning("Failed to get userid at upload receive images endpoint");
             return GlobalHelpers.CreateErrorPage("LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
         }
-        logger.LogInformation($"Session endpoint accessed sid {userSessionId} from cookie.");
 
         UserSession? userSession = await users.GetUserSession(userSessionId);
         if (userSession is null)

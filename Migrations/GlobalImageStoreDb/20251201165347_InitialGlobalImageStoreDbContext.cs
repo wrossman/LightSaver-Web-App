@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace LightSaver.Migrations.GlobalImageStoreDb
 {
     /// <inheritdoc />
-    public partial class InitialGlobalImageStoreMigration : Migration
+    public partial class InitialGlobalImageStoreDbContext : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

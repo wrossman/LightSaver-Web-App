@@ -2,17 +2,20 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace LightSaver.Migrations.RokuSessionDb
+namespace LightSaver.Migrations.UserSessionDb
 {
-    [DbContext(typeof(RokuSessionDbContext))]
-    partial class RokuSessionDbContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(UserSessionDbContext))]
+    [Migration("20251201165256_InitialUserSessionDbContext")]
+    partial class InitialUserSessionDbContext
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,13 +24,14 @@ namespace LightSaver.Migrations.RokuSessionDb
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("RokuSession", b =>
+            modelBuilder.Entity("UserSession", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    b.Property<string>("AccessToken")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -55,10 +59,7 @@ namespace LightSaver.Migrations.RokuSessionDb
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SessionCode")
-                        .IsUnique();
-
-                    b.ToTable("RokuSessions");
+                    b.ToTable("UserSessions");
                 });
 #pragma warning restore 612, 618
         }

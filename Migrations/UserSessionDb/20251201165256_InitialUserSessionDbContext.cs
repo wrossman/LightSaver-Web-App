@@ -3,16 +3,16 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace LightSaver.Migrations
+namespace LightSaver.Migrations.UserSessionDb
 {
     /// <inheritdoc />
-    public partial class InitialUserSessionMigration : Migration
+    public partial class InitialUserSessionDbContext : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Sessions",
+                name: "UserSessions",
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "text", nullable: false),
@@ -22,11 +22,12 @@ namespace LightSaver.Migrations
                     SessionCode = table.Column<string>(type: "text", nullable: false),
                     ReadyForTransfer = table.Column<bool>(type: "boolean", nullable: false),
                     RokuId = table.Column<string>(type: "text", nullable: false),
-                    Expired = table.Column<bool>(type: "boolean", nullable: false)
+                    Expired = table.Column<bool>(type: "boolean", nullable: false),
+                    MaxScreenSize = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Sessions", x => x.Id);
+                    table.PrimaryKey("PK_UserSessions", x => x.Id);
                 });
         }
 
@@ -34,7 +35,7 @@ namespace LightSaver.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Sessions");
+                name: "UserSessions");
         }
     }
 }

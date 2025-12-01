@@ -31,20 +31,6 @@ public class SessionHelpers
             return false;
         }
     }
-    public async Task<string?> GetSessionCodeFromUserId(string userId)
-    {
-        return await _userSessionDb.UserSessions
-                            .Where(s => s.Id == userId)
-                            .Select(s => s.SessionCode)
-                            .FirstOrDefaultAsync();
-    }
-    public async Task<string?> GetRokuIdFromSessionCode(string sessionCode)
-    {
-        return await _rokuSessionDb.RokuSessions
-                        .Where(s => s.SessionCode == sessionCode)
-                        .Select(s => s.RokuId)
-                        .FirstOrDefaultAsync();
-    }
     public async Task SetReadyToTransfer(string sessionCode)
     {
         var userSession = await _userSessionDb.UserSessions

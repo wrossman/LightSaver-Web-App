@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace LightSaver.Migrations
+namespace LightSaver.Migrations.UserSessionDb
 {
     [DbContext(typeof(UserSessionDbContext))]
     partial class UserSessionDbContextModelSnapshot : ModelSnapshot

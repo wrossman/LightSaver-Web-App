@@ -8,11 +8,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace LightSaver.Migrations.RokuSessionDb
+namespace LightSaver.Migrations.GlobalImageStoreDb
 {
-    [DbContext(typeof(RokuSessionDbContext))]
-    [Migration("20251126195546_AddMaxScreenSize")]
-    partial class AddMaxScreenSize
+    [DbContext(typeof(GlobalImageStoreDbContext))]
+    [Migration("20251201165347_InitialGlobalImageStoreDbContext")]
+    partial class InitialGlobalImageStoreDbContext
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,25 +24,33 @@ namespace LightSaver.Migrations.RokuSessionDb
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("RokuSession", b =>
+            modelBuilder.Entity("ImageShare", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTime>("CreatedOn")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<bool>("Expired")
-                        .HasColumnType("boolean");
+                    b.Property<string>("FileType")
+                        .IsRequired()
+                        .HasColumnType("text");
 
-                    b.Property<int>("MaxScreenSize")
-                        .HasColumnType("integer");
+                    b.Property<byte[]>("ImageStream")
+                        .IsRequired()
+                        .HasColumnType("bytea");
 
-                    b.Property<bool>("ReadyForTransfer")
-                        .HasColumnType("boolean");
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("LightroomAlbum")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("OriginUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("RokuId")
                         .IsRequired()
@@ -52,16 +60,13 @@ namespace LightSaver.Migrations.RokuSessionDb
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("SourceAddress")
+                    b.Property<string>("Source")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SessionCode")
-                        .IsUnique();
-
-                    b.ToTable("RokuSessions");
+                    b.ToTable("Resources");
                 });
 #pragma warning restore 612, 618
         }
