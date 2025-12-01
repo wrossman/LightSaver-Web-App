@@ -7,12 +7,12 @@ public class UploadImages
 {
     private readonly ILogger<UserSessions> _logger;
     private readonly GlobalStoreHelpers _store;
-    private readonly SessionHelpers _sessions;
-    public UploadImages(ILogger<UserSessions> logger, GlobalStoreHelpers store, SessionHelpers sessions)
+    private readonly SessionHelpers _sessionHelpers;
+    public UploadImages(ILogger<UserSessions> logger, GlobalStoreHelpers store, SessionHelpers sessionHelpers)
     {
         _logger = logger;
         _store = store;
-        _sessions = sessions;
+        _sessionHelpers = sessionHelpers;
     }
     public async Task<bool> UploadImageFlow(List<IFormFile> images, UserSession userSession)
     {
@@ -50,13 +50,13 @@ public class UploadImages
             await _store.WriteResourceToStore(share, userSession.MaxScreenSize);
         }
 
-        UserSessions.CodesReadyForTransfer.Enqueue(userSession.SessionCode);
+        await _sessionHelpers.SetReadyToTransfer(userSession.SessionCode);
         return true;
     }
     public async Task ExpireCreds(string sessionCode)
     {
         // expire user and roku session associated with session code
-        if (await _sessions.ExpireSessionsBySessionCode(sessionCode))
+        if (await _sessionHelpers.ExpireSessionsBySessionCode(sessionCode))
             _logger.LogInformation($"Set roku and user session with session code {sessionCode} for expiration due to resource package delivery.");
         else
             _logger.LogWarning($"Failed to set expire for user and roku session with session code {sessionCode} after resource package delivery.");
