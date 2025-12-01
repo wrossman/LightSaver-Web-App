@@ -7,12 +7,14 @@ public sealed class LightroomService
     private readonly GlobalStoreHelpers _store;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly LightrooomUpdateSessions _updateSessions;
-    public LightroomService(ILogger<LightroomService> logger, GlobalStoreHelpers store, IServiceScopeFactory scopeFactory, LightrooomUpdateSessions updateSessions)
+    private readonly SessionHelpers _sessionHelpers;
+    public LightroomService(ILogger<LightroomService> logger, GlobalStoreHelpers store, IServiceScopeFactory scopeFactory, LightrooomUpdateSessions updateSessions, SessionHelpers sessionHelpers)
     {
         _logger = logger;
         _store = store;
         _scopeFactory = scopeFactory;
         _updateSessions = updateSessions;
+        _sessionHelpers = sessionHelpers;
     }
     public async Task<(List<string>, string)> GetImageUrisFromShortCodeAsync(string shortCode, int maxScreenSize)
     {
@@ -253,7 +255,7 @@ public sealed class LightroomService
             await _store.WriteResourceToStore(share, userSession.MaxScreenSize);
         }
 
-        UserSessions.CodesReadyForTransfer.Enqueue(userSession.SessionCode);
+        await _sessionHelpers.SetReadyToTransfer(userSession.SessionCode);
         return true;
     }
     private static string? ExtractAlbumAttributesJson(string html)

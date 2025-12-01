@@ -17,7 +17,6 @@ public class UserSessions
         _userSessionDb = userSessionDb;
         _rokuSessionDb = rokuSessionDb;
     }
-    public static ConcurrentQueue<string> CodesReadyForTransfer { get; set; } = new();
     public async Task<string> CreateGoogleUserSession(IPAddress ipAddress, string accessToken)
     {
         string ipAddressStr = ipAddress.ToString();

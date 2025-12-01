@@ -28,12 +28,13 @@ public class GooglePhotosFlow
             using (var scope = _scopeFactory.CreateScope())
             {
                 var store = scope.ServiceProvider.GetRequiredService<GlobalStoreHelpers>();
+                var sessionHelpers = scope.ServiceProvider.GetRequiredService<SessionHelpers>();
                 if (store is null)
                 {
                     _logger.LogWarning("Failed to start polling services for Google Photos");
                     return;
                 }
-                GooglePhotosPoller poller = new(_config, _logger, store);
+                GooglePhotosPoller poller = new(_config, _logger, store, sessionHelpers);
                 await poller.PollPhotos(pickerSession, userSession);
             }
         });

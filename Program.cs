@@ -159,7 +159,6 @@ builder.Services.AddDbContext<LightroomUpdateSessionDbContext>(options =>
 //add hosted services for session management and file transfers
 builder.Services.AddHostedService<RemoveStaleUserSessionsService>();
 builder.Services.AddHostedService<RemoveStaleRokuSessionsService>();
-builder.Services.AddHostedService<TransferFilesService>();
 
 // register classes for DI
 builder.Services.AddScoped<RokuSessions>();

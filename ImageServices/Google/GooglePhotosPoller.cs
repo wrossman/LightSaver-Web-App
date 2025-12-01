@@ -6,11 +6,13 @@ public class GooglePhotosPoller
     private readonly ILogger<GooglePhotosFlow> _logger;
     private readonly IConfiguration _config;
     private readonly GlobalStoreHelpers _store;
-    public GooglePhotosPoller(IConfiguration config, ILogger<GooglePhotosFlow> logger, GlobalStoreHelpers store)
+    private readonly SessionHelpers _sessionHelpers;
+    public GooglePhotosPoller(IConfiguration config, ILogger<GooglePhotosFlow> logger, GlobalStoreHelpers store, SessionHelpers sessionHelpers)
     {
         _logger = logger;
         _config = config;
         _store = store;
+        _sessionHelpers = sessionHelpers;
     }
     public Dictionary<string, string> FileUrls { get; set; } = new();
     public async Task PollPhotos(PickerSession pickerSession, UserSession userSession)
@@ -38,8 +40,6 @@ public class GooglePhotosPoller
             if (responseJson is null)
             {
                 _logger.LogWarning("Failed to get PickingSession");
-
-                // return "failed";
             }
             else if (responseJson.MediaItemsSet == true)
             {
@@ -48,7 +48,8 @@ public class GooglePhotosPoller
 
                 AddUrlsToList(photoList, userSession);
                 await WritePhotosToDb(userSession);
-                UserSessions.CodesReadyForTransfer.Enqueue(userSession.SessionCode);
+
+                await _sessionHelpers.SetReadyToTransfer(userSession.SessionCode);
 
                 break;
             }

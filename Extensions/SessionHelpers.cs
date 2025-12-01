@@ -45,4 +45,30 @@ public class SessionHelpers
                         .Select(s => s.RokuId)
                         .FirstOrDefaultAsync();
     }
+    public async Task SetReadyToTransfer(string sessionCode)
+    {
+        var userSession = await _userSessionDb.UserSessions
+                            .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
+        if (userSession != null)
+        {
+            userSession.ReadyForTransfer = true;
+            await _userSessionDb.SaveChangesAsync();
+        }
+        else
+        {
+            _logger.LogWarning($"TestSessionCode Failed getting userSession for session code {sessionCode}");
+        }
+
+        var rokuSession = await _rokuSessionDb.RokuSessions
+        .FirstOrDefaultAsync(s => s.SessionCode == sessionCode);
+        if (rokuSession != null)
+        {
+            rokuSession.ReadyForTransfer = true;
+            await _rokuSessionDb.SaveChangesAsync();
+        }
+        else
+        {
+            _logger.LogWarning($"TestSessionCode Failed getting rokuSession for session code {sessionCode}");
+        }
+    }
 }
