@@ -18,12 +18,8 @@ public class RemoveStaleRokuSessionsService : BackgroundService
             {
                 RokuSessionDbContext sessionDb = scope.ServiceProvider.GetRequiredService<RokuSessionDbContext>();
 
-                string expireString = _config["SessionExpiration"] ?? "-480";
-                double expire;
-                if (!double.TryParse(expireString, out expire))
-                {
-                    expire = -480;
-                }
+                double expire = _config.GetValue<double>("SessionExpiration");
+
                 var cutoff = DateTime.UtcNow.AddSeconds(expire);
 
                 // Find expired sessions

@@ -21,7 +21,7 @@ public static class LightroomEndpoints
 
         return Results.Text(html, "text/html");
     }
-    public static async Task<IResult> PostAlbum([FromForm] string lrCode, HttpContext context, UserSessions users, LightroomService lightroom, ILogger<LightroomService> logger, IAntiforgery af)
+    public static async Task<IResult> PostAlbum([FromForm] string lrCode, IConfiguration config, HttpContext context, UserSessions users, LightroomService lightroom, ILogger<LightroomService> logger, IAntiforgery af)
     {
         await af.ValidateRequestAsync(context);
 
@@ -36,17 +36,29 @@ public static class LightroomEndpoints
         if (userSession is null)
         {
             logger.LogWarning("Failed to get userssion from userid at upload receive images endpoint");
-            return GlobalHelpers.CreateErrorPage("Unable to retrieve your user session.", "Please Try Again");
+            return GlobalHelpers.CreateErrorPage("Unable to retrieve your user session.", "<a href\"/user/session\">Please Try Again</a>");
         }
 
         var result = await lightroom.GetImageUrisFromShortCodeAsync(lrCode, userSession.MaxScreenSize);
         var urlList = result.Item1;
-        if (result.Item2 != "success" || urlList is null)
+        if (result.Item2 != "success" && urlList is null)
         {
             logger.LogWarning("Failed to get url list from lightroom album");
             logger.LogWarning("Failed with error: " + result.Item2);
             await users.ExpireUserSession(userSessionId);
             return GlobalHelpers.CreateErrorPage("Failed to get images from Lightroom album", "Please ensure that your album has synced and contains photos.");
+        }
+        else if (result.Item2 == "overflow")
+        {
+            var html = GlobalHelpers.CreateLightroomOverflowPage("Your album is too large.", "Please edit your Lightroom album so it has less than MAXFILES images and <a href=\"/lightroom/select-album\">try again</a>");
+            html = html.Replace("MAXFILES", config.GetValue<int>("MaxImages").ToString());
+            return Results.Content(html, "text/html");
+        }
+        else if (result.Item1.Count <= 0)
+        {
+            logger.LogWarning("Failed to retreive images from Lightroom album. Album had no images.");
+            await users.ExpireUserSession(userSessionId);
+            return GlobalHelpers.CreateErrorPage("Your Lightroom album has no images to load.", "Please update your album and <a href=\"/lightroom/select-album\">try again</a>");
         }
 
         if (!await lightroom.LightroomFlow(urlList, userSession, lrCode))

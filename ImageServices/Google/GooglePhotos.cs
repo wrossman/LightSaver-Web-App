@@ -63,7 +63,7 @@ public class GooglePhotosFlow
         {
             pickingConfig = new
             {
-                maxItemCount = _config["MaxGooglePhotosItems"]
+                maxItemCount = _config["MaxImages"]
             }
         };
 

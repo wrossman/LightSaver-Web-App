@@ -10,7 +10,7 @@ public static class UploadPhotosEndpoints
         group.MapGet("/upload", UploadPage);
         group.MapPost("/post-images", ReceiveImages);
     }
-    public static IResult UploadPage(IWebHostEnvironment env, IAntiforgery af, HttpContext context)
+    public static IResult UploadPage(IWebHostEnvironment env, IAntiforgery af, IConfiguration config, HttpContext context)
     {
         var tokens = af.GetAndStoreTokens(context);
 
@@ -18,6 +18,7 @@ public static class UploadPhotosEndpoints
         var html = File.ReadAllText(path);
 
         html = html.Replace("{{CSRF_TOKEN}}", tokens.RequestToken);
+        html = html.Replace("MaxImages", config.GetValue<int>("MaxImages").ToString());
 
         return Results.Text(html, "text/html");
     }
@@ -38,7 +39,7 @@ public static class UploadPhotosEndpoints
         if (userSession is null)
         {
             logger.LogWarning("Failed to get usersession from user id at upload receive images endpoint");
-            return GlobalHelpers.CreateErrorPage("Failed to retrieve your user session.", "Please Try Again");
+            return GlobalHelpers.CreateErrorPage("Failed to retrieve your user session.", "<a href=\"/upload/upload\">Please Try Again</a>");
         }
 
         if (!await upload.UploadImageFlow(images, userSession))

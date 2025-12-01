@@ -7,14 +7,16 @@ public sealed class LightroomService
     private readonly GlobalStoreHelpers _store;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly LightrooomUpdateSessions _updateSessions;
+    private readonly IConfiguration _config;
     private readonly SessionHelpers _sessionHelpers;
-    public LightroomService(ILogger<LightroomService> logger, GlobalStoreHelpers store, IServiceScopeFactory scopeFactory, LightrooomUpdateSessions updateSessions, SessionHelpers sessionHelpers)
+    public LightroomService(ILogger<LightroomService> logger, IConfiguration config, GlobalStoreHelpers store, IServiceScopeFactory scopeFactory, LightrooomUpdateSessions updateSessions, SessionHelpers sessionHelpers)
     {
         _logger = logger;
         _store = store;
         _scopeFactory = scopeFactory;
         _updateSessions = updateSessions;
         _sessionHelpers = sessionHelpers;
+        _config = config;
     }
     public async Task<(List<string>, string)> GetImageUrisFromShortCodeAsync(string shortCode, int maxScreenSize)
     {
@@ -68,8 +70,6 @@ public sealed class LightroomService
         if (json is null)
             return (new List<string> { }, "Failed to parse albumAttributes");
 
-        // If this is not strictly JSON (e.g. single quotes, unquoted keys, trailing commas),
-        // System.Text.Json will throw. You may need to normalize it first or use a more lenient parser.
         JsonDocument doc;
         try
         {
@@ -171,6 +171,12 @@ public sealed class LightroomService
                     // /rels/rendition_type/2048
                     // /rels/rendition_type/1280
                     // /rels/rendition_type/640
+
+                    if (outputArr.Count >= _config.GetValue<int>("MaxImages"))
+                    {
+                        _logger.LogInformation($"User tried to load more than max images from lightroom\nCurrent image count is {outputArr.Count}");
+                        return (outputArr, "overflow");
+                    }
 
                     if (!item.TryGetProperty("asset", out var asset) ||
                         !asset.TryGetProperty("links", out var links))
@@ -331,12 +337,15 @@ public sealed class LightroomService
             await _store.RemoveByLightroomAlbum(albumUrl);
             return null;
         }
-
-        if (result.Item2 != "success" || newImgs is null)
+        if (result.Item2 != "success" && newImgs is null)
         {
             _logger.LogWarning("Failed to get url list from lightroom album");
             _logger.LogWarning("Failed with error: " + result.Item2);
             return null;
+        }
+        if (result.Item2 == "overflow")
+        {
+            throw new InvalidOperationException();
         }
 
         var oldImgs = await _store.GetLightroomOriginUrlsByRokuId(resourceReq.RokuId);
@@ -396,6 +405,11 @@ public sealed class LightroomService
         using HttpClient client = new();
         foreach (var item in imgsToAdd)
         {
+            if (updatePackage.Count >= _config.GetValue<int>("MaxImages"))
+            {
+                _logger.LogInformation($"User tried to load more than max images from lightroom\nCurrent image count is {updatePackage.Count}");
+                break;
+            }
             _logger.LogInformation($"Downloading image {item} to add to updatePackage");
             var bytes = new byte[32];
             RandomNumberGenerator.Fill(bytes);
