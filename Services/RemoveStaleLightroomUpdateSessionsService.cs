@@ -1,10 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-public class RemoveStaleUserSessionsService : BackgroundService
+public class RemoveStaleLightroomUpdateSessionsService : BackgroundService
 {
-    private readonly ILogger<RemoveStaleUserSessionsService> _logger;
+    private readonly ILogger<RemoveStaleLightroomUpdateSessionsService> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IConfiguration _config;
-    public RemoveStaleUserSessionsService(IServiceScopeFactory scopeFactory, ILogger<RemoveStaleUserSessionsService> logger, IConfiguration config)
+    public RemoveStaleLightroomUpdateSessionsService(IServiceScopeFactory scopeFactory, ILogger<RemoveStaleLightroomUpdateSessionsService> logger, IConfiguration config)
     {
         _logger = logger;
         _scopeFactory = scopeFactory;
@@ -16,7 +16,7 @@ public class RemoveStaleUserSessionsService : BackgroundService
         {
             using (IServiceScope scope = _scopeFactory.CreateScope())
             {
-                UserSessionDbContext sessionDb = scope.ServiceProvider.GetRequiredService<UserSessionDbContext>();
+                LightroomUpdateSessionDbContext sessionDb = scope.ServiceProvider.GetRequiredService<LightroomUpdateSessionDbContext>();
 
                 string expireString = _config["SessionExpiration"] ?? "-480";
                 double expire;
@@ -27,19 +27,19 @@ public class RemoveStaleUserSessionsService : BackgroundService
                 var cutoff = DateTime.UtcNow.AddSeconds(expire);
 
                 // Find expired sessions
-                var expiredSessions = await sessionDb.UserSessions
+                var expiredSessions = await sessionDb.UpdateSessions
                 .Where(s => s.Expired || s.CreatedAt < cutoff)
                 .ToListAsync(cancellationToken);
 
-                sessionDb.UserSessions.RemoveRange(expiredSessions);
+                sessionDb.UpdateSessions.RemoveRange(expiredSessions);
                 await sessionDb.SaveChangesAsync(cancellationToken);
 
-                foreach (UserSession item in expiredSessions)
+                foreach (LightroomUpdateSession item in expiredSessions)
                 {
                     if (item.Expired)
-                        _logger.LogInformation($"Removed User Session for user {item.SourceAddress} marked as expired.");
+                        _logger.LogInformation($"Removed lightroom update session for rokuId {item.RokuId} marked as expired.");
                     else
-                        _logger.LogWarning($"Removed User Session for user {item.SourceAddress} due to session timeout.");
+                        _logger.LogWarning($"Removed lightroom update session rokuId {item.RokuId} due to session timeout.");
                 }
             }
             await Task.Delay(10000, cancellationToken);

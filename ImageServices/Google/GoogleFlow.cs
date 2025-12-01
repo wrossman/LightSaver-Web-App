@@ -43,12 +43,4 @@ public class GoogleFlow
         }
         return jsonResponse;
     }
-    public async Task<bool> LinkAccessToken(string accessToken, UserSession userSession)
-    {
-        userSession.AccessToken = accessToken;
-
-        await _userSessionDb.SaveChangesAsync();
-
-        return true;
-    }
 }

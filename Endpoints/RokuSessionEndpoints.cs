@@ -310,7 +310,9 @@ public static class RokuSessionEndpoints
         }
 
         if (updateSession.ReadyForTransfer)
+        {
             return Results.Json(updateSession.Links);
+        }
         else
             return Results.Content("Media is not ready to be transfered.");
     }

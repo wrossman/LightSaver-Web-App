@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 public class LightrooomUpdateSessions
 {
@@ -20,17 +21,48 @@ public class LightrooomUpdateSessions
         {
             Id = key,
             RokuId = rokuId,
-            ReadyForTransfer = false
+            ReadyForTransfer = false,
+            CreatedAt = DateTime.UtcNow
         };
         _updateSessionDb.UpdateSessions.Add(session);
         await _updateSessionDb.SaveChangesAsync();
         return session;
     }
-    public void SetReadyForTransfer(LightroomUpdateSession session)
+    public async Task SetReadyForTransfer(LightroomUpdateSession session)
     {
-        _updateSessionDb.UpdateSessions.Attach(session);
-        _updateSessionDb.Entry(session).State = EntityState.Modified;
-        _updateSessionDb.SaveChanges();
+        var updateSession = await _updateSessionDb.UpdateSessions.FindAsync(session.Id);
+        if (updateSession is null)
+        {
+            _logger.LogWarning($"Failed to set update session as ready for transfer for session id {session.Id}");
+            return;
+        }
+
+        updateSession.ReadyForTransfer = true;
+        await _updateSessionDb.SaveChangesAsync();
+    }
+    public async Task WriteLinksToSession(Dictionary<string, string> updatePackage, LightroomUpdateSession session)
+    {
+        var updateSession = await _updateSessionDb.UpdateSessions.FindAsync(session.Id);
+        if (updateSession is null)
+        {
+            _logger.LogWarning($"Failed to set update session links for session id {session.Id}");
+            return;
+        }
+
+        updateSession.Links = updatePackage;
+        await _updateSessionDb.SaveChangesAsync();
+    }
+    public async Task ExpireUpdateSession(LightroomUpdateSession session)
+    {
+        var updateSession = await _updateSessionDb.UpdateSessions.FindAsync(session.Id);
+        if (updateSession is null)
+        {
+            _logger.LogWarning($"Failed to set update session as expired for session id {session.Id}");
+            return;
+        }
+
+        updateSession.Expired = true;
+        await _updateSessionDb.SaveChangesAsync();
     }
     public async Task<LightroomUpdateSession?> GetUpdateSession(string key, string rokuId)
     {

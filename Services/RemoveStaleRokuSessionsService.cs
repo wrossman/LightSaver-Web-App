@@ -18,7 +18,6 @@ public class RemoveStaleRokuSessionsService : BackgroundService
             {
                 RokuSessionDbContext sessionDb = scope.ServiceProvider.GetRequiredService<RokuSessionDbContext>();
 
-                // _logger.LogInformation("Running roku Session Cleanup");
                 string expireString = _config["SessionExpiration"] ?? "-480";
                 double expire;
                 if (!double.TryParse(expireString, out expire))

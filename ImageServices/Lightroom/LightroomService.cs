@@ -420,8 +420,7 @@ public sealed class LightroomService
             updatePackage.Add(share.Id, share.Key);
             await _store.WriteResourceToStore(share, resourceReq.MaxScreenSize);
         }
-        session.Links = updatePackage;
-        session.ReadyForTransfer = true;
-        _updateSessions.SetReadyForTransfer(session);
+        await _updateSessions.WriteLinksToSession(updatePackage, session);
+        await _updateSessions.SetReadyForTransfer(session);
     }
 }

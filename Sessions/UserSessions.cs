@@ -123,7 +123,14 @@ public class UserSessions
 
         return userSessionId;
     }
+    public async Task<bool> LinkAccessToken(string accessToken, UserSession userSession)
+    {
+        userSession.AccessToken = accessToken;
 
+        await _userSessionDb.SaveChangesAsync();
+
+        return true;
+    }
     public async Task<bool> AssociateToRoku(UserSession userSession)
     {
         var rokuSession = await _rokuSessionDb.RokuSessions.FirstOrDefaultAsync(r => r.SessionCode == userSession.SessionCode);
