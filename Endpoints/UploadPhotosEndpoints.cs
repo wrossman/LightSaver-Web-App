@@ -22,11 +22,19 @@ public static class UploadPhotosEndpoints
 
         return Results.Text(html, "text/html");
     }
-    public static async Task<IResult> ReceiveImages(UploadImages upload, UserSessions users, IFormFileCollection imageCollection, HttpContext context, ILogger<UserSession> logger, IAntiforgery af)
+    public static async Task<IResult> ReceiveImages(IConfiguration config, UploadImages upload, UserSessions users, IFormFileCollection imageCollection, HttpContext context, ILogger<UserSession> logger, IAntiforgery af)
     {
         await af.ValidateRequestAsync(context);
 
+        logger.LogInformation("Client posted to upload endpoint");
+
         List<IFormFile> images = imageCollection.ToList();
+
+        if (!GlobalHelpers.VerifyImageUpload(images, config.GetValue<int>("MaxImages")))
+        {
+            logger.LogWarning("Failed to upload photos due to payload verification failure:");
+            return GlobalHelpers.CreateErrorPage("Failed to upload images.", "Please ensure that your images are under 10MB. Maximum file count is " + config.GetValue<int>("MaxImages").ToString());
+        }
 
         string? userSessionId;
         if (!context.Request.Cookies.TryGetValue("UserSID", out userSessionId))

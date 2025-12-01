@@ -125,6 +125,7 @@ To secure access and ensure users retain proper authorization:
 
 using System.Threading.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -180,6 +181,16 @@ builder.Services.AddScoped<LightrooomUpdateSessions>();
 builder.Services.Configure<HostOptions>(options =>
 {
     options.ServicesStartConcurrently = true;
+});
+
+// configure kestrel and forms to allow big uploads from upload service
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 600L * 1000 * 1000;
+});
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 600L * 1000 * 1000;
 });
 
 var app = builder.Build();

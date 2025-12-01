@@ -391,13 +391,14 @@
         const uploadBtn = document.getElementById('uploadBtn');
         const loadingOverlay = document.getElementById('loadingOverlay');
         const MAX_FILES = MaxImages;
+        const MAX_FILE_SIZE = 10 * 1000 * 1000;
 
         const fileCount = document.getElementById('fileCount');
         const fileInputLabel = document.getElementById('fileInputLabel');
         const previewTitle = document.getElementById('previewTitle');
 
         // set upload image limit
-        document.getElementById("inputLimit").textContent = `Select up to ${MAX_FILES} images`;
+        document.getElementById("inputLimit").textContent = `Select up to ${MAX_FILES} images (max 10MB each)`;
 
         function updateFileCount(count) {
             if (count === 0) {
@@ -411,6 +412,15 @@
             }
         }
 
+        function validateFileSize(file) {
+            if (file.size > MAX_FILE_SIZE) {
+                const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                alert(`File "${file.name}" is ${fileSizeMB}MB. Maximum file size is 10MB.`);
+                return false;
+            }
+            return true;
+        }
+
         function updatePreview(files) {
             preview.innerHTML = '';
 
@@ -419,10 +429,28 @@
                 return;
             }
 
+            // Filter and validate files
+            const validFiles = [];
             const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
-            updateFileCount(imageFiles.length);
 
             imageFiles.forEach(file => {
+                if (validateFileSize(file)) {
+                    validFiles.push(file);
+                }
+            });
+
+            // Update input with only valid files
+            if (validFiles.length !== imageFiles.length) {
+                const dataTransfer = new DataTransfer();
+                validFiles.forEach(file => {
+                    dataTransfer.items.add(file);
+                });
+                input.files = dataTransfer.files;
+            }
+
+            updateFileCount(validFiles.length);
+
+            validFiles.forEach(file => {
                 const reader = new FileReader();
                 reader.onload = e => {
                     const div = document.createElement('div');
@@ -460,13 +488,26 @@
                 return;
             }
 
-            // Create a new FileList-like object
+            // Create a new FileList-like object with valid files
             const dataTransfer = new DataTransfer();
+            let hasInvalidSize = false;
+
             Array.from(files).forEach(file => {
                 if (file.type.startsWith('image/')) {
-                    dataTransfer.items.add(file);
+                    if (file.size <= MAX_FILE_SIZE) {
+                        dataTransfer.items.add(file);
+                    } else {
+                        hasInvalidSize = true;
+                        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                        alert(`File "${file.name}" is ${fileSizeMB}MB. Maximum file size is 10MB.`);
+                    }
                 }
             });
+
+            if (dataTransfer.files.length === 0 && hasInvalidSize) {
+                return;
+            }
+
             input.files = dataTransfer.files;
             updatePreview(input.files);
         });
@@ -479,6 +520,37 @@
                 return;
             }
 
+            // Validate file sizes and filter out oversized files
+            const validFiles = [];
+            let hasOversizedFiles = false;
+
+            Array.from(input.files).forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    if (file.size <= MAX_FILE_SIZE) {
+                        validFiles.push(file);
+                    } else {
+                        hasOversizedFiles = true;
+                        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                        alert(`File "${file.name}" is ${fileSizeMB}MB. Maximum file size is 10MB.`);
+                    }
+                }
+            });
+
+            if (hasOversizedFiles && validFiles.length === 0) {
+                input.value = "";
+                updatePreview(null);
+                return;
+            }
+
+            // Update input with only valid files
+            if (validFiles.length !== Array.from(input.files).filter(f => f.type.startsWith('image/')).length) {
+                const dataTransfer = new DataTransfer();
+                validFiles.forEach(file => {
+                    dataTransfer.items.add(file);
+                });
+                input.files = dataTransfer.files;
+            }
+
             updatePreview(input.files);
         });
 
@@ -487,6 +559,14 @@
 
             if (!files || files.length === 0) {
                 alert('Please select at least one image first.');
+                return;
+            }
+
+            // Final validation before upload
+            const oversizedFiles = Array.from(files).filter(file => file.size > MAX_FILE_SIZE);
+            if (oversizedFiles.length > 0) {
+                const fileNames = oversizedFiles.map(f => f.name).join(', ');
+                alert(`The following files exceed 10MB: ${fileNames}. Please select smaller files.`);
                 return;
             }
 
