@@ -45,6 +45,27 @@ public class GlobalHelpers
 
         return builder.ToString();
     }
+    public static bool VerifyImageUpload(List<IFormFile> images, int maxFiles)
+    {
+        long maxFileSize = 10L * 1000 * 1000; // 5 MB
+
+        if (images == null || images.Count == 0)
+            return false;
+
+        if (images.Count > maxFiles)
+            return false;
+
+        foreach (var file in images)
+        {
+            if (file.Length <= 0)
+                return false;
+
+            if (file.Length > maxFileSize)
+                return false;
+        }
+
+        return true;
+    }
     public static string BuildGoogleOAuthUrl(IConfiguration config)
     {
         string clientId = config["OAuth:ClientId"] ?? string.Empty;
