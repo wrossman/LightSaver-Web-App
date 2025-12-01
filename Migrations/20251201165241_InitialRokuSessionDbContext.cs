@@ -1,38 +1,37 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace LightSaver.Migrations.RokuSessionDb
+namespace LightSaver.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialRokuSessionMigration : Migration
+    public partial class InitialRokuSessionDbContext : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Sessions",
+                name: "RokuSessions",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<string>(type: "text", nullable: false),
                     RokuId = table.Column<string>(type: "text", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     SourceAddress = table.Column<string>(type: "text", nullable: false),
                     SessionCode = table.Column<string>(type: "text", nullable: false),
                     ReadyForTransfer = table.Column<bool>(type: "boolean", nullable: false),
-                    Expired = table.Column<bool>(type: "boolean", nullable: false)
+                    Expired = table.Column<bool>(type: "boolean", nullable: false),
+                    MaxScreenSize = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Sessions", x => x.Id);
+                    table.PrimaryKey("PK_RokuSessions", x => x.Id);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Sessions_SessionCode",
-                table: "Sessions",
+                name: "IX_RokuSessions_SessionCode",
+                table: "RokuSessions",
                 column: "SessionCode",
                 unique: true);
         }
@@ -41,7 +40,7 @@ namespace LightSaver.Migrations.RokuSessionDb
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Sessions");
+                name: "RokuSessions");
         }
     }
 }

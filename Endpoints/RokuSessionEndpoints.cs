@@ -167,7 +167,6 @@ public static class RokuSessionEndpoints
     }
     public static async Task<IResult> InitialStartWallpaper(HttpContext context, GlobalStoreHelpers store, LightroomService lightroom, ILogger<RokuSessions> logger)
     {
-        logger.LogInformation("Roku accessed initial start wallpaper endpoint");
         StringValues inputKey;
         StringValues inputLocation;
         StringValues inputDevice;

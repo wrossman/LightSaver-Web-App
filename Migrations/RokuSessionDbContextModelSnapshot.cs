@@ -2,20 +2,17 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace LightSaver.Migrations.RokuSessionDb
+namespace LightSaver.Migrations
 {
     [DbContext(typeof(RokuSessionDbContext))]
-    [Migration("20251125234515_InitialRokuSessionMigration")]
-    partial class InitialRokuSessionMigration
+    partial class RokuSessionDbContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -26,17 +23,17 @@ namespace LightSaver.Migrations.RokuSessionDb
 
             modelBuilder.Entity("RokuSession", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("Expired")
                         .HasColumnType("boolean");
+
+                    b.Property<int>("MaxScreenSize")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("ReadyForTransfer")
                         .HasColumnType("boolean");
@@ -58,7 +55,7 @@ namespace LightSaver.Migrations.RokuSessionDb
                     b.HasIndex("SessionCode")
                         .IsUnique();
 
-                    b.ToTable("Sessions");
+                    b.ToTable("RokuSessions");
                 });
 #pragma warning restore 612, 618
         }

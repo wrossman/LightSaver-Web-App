@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace LightSaver.Migrations.LightroomUpdateSessionDb
 {
     /// <inheritdoc />
-    public partial class InitialLightRoomUpdateSessions : Migration
+    public partial class InitialLightroomUpdateSessionDbContext : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
