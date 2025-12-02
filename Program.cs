@@ -26,35 +26,24 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
-//add databases
-builder.Services.AddDbContext<UserSessionDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
-builder.Services.AddDbContext<RokuSessionDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+//add database
 builder.Services.AddDbContext<GlobalImageStoreDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
-builder.Services.AddDbContext<LightroomUpdateSessionDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
+// add cache for sessions
 builder.Services.AddMemoryCache();
-
-//add hosted services for session management and file transfers
-builder.Services.AddHostedService<RemoveStaleUserSessionsService>();
-builder.Services.AddHostedService<RemoveStaleRokuSessionsService>();
-builder.Services.AddHostedService<RemoveStaleLightroomUpdateSessionsService>();
+builder.Services.AddSingleton<LinkSessions>();
+builder.Services.AddSingleton<LightroomUpdateSessions>();
 
 // register classes for DI
-builder.Services.AddScoped<RokuSessions>();
-builder.Services.AddScoped<UserSessions>();
 builder.Services.AddScoped<GoogleFlow>();
 builder.Services.AddScoped<GooglePhotosFlow>();
 builder.Services.AddScoped<UploadImages>();
 builder.Services.AddScoped<LightroomService>();
 builder.Services.AddScoped<GlobalStoreHelpers>();
-builder.Services.AddScoped<SessionHelpers>();
-builder.Services.AddScoped<LightroomUpdateSessions>();
 
-// start all services at the same time so they dont block each other
+
+// start all services at the same time so they don't block each other
 builder.Services.Configure<HostOptions>(options =>
 {
     options.ServicesStartConcurrently = true;
@@ -72,19 +61,15 @@ builder.Services.Configure<FormOptions>(options =>
 
 var app = builder.Build();
 
+app.UseRateLimiter();
+app.UseStaticFiles();
+app.UseAntiforgery();
+
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-
-    services.GetRequiredService<UserSessionDbContext>().Database.Migrate();
-    services.GetRequiredService<RokuSessionDbContext>().Database.Migrate();
     services.GetRequiredService<GlobalImageStoreDbContext>().Database.Migrate();
-    services.GetRequiredService<LightroomUpdateSessionDbContext>().Database.Migrate();
 }
-
-app.UseRateLimiter();
-
-app.UseStaticFiles();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -95,16 +80,12 @@ if (app.Environment.IsDevelopment())
 
 // app.UseHttpsRedirection(); //enable this once im done with getting the app service up
 
-app.UseAntiforgery();
-
 app.MapGooglePhotosEndpoints(); // Google Photos Feature Endpoints
 
-app.MapUploadPhotosEndpoints(); // Upload to web app feature enpoints
+app.MapUploadPhotosEndpoints(); // Upload to web app feature endpoints
 
 app.MapLightroomEndpoints(); // Scrape public lightroom images
 
-app.MapRokuSessionEndpoints(); // Roku session code and image ready polling endpoints
-
-app.MapUserSessionEndpoints(); // user session management
+app.MapLinkSessionEndpoints(); // user session management
 
 app.Run();

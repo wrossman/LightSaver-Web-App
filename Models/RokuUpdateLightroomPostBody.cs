@@ -1,5 +1,6 @@
 public record RokuUpdateLightroomPostBody
 {
-    public string Key { get; set; } = "";
-    public string RokuId { get; set; } = "";
+    public Guid Id { get; init; } = Guid.Empty;
+    public string Key { get; init; } = "";
+    public string RokuId { get; init; } = "";
 }

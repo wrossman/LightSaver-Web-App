@@ -6,17 +6,24 @@ public class GooglePhotosPoller
     private readonly ILogger<GooglePhotosFlow> _logger;
     private readonly IConfiguration _config;
     private readonly GlobalStoreHelpers _store;
-    private readonly SessionHelpers _sessionHelpers;
-    public GooglePhotosPoller(IConfiguration config, ILogger<GooglePhotosFlow> logger, GlobalStoreHelpers store, SessionHelpers sessionHelpers)
+    private readonly LinkSessions _linkSessions;
+    public GooglePhotosPoller(IConfiguration config, ILogger<GooglePhotosFlow> logger, GlobalStoreHelpers store, LinkSessions linkSessions)
     {
         _logger = logger;
         _config = config;
         _store = store;
-        _sessionHelpers = sessionHelpers;
+        _linkSessions = linkSessions;
     }
     public Dictionary<string, string> FileUrls { get; set; } = new();
-    public async Task PollPhotos(PickerSession pickerSession, UserSession userSession)
+    public async Task PollPhotos(PickerSession pickerSession, Guid linkSessionId)
     {
+        var linkSession = _linkSessions.GetSession<LinkSession>(linkSessionId);
+        if (linkSession is null)
+        {
+            _logger.LogWarning($"Failed to Poll Google Photos for session {linkSessionId}");
+            return;
+        }
+
         int interval;
         decimal timeoutDecimal;
         if (!Int32.TryParse(pickerSession.PollingConfig.PollInterval, out interval))
@@ -33,7 +40,7 @@ public class GooglePhotosPoller
         {
             await Task.Delay(interval * 1000);
             pollClient.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", userSession.AccessToken);
+                new AuthenticationHeaderValue("Bearer", linkSession.AccessToken);
 
             var response = await pollClient.GetStringAsync($"https://photospicker.googleapis.com/v1/sessions/{sessionId}");
             var responseJson = JsonSerializer.Deserialize<PickerSession>(response);
@@ -44,12 +51,11 @@ public class GooglePhotosPoller
             else if (responseJson.MediaItemsSet == true)
             {
                 _logger.LogInformation("User finished selecting photos.");
-                string photoList = await GooglePhotosFlow.GetPhotoList(pickerSession, userSession.AccessToken);
+                string photoList = await GooglePhotosFlow.GetPhotoList(pickerSession, linkSession.AccessToken);
 
-                AddUrlsToList(photoList, userSession);
-                await WritePhotosToDb(userSession);
-
-                await _sessionHelpers.SetReadyToTransfer(userSession.SessionCode);
+                AddUrlsToList(photoList, linkSession);
+                await WritePhotosToDb(linkSessionId);
+                _linkSessions.SetReadyToTransfer(linkSessionId);
 
                 break;
             }
@@ -61,14 +67,13 @@ public class GooglePhotosPoller
             {
                 _logger.LogWarning("Timeout reached for photo selection.");
             }
-
         }
     }
-    public void AddUrlsToList(string photoList, UserSession userSession)
+    public void AddUrlsToList(string photoList, LinkSession LinkSession)
     {
         MediaItemsResponse photoListJson = JsonSerializer.Deserialize<MediaItemsResponse>(photoList) ?? new();
         List<MediaItem> mediaItems = photoListJson.MediaItems;
-        string maxScreenSize = $"w{userSession.MaxScreenSize}-h{userSession.MaxScreenSize}";
+        string maxScreenSize = $"w{LinkSession.MaxScreenSize}-h{LinkSession.MaxScreenSize}";
 
         foreach (MediaItem item in mediaItems)
         {
@@ -85,11 +90,17 @@ public class GooglePhotosPoller
             }
         }
     }
-    public async Task WritePhotosToDb(UserSession userSession)
+    public async Task WritePhotosToDb(Guid linkSessionId)
     {
+        var session = _linkSessions.GetSession<LinkSession>(linkSessionId);
+        if (session is null)
+            return;
+
+        var updatedSession = session with { };
+
         using HttpClient client = new();
         client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", userSession.AccessToken);
+            new AuthenticationHeaderValue("Bearer", session.AccessToken);
         foreach (KeyValuePair<string, string> item in FileUrls)
         {
             var bytes = new byte[32];
@@ -102,15 +113,17 @@ public class GooglePhotosPoller
             {
                 Id = Guid.NewGuid(),
                 Key = key,
-                SessionCode = userSession.SessionCode,
+                SessionCode = session.SessionCode,
                 ImageStream = data,
                 CreatedOn = DateTime.UtcNow,
                 FileType = item.Value,
-                RokuId = userSession.RokuId,
+                RokuId = session.RokuId,
                 Source = "google",
                 Origin = GlobalHelpers.ComputeHashFromString(item.Key)
             };
-            await _store.WriteResourceToStore(share, userSession.MaxScreenSize);
+            await _store.WriteResourceToStore(share, session.MaxScreenSize);
+            updatedSession.ResourcePackage.Add(share.Id, share.Key);
         }
+        _linkSessions.SetSession<LinkSession>(linkSessionId, updatedSession);
     }
 }

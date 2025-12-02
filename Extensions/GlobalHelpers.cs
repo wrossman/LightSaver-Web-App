@@ -8,11 +8,11 @@ public class GlobalHelpers
         var doc = new HtmlDocument();
         doc.LoadHtml(File.ReadAllText("./wwwroot/Error.html"));
 
-        var erroNode = doc.GetElementbyId("ErrorMessage");
+        var errorNode = doc.GetElementbyId("ErrorMessage");
         var actionNode = doc.GetElementbyId("Action");
-        if (erroNode is not null && actionNode is not null)
+        if (errorNode is not null && actionNode is not null)
         {
-            erroNode.InnerHtml = message;
+            errorNode.InnerHtml = message;
             actionNode.InnerHtml = action;
         }
         string errorPage = doc.DocumentNode.OuterHtml;
@@ -23,11 +23,11 @@ public class GlobalHelpers
         var doc = new HtmlDocument();
         doc.LoadHtml(File.ReadAllText("./wwwroot/Error.html"));
 
-        var erroNode = doc.GetElementbyId("ErrorMessage");
+        var errorNode = doc.GetElementbyId("ErrorMessage");
         var actionNode = doc.GetElementbyId("Action");
-        if (erroNode is not null && actionNode is not null)
+        if (errorNode is not null && actionNode is not null)
         {
-            erroNode.InnerHtml = message;
+            errorNode.InnerHtml = message;
             actionNode.InnerHtml = action;
         }
         return doc.DocumentNode.OuterHtml;
@@ -70,5 +70,28 @@ public class GlobalHelpers
         string googleAuthServer = config["OAuth:GoogleAuthServer"] ?? string.Empty;
         string googleQuery = $"{googleAuthServer}?scope={scope}&response_type={responseType}&redirect_uri={redirect}&client_id={clientId}";
         return googleQuery;
+    }
+    public static async Task<string> ReadRokuPost(HttpContext context)
+    {
+        const int maxBytes = 512;
+        var buffer = new byte[32];
+        int totalBytes = 0;
+
+        using var memoryStream = new MemoryStream();
+        int bytesRead;
+
+        do
+        {
+            bytesRead = await context.Request.Body.ReadAsync(buffer, 0, buffer.Length);
+            totalBytes += bytesRead;
+
+            if (totalBytes > maxBytes)
+                return "fail";
+
+            await memoryStream.WriteAsync(buffer, 0, bytesRead);
+        }
+        while (bytesRead > 0);
+
+        return Encoding.UTF8.GetString(memoryStream.ToArray());
     }
 }

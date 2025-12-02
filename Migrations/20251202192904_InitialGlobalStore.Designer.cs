@@ -8,11 +8,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace LightSaver.Migrations.GlobalImageStoreDb
+namespace LightSaver.Migrations
 {
     [DbContext(typeof(GlobalImageStoreDbContext))]
-    [Migration("20251202025446_InitialGlobalImageStoreDbContext")]
-    partial class InitialGlobalImageStoreDbContext
+    [Migration("20251202192904_InitialGlobalStore")]
+    partial class InitialGlobalStore
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

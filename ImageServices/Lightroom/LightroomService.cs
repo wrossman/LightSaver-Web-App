@@ -7,16 +7,16 @@ public sealed class LightroomService
     private readonly GlobalStoreHelpers _store;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly LightroomUpdateSessions _updateSessions;
+    private readonly LinkSessions _linkSessions;
     private readonly IConfiguration _config;
-    private readonly SessionHelpers _sessionHelpers;
-    public LightroomService(ILogger<LightroomService> logger, IConfiguration config, GlobalStoreHelpers store, IServiceScopeFactory scopeFactory, LightroomUpdateSessions updateSessions, SessionHelpers sessionHelpers)
+    public LightroomService(ILogger<LightroomService> logger, IConfiguration config, GlobalStoreHelpers store, IServiceScopeFactory scopeFactory, LightroomUpdateSessions updateSessions, LinkSessions linkSessions)
     {
         _logger = logger;
         _store = store;
         _scopeFactory = scopeFactory;
         _updateSessions = updateSessions;
-        _sessionHelpers = sessionHelpers;
         _config = config;
+        _linkSessions = linkSessions;
     }
     public async Task<(List<string>, string)> GetImageUrisFromShortCodeAsync(string shortCode, int maxScreenSize)
     {
@@ -232,8 +232,14 @@ public sealed class LightroomService
             }
         }
     }
-    public async Task<bool> LightroomFlow(List<string> urls, UserSession userSession, string shortCode)
+    public async Task<bool> LightroomFlow(List<string> urls, Guid sessionId, string shortCode)
     {
+        var session = _linkSessions.GetSession<LinkSession>(sessionId);
+        if (session is null)
+            return false;
+
+        var updatedSession = session with { };
+
         using HttpClient client = new();
         foreach (var item in urls)
         {
@@ -247,20 +253,25 @@ public sealed class LightroomService
             {
                 Id = Guid.NewGuid(),
                 Key = key,
-                SessionCode = userSession.SessionCode,
+                SessionCode = session.SessionCode,
                 ImageStream = data,
                 CreatedOn = DateTime.UtcNow,
                 FileType = "",
-                RokuId = userSession.RokuId,
+                RokuId = session.RokuId,
                 Source = "lightroom",
                 Origin = GlobalHelpers.ComputeHashFromString(item),
                 LightroomAlbum = shortCode
             };
-            await _store.WriteResourceToStore(share, userSession.MaxScreenSize);
+            await _store.WriteResourceToStore(share, session.MaxScreenSize);
+            updatedSession.ResourcePackage.Add(share.Id, share.Key);
         }
 
-        await _sessionHelpers.SetReadyToTransfer(userSession.SessionCode);
-        return true;
+        _linkSessions.SetSession<LinkSession>(sessionId, updatedSession);
+
+        if (_linkSessions.SetReadyToTransfer(sessionId))
+            return true;
+        else
+            return false;
     }
     private static string? ExtractAlbumAttributesJson(string html)
     {
@@ -324,7 +335,7 @@ public sealed class LightroomService
         // Never found matching closing brace
         return null;
     }
-    public async Task<string?> UpdateRokuLinks(ResourceRequest resourceReq, int maxScreenSize)
+    public async Task<Guid?> UpdateRokuLinks(ResourceRequest resourceReq, int maxScreenSize)
     {
         string albumUrl = _store.GetResourceLightroomAlbum(resourceReq);
         var result = await GetImageUrisFromShortCodeAsync(albumUrl, maxScreenSize);
@@ -366,20 +377,20 @@ public sealed class LightroomService
             return null;
         else
         {
-            LightroomUpdateSession session = await _updateSessions.CreateUpdateSession(resourceReq.RokuId);
+            var sessionId = _updateSessions.CreateUpdateSession(resourceReq.RokuId);
             _ = Task.Run(async () =>
             {
                 using (var scope = _scopeFactory.CreateScope())
                 {
                     var lightroom = scope.ServiceProvider.GetRequiredService<LightroomService>();
-                    await lightroom.UpdateLightroomImagesAsync(oldImgs, newImgsDic, albumUrl, resourceReq, session);
+                    await lightroom.UpdateLightroomImagesAsync(oldImgs, newImgsDic, albumUrl, resourceReq, sessionId);
                 }
             });
 
-            return session.Id;
+            return sessionId;
         }
     }
-    public async Task UpdateLightroomImagesAsync(List<string> oldImgs, Dictionary<string, string> newImgs, string albumUrl, ResourceRequest resourceReq, LightroomUpdateSession session)
+    public async Task UpdateLightroomImagesAsync(List<string> oldImgs, Dictionary<string, string> newImgs, string albumUrl, ResourceRequest resourceReq, Guid sessionId)
     {
         List<string>? imgsToRemove = new();
         List<string>? imgsToKeep = new();
@@ -406,7 +417,7 @@ public sealed class LightroomService
 
         await _store.RemoveByOrigin(imgsToRemove);
 
-        Dictionary<string, string> updatePackage = await _store.GetOldImgsForUpdatePackage(imgsToKeep);
+        Dictionary<Guid, string> updatePackage = await _store.GetOldImgsForUpdatePackage(imgsToKeep);
 
         using HttpClient client = new();
         foreach (var item in imgsToAdd)
@@ -436,10 +447,10 @@ public sealed class LightroomService
                 Origin = GlobalHelpers.ComputeHashFromString(item),
                 LightroomAlbum = albumUrl
             };
-            updatePackage.Add(share.Id.ToString(), share.Key);
             await _store.WriteResourceToStore(share, resourceReq.MaxScreenSize);
+            updatePackage.Add(share.Id, share.Key);
         }
-        await _updateSessions.WriteLinksToSession(updatePackage, session);
-        await _updateSessions.SetReadyForTransfer(session);
+        _updateSessions.WriteLinksToSession(updatePackage, sessionId);
+        _updateSessions.SetReadyToTransfer(sessionId);
     }
 }

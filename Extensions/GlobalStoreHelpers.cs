@@ -13,10 +13,10 @@ public class GlobalStoreHelpers
         _resourceDb = resourceDb;
         _config = config;
     }
-    public Dictionary<string, string>? GetResourcePackage(RokuSession rokuSession)
+    public Dictionary<string, string>? GetResourcePackage(LinkSession LinkSession)
     {
-        string sessionCode = rokuSession.SessionCode;
-        string rokuId = rokuSession.RokuId;
+        string sessionCode = LinkSession.SessionCode;
+        string rokuId = LinkSession.RokuId;
 
         var links = _resourceDb.Resources
             .Where(img => img.SessionCode == sessionCode && img.RokuId == rokuId)
@@ -60,46 +60,48 @@ public class GlobalStoreHelpers
         if (item is null)
             return null;
 
-        using var image = Image.Load(item.ImageStream);
-
-        image.Mutate(x => x.GaussianBlur(50f).Resize(width, height));
-
-        using var outputStream = new MemoryStream();
-        image.Save(outputStream, new JpegEncoder());
-
-        return outputStream.ToArray();
+        try
+        {
+            using var image = Image.Load(item.ImageStream);
+            image.Mutate(x => x.GaussianBlur(50f).Resize(width, height));
+            using var outputStream = new MemoryStream();
+            image.Save(outputStream, new JpegEncoder());
+            return outputStream.ToArray();
+        }
+        catch
+        {
+            _logger.LogWarning("Failed to create background image.");
+            return null;
+        }
     }
     public string GetResourceSource(ResourceRequest resourceReq)
     {
-        string location = resourceReq.Location;
+        Guid resourceId = resourceReq.Id;
         string key = resourceReq.Key;
         string rokuId = resourceReq.RokuId;
 
         var item = _resourceDb.Resources
-        .Where(img => img.Id.ToString() == location && img.Key == key && img.RokuId == rokuId)
+        .Where(img => img.Id == resourceId && img.Key == key && img.RokuId == rokuId)
         .Select(img => img.Source).SingleOrDefault();
 
         if (string.IsNullOrEmpty(item))
-            return "Unkown";
+            return "Unknown";
 
         return item;
     }
     public string GetResourceLightroomAlbum(ResourceRequest resourceReq)
     {
         var item = _resourceDb.Resources
-        .Where(img => img.Id.ToString() == resourceReq.Location && img.Key == resourceReq.Key && img.RokuId == resourceReq.RokuId)
+        .Where(img => img.Id == resourceReq.Id && img.Key == resourceReq.Key && img.RokuId == resourceReq.RokuId)
         .Select(img => img.LightroomAlbum).SingleOrDefault();
 
         if (string.IsNullOrEmpty(item))
-            return "Unkown";
+            return "Unknown";
 
         return item;
     }
-    public async Task<bool> ScrubOldImages(RokuSession rokuSession)
+    public async Task<bool> ScrubOldImages(string rokuId, string sessionCode)
     {
-        string sessionCode = rokuSession.SessionCode;
-        string rokuId = rokuSession.RokuId;
-
         var sessions = await _resourceDb.Resources
             .Where(s => s.RokuId == rokuId && s.SessionCode != sessionCode)
             .ToListAsync();
@@ -205,9 +207,9 @@ public class GlobalStoreHelpers
 
         return outputStream.ToArray();
     }
-    public async Task<Dictionary<string, string>> GetOldImgsForUpdatePackage(List<string>? imgsToKeep)
+    public async Task<Dictionary<Guid, string>> GetOldImgsForUpdatePackage(List<string>? imgsToKeep)
     {
-        Dictionary<string, string> imgs = new();
+        Dictionary<Guid, string> imgs = new();
 
         if (imgsToKeep is null)
             return imgs;
@@ -220,7 +222,7 @@ public class GlobalStoreHelpers
             if (resource is null)
                 continue;
 
-            imgs.Add(resource.Id.ToString(), resource.Key);
+            imgs.Add(resource.Id, resource.Key);
         }
 
         return imgs;

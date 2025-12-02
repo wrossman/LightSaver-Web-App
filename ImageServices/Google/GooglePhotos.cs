@@ -7,18 +7,21 @@ public class GooglePhotosFlow
 {
     private readonly ILogger<GooglePhotosFlow> _logger;
     private readonly IConfiguration _config;
+    private readonly LinkSessions _linkSessions;
     private readonly IServiceScopeFactory _scopeFactory;
-    public GooglePhotosFlow(ILogger<GooglePhotosFlow> logger, IConfiguration config, IServiceScopeFactory scopeFactory)
+    public GooglePhotosFlow(ILogger<GooglePhotosFlow> logger, IConfiguration config, IServiceScopeFactory scopeFactory, LinkSessions linkSessions)
     {
         _logger = logger;
         _config = config;
         _scopeFactory = scopeFactory;
+        _linkSessions = linkSessions;
     }
-    public async Task<string> StartGooglePhotosFlow(UserSession userSession)
+    public async Task<string> StartGooglePhotosFlow(Guid sessionId)
     {
-        PickerSession pickerSession = await GetPickerSession(userSession);
+        PickerSession? pickerSession = await GetPickerSession(sessionId);
+
         // CREATE POLLING INSTANCE FOR PICKERSESSION
-        if (pickerSession.PickerUri == string.Empty || pickerSession.PollingConfig.PollInterval == string.Empty)
+        if (pickerSession is null || pickerSession.PickerUri == string.Empty || pickerSession.PollingConfig.PollInterval == string.Empty)
             throw new ArgumentException("Failed to retrieve Picker URI");
 
         string pickerUri = pickerSession.PickerUri;
@@ -28,14 +31,14 @@ public class GooglePhotosFlow
             using (var scope = _scopeFactory.CreateScope())
             {
                 var store = scope.ServiceProvider.GetRequiredService<GlobalStoreHelpers>();
-                var sessionHelpers = scope.ServiceProvider.GetRequiredService<SessionHelpers>();
+                var linkSessions = scope.ServiceProvider.GetRequiredService<LinkSessions>();
                 if (store is null)
                 {
                     _logger.LogWarning("Failed to start polling services for Google Photos");
                     return;
                 }
-                GooglePhotosPoller poller = new(_config, _logger, store, sessionHelpers);
-                await poller.PollPhotos(pickerSession, userSession);
+                GooglePhotosPoller poller = new(_config, _logger, store, linkSessions);
+                await poller.PollPhotos(pickerSession, sessionId);
             }
         });
 
@@ -50,9 +53,16 @@ public class GooglePhotosFlow
         string response = await client.GetStringAsync($"https://photospicker.googleapis.com/v1/mediaItems?sessionId={pickerSession.Id}");
         return response;
     }
-    public async Task<PickerSession> GetPickerSession(UserSession userSession)
+    public async Task<PickerSession?> GetPickerSession(Guid sessionId)
     {
-        string accessToken = userSession.AccessToken;
+        var session = _linkSessions.GetSession<LinkSession>(sessionId);
+        if (session is null)
+        {
+            _logger.LogWarning($"Failed to get picker session for user session {sessionId}");
+            return null;
+        }
+
+        string accessToken = session.AccessToken;
         using HttpClient photosClient = new();
 
         var pickerRequest = new HttpRequestMessage(HttpMethod.Post, "https://photospicker.googleapis.com/v1/sessions");
@@ -76,7 +86,6 @@ public class GooglePhotosFlow
         var pickerJson = JsonSerializer.Deserialize<PickerSession>(pickerContent);
         if (pickerJson is null || string.IsNullOrEmpty(pickerJson.PickerUri))
             return new PickerSession();
-
 
         return pickerJson;
     }

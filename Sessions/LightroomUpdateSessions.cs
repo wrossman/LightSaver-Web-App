@@ -1,73 +1,110 @@
 using System.Collections.Concurrent;
-using System.Security.Cryptography;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 public class LightroomUpdateSessions
 {
     private readonly ILogger<LightroomUpdateSessions> _logger;
-    private readonly LightroomUpdateSessionDbContext _updateSessionDb;
+    private readonly IMemoryCache _sessionCache;
     public static ConcurrentQueue<string> SessionsReadyForTransfer { get; set; } = new();
-    public LightroomUpdateSessions(ILogger<LightroomUpdateSessions> logger, LightroomUpdateSessionDbContext updateSessionDb)
+    public LightroomUpdateSessions(ILogger<LightroomUpdateSessions> logger, IMemoryCache sessionCache)
     {
         _logger = logger;
-        _updateSessionDb = updateSessionDb;
+        _sessionCache = sessionCache;
     }
-    public async Task<LightroomUpdateSession> CreateUpdateSession(string rokuId)
+    public T? GetSession<T>(Guid id)
     {
-        var bytes = new byte[32];
-        RandomNumberGenerator.Fill(bytes);
-        var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        return _sessionCache.Get<T>($"{typeof(T).Name}:{id}");
+    }
+    public T SetSession<T>(Guid id, T session)
+    {
+        return _sessionCache.Set(Key<T>(id), session, new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
+        });
+    }
+    public string Key<T>(Guid id)
+    {
+        return $"{typeof(T).Name}:{id}";
+    }
+    public void RemoveSession<T>(Guid id)
+    {
+        _sessionCache.Remove(id);
+    }
+    public Guid CreateUpdateSession(string rokuId)
+    {
+        Guid id = Guid.NewGuid();
         LightroomUpdateSession session = new()
         {
-            Id = key,
+            Id = id,
             RokuId = rokuId,
             ReadyForTransfer = false,
             CreatedAt = DateTime.UtcNow
         };
-        _updateSessionDb.UpdateSessions.Add(session);
-        await _updateSessionDb.SaveChangesAsync();
-        return session;
-    }
-    public async Task SetReadyForTransfer(LightroomUpdateSession session)
-    {
-        var updateSession = await _updateSessionDb.UpdateSessions.FindAsync(session.Id);
-        if (updateSession is null)
-        {
-            _logger.LogWarning($"Failed to set update session as ready for transfer.");
-            return;
-        }
 
-        updateSession.ReadyForTransfer = true;
-        await _updateSessionDb.SaveChangesAsync();
-    }
-    public async Task WriteLinksToSession(Dictionary<string, string> updatePackage, LightroomUpdateSession session)
-    {
-        var updateSession = await _updateSessionDb.UpdateSessions.FindAsync(session.Id);
-        if (updateSession is null)
-        {
-            _logger.LogWarning($"Failed to set update session links for session.");
-            return;
-        }
+        SetSession<LightroomUpdateSession>(id, session);
 
-        updateSession.Links = updatePackage;
-        await _updateSessionDb.SaveChangesAsync();
+        return id;
     }
-    public async Task ExpireUpdateSession(LightroomUpdateSession session)
+    public bool SetReadyToTransfer(Guid id)
     {
-        var updateSession = await _updateSessionDb.UpdateSessions.FindAsync(session.Id);
-        if (updateSession is null)
-        {
-            _logger.LogWarning($"Failed to set update session as expired for session.");
-            return;
-        }
+        var session = GetSession<LightroomUpdateSession>(id);
+        if (session is null)
+            return false;
 
-        updateSession.Expired = true;
-        await _updateSessionDb.SaveChangesAsync();
+        var updated = session with { ReadyForTransfer = true };
+
+        SetSession<LightroomUpdateSession>(id, updated);
+
+        return true;
     }
-    public async Task<LightroomUpdateSession?> GetUpdateSession(string key, string rokuId)
+    public bool CheckReadyForTransfer(Guid id, string rokuId)
     {
-        var session = await _updateSessionDb.UpdateSessions.FirstOrDefaultAsync(s => s.Id == key && s.RokuId == rokuId);
+        var session = GetSession<LightroomUpdateSession>(id);
 
-        return session;
+        if (session is null)
+            return false;
+
+        if (session.RokuId != rokuId)
+            return false;
+
+        if (session.ReadyForTransfer == true)
+            return true;
+        else
+            return false;
+    }
+    public bool WriteLinksToSession(Dictionary<Guid, string> updatePackage, Guid id)
+    {
+        var session = GetSession<LightroomUpdateSession>(id);
+        if (session is null)
+            return false;
+
+        var updated = session with { ResourcePackage = updatePackage };
+
+        SetSession<LightroomUpdateSession>(id, updated);
+
+        return true;
+    }
+    public bool ExpireSession(Guid id)
+    {
+        var session = GetSession<LightroomUpdateSession>(id);
+        if (session is null)
+            return false;
+
+        var updated = session with { Expired = true };
+
+        SetSession<LightroomUpdateSession>(id, updated);
+
+        return true;
+    }
+    public Dictionary<Guid, string>? GetResourcePackage(Guid id, string key, string rokuId)
+    {
+        var session = GetSession<LightroomUpdateSession>(id);
+
+        if (session is null)
+            return null;
+
+        if (session.RokuId != rokuId || session.Key != key)
+            return null;
+        else
+            return session.ResourcePackage;
     }
 }
