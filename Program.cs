@@ -34,6 +34,8 @@ DESIGN ITEMS
 
 WEB APP TO-DO ITEMS
 -------------------
+- implement inmemory cache for handling user sessions, delete dbcontext for users and roku?
+- Implement pbkdf2 for resource keys
 - encrypt keys in the database
 - limit uploading random garbage to endpoints
 - verify that everytime i generate a key, that it does not already exist in the db
@@ -47,6 +49,9 @@ ROKU TO-DO ITEMS
 -------------------
 DONE
 -------------------
+X change from comparing origin uri for changes in lightroom album, just store it as a hash so it cannot be viewed
+X use guid instead of image hash for storing on roku device
+X keep a hash of the url string so i can tell if the image url has changed for lightroom
 X Add a prompt that the lightroom album you linked has zero images and ask to try again
 X create separate polling endpoint for initial get
 X limit the number of images to store for each upload method

@@ -20,7 +20,7 @@ public class GlobalStoreHelpers
 
         var links = _resourceDb.Resources
             .Where(img => img.SessionCode == sessionCode && img.RokuId == rokuId)
-            .ToDictionary(img => img.Id, img => img.Key);
+            .ToDictionary(img => img.Id.ToString(), img => img.Key);
         if (links is null)
         {
             return null;
@@ -43,7 +43,7 @@ public class GlobalStoreHelpers
     public (byte[]? image, string? fileType) GetResourceData(string location, string key, string device)
     {
         var item = _resourceDb.Resources
-        .Where(img => img.Id == location && img.Key == key && img.RokuId == device)
+        .Where(img => img.Id.ToString() == location && img.Key == key && img.RokuId == device)
         .Select(img => img).SingleOrDefault();
 
         if (item is not null)
@@ -54,7 +54,7 @@ public class GlobalStoreHelpers
     public byte[]? GetBackgroundData(string location, string key, string device, int height, int width)
     {
         var item = _resourceDb.Resources
-        .Where(img => img.Id == location && img.Key == key && img.RokuId == device)
+        .Where(img => img.Id.ToString() == location && img.Key == key && img.RokuId == device)
         .Select(img => img).SingleOrDefault();
 
         if (item is null)
@@ -76,7 +76,7 @@ public class GlobalStoreHelpers
         string rokuId = resourceReq.RokuId;
 
         var item = _resourceDb.Resources
-        .Where(img => img.Id == location && img.Key == key && img.RokuId == rokuId)
+        .Where(img => img.Id.ToString() == location && img.Key == key && img.RokuId == rokuId)
         .Select(img => img.Source).SingleOrDefault();
 
         if (string.IsNullOrEmpty(item))
@@ -87,7 +87,7 @@ public class GlobalStoreHelpers
     public string GetResourceLightroomAlbum(ResourceRequest resourceReq)
     {
         var item = _resourceDb.Resources
-        .Where(img => img.Id == resourceReq.Location && img.Key == resourceReq.Key && img.RokuId == resourceReq.RokuId)
+        .Where(img => img.Id.ToString() == resourceReq.Location && img.Key == resourceReq.Key && img.RokuId == resourceReq.RokuId)
         .Select(img => img.LightroomAlbum).SingleOrDefault();
 
         if (string.IsNullOrEmpty(item))
@@ -136,7 +136,7 @@ public class GlobalStoreHelpers
         foreach (var item in links)
         {
             var session = await _resourceDb.Resources
-            .FirstOrDefaultAsync(x => x.Key == item.Value && x.Id == item.Key && x.RokuId == rokuId);
+            .FirstOrDefaultAsync(x => x.Key == item.Value && x.Id.ToString() == item.Key && x.RokuId == rokuId);
 
             if (session == null)
             {
@@ -159,21 +159,21 @@ public class GlobalStoreHelpers
         _resourceDb.Resources.RemoveRange(items);
         await _resourceDb.SaveChangesAsync();
     }
-    public async Task<List<string>?> GetLightroomOriginUrlsByRokuId(string rokuId)
+    public async Task<List<string>?> GetLightroomOriginByRokuId(string rokuId)
     {
         return await _resourceDb.Resources
             .Where(x => x.RokuId == rokuId &&
                         x.Source == "lightroom")
-            .Select(x => x.OriginUrl)
+            .Select(x => x.Origin)
             .ToListAsync();
     }
-    public async Task RemoveByOriginUrls(List<string>? originUrls)
+    public async Task RemoveByOrigin(List<string>? origins)
     {
-        if (originUrls is null)
+        if (origins is null)
             return;
 
         var itemsToRemove = await _resourceDb.Resources
-        .Where(x => originUrls.Contains(x.OriginUrl))
+        .Where(x => origins.Contains(x.Origin))
         .ToListAsync();
 
         _resourceDb.Resources.RemoveRange(itemsToRemove);
@@ -215,12 +215,12 @@ public class GlobalStoreHelpers
         foreach (var item in imgsToKeep)
         {
             var resource = await _resourceDb.Resources
-            .FirstOrDefaultAsync(r => r.OriginUrl == item);
+            .FirstOrDefaultAsync(r => r.Origin == item);
 
             if (resource is null)
                 continue;
 
-            imgs.Add(resource.Id, resource.Key);
+            imgs.Add(resource.Id.ToString(), resource.Key);
         }
 
         return imgs;

@@ -33,12 +33,9 @@ public class UploadImages
             RandomNumberGenerator.Fill(bytes);
             var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
-            string hash = GlobalHelpers.ComputeHashFromBytes(finalImg);
-            hash = hash + "-" + DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
-
             ImageShare share = new()
             {
-                Id = hash,
+                Id = Guid.NewGuid(),
                 Key = key,
                 SessionCode = userSession.SessionCode,
                 ImageStream = finalImg,

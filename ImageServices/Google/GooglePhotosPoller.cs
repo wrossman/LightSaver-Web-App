@@ -97,12 +97,10 @@ public class GooglePhotosPoller
             var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
             byte[] data = await client.GetByteArrayAsync(item.Key);
-            string hash = GlobalHelpers.ComputeHashFromBytes(data);
-            hash = hash + "-" + DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
 
             ImageShare share = new()
             {
-                Id = hash,
+                Id = Guid.NewGuid(),
                 Key = key,
                 SessionCode = userSession.SessionCode,
                 ImageStream = data,
@@ -110,7 +108,7 @@ public class GooglePhotosPoller
                 FileType = item.Value,
                 RokuId = userSession.RokuId,
                 Source = "google",
-                OriginUrl = item.Key
+                Origin = GlobalHelpers.ComputeHashFromString(item.Key)
             };
             await _store.WriteResourceToStore(share, userSession.MaxScreenSize);
         }
