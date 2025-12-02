@@ -52,7 +52,7 @@ public static class UploadPhotosEndpoints
 
         if (!await upload.UploadImageFlow(images, userSession))
         {
-            logger.LogWarning("Failed to upload photos for user session with session id " + userSession.Id);
+            logger.LogWarning("Failed to upload photos for user session.");
             await users.ExpireUserSession(userSessionId);
             return GlobalHelpers.CreateErrorPage("Failed to upload images.");
         }

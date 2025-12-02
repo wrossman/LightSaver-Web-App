@@ -33,7 +33,7 @@ public class LightrooomUpdateSessions
         var updateSession = await _updateSessionDb.UpdateSessions.FindAsync(session.Id);
         if (updateSession is null)
         {
-            _logger.LogWarning($"Failed to set update session as ready for transfer for session id {session.Id}");
+            _logger.LogWarning($"Failed to set update session as ready for transfer.");
             return;
         }
 
@@ -45,7 +45,7 @@ public class LightrooomUpdateSessions
         var updateSession = await _updateSessionDb.UpdateSessions.FindAsync(session.Id);
         if (updateSession is null)
         {
-            _logger.LogWarning($"Failed to set update session links for session id {session.Id}");
+            _logger.LogWarning($"Failed to set update session links for session.");
             return;
         }
 
@@ -57,7 +57,7 @@ public class LightrooomUpdateSessions
         var updateSession = await _updateSessionDb.UpdateSessions.FindAsync(session.Id);
         if (updateSession is null)
         {
-            _logger.LogWarning($"Failed to set update session as expired for session id {session.Id}");
+            _logger.LogWarning($"Failed to set update session as expired for session.");
             return;
         }
 

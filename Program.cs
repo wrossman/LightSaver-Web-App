@@ -30,36 +30,34 @@ DESIGN ITEMS
 - Web App Code Submit Page
 - Web App home page with information
 - QR Code for link to code submission
+- Add counter and upload animation
 
 WEB APP TO-DO ITEMS
 -------------------
-- fix upload image source not taking a bunch of pics
+- encrypt keys in the database
 - limit uploading random garbage to endpoints
-- limit file counts on upload img source endpoint
 - verify that everytime i generate a key, that it does not already exist in the db
-- create separate polling endpoint for initial get
-- Limit image upload size
-- Add counter and upload animation
-- Add a prompt that the lightroom album you linked has zero images and ask to try again
-- limit the number of images to store for each upload method
 
 ROKU TO-DO ITEMS
 -------------------
 - handle all response codes from httpclients
 - find a way to get background image in parallel
-- if the lightroom album changes and there are a fuckload of images then the httprequest will time out in intiial get
 - Retry logic for failed connections
 - Limit the number of keys stored on roku registry
-- create an account linked progress dialog, and then show that the images are being transferred.
 -------------------
 DONE
 -------------------
+X Add a prompt that the lightroom album you linked has zero images and ask to try again
+X create separate polling endpoint for initial get
+X limit the number of images to store for each upload method
+X fix upload image source not taking a bunch of pics
 X remove transfer file service and just set ready to transfer at methods that upload
 X expire lightroom update sesssions
 X Pass device image dimensions to web app so it can set the max image size for each device
 X Create a background for each image that is just the image but super blurred. Send the background with the image if roku chooses the setting for a blurred image background.
 X remove user and roku sessions after flow failure
 X Evaluate whether there’s a better approach to managing image resolution.
+X if the lightroom album changes and there are a fuckload of images then the httprequest will time out in intiial get
     for google and lightroom, image resolution is chosen based off of the roku devices preferred size
     upload image gets reformatted to the max size of roku device
 X Expire user credentials at flow failure

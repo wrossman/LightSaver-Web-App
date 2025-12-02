@@ -33,9 +33,9 @@ public class RemoveStaleLightroomUpdateSessionsService : BackgroundService
                 foreach (LightroomUpdateSession item in expiredSessions)
                 {
                     if (item.Expired)
-                        _logger.LogInformation($"Removed lightroom update session for rokuId {item.RokuId} marked as expired.");
+                        _logger.LogInformation($"Removed lightroom update session marked as expired.");
                     else
-                        _logger.LogWarning($"Removed lightroom update session rokuId {item.RokuId} due to session timeout.");
+                        _logger.LogWarning($"Removed lightroom update session due to session timeout.");
                 }
             }
             await Task.Delay(10000, cancellationToken);

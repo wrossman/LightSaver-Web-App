@@ -130,7 +130,7 @@ public static class RokuSessionEndpoints
         else
             logger.LogWarning($"Failed to set expire for user and roku session with session code {sessionCode} after resource package delivery.");
 
-        logger.LogInformation($"Sending resource package for session code {rokuSession.SessionCode} to IP: {context.Connection.RemoteIpAddress}");
+        logger.LogInformation($"Sending resource package for session code {rokuSession.SessionCode}");
         return Results.Json(links);
     }
     private static IResult ProvideResource(HttpContext context, GlobalStoreHelpers store, ILogger<RokuSessions> logger)
@@ -188,7 +188,7 @@ public static class RokuSessionEndpoints
         if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(rokuId) || string.IsNullOrEmpty(location) || !Int32.TryParse(inputMaxScreenSize, out maxScreenSize))
             return Results.Unauthorized();
 
-        logger.LogInformation($"Initial connection with key: {key} for file: {location} from device: {rokuId} with max size of {maxScreenSize}");
+        logger.LogInformation($"Received Initial request from {context.Connection.RemoteIpAddress}");
 
         var resourceReq = new ResourceRequest(location, key, rokuId);
         resourceReq.MaxScreenSize = maxScreenSize;
@@ -209,35 +209,19 @@ public static class RokuSessionEndpoints
         if (string.IsNullOrEmpty(sessionKey))
             return Results.Ok();
 
-        logger.LogInformation($"Returning sessionKey for update: {sessionKey}");
+        logger.LogInformation($"Providing session key to client for album update.");
 
         return Results.Content(sessionKey);
     }
     private static async Task<IResult> RevokeAccess([FromBody] RevokeAccessPackage revokePackage, GlobalStoreHelpers store, ILogger<RokuSessions> logger)
     {
-        logger.LogInformation("Received the following data from roku:");
-        string receiveLog = "";
-        foreach (var item in revokePackage.Links)
-        {
-            receiveLog += item.Key;
-            receiveLog += "\n";
-            receiveLog += item.Value;
-            receiveLog += "\n";
-        }
-        logger.LogInformation(receiveLog);
+        logger.LogInformation($"Received revoke access package from roku with {revokePackage.Links.Count} resources.");
 
         var failedRevoke = await store.RevokeResourcePackage(revokePackage);
 
         if (failedRevoke.Links.Count > 0)
         {
-            logger.LogWarning("Failed to remove all images from RevokePackage\nThe following resources were not removed");
-            string failedToRemove = "";
-            foreach (var item in failedRevoke.Links)
-            {
-                failedToRemove += item.Key + "\n";
-                failedToRemove += item.Value + "\n";
-            }
-            logger.LogWarning(failedToRemove);
+            logger.LogWarning($"Failed to remove {failedRevoke.Links.Count} images from revoke package.");
         }
 
         return Results.Ok();

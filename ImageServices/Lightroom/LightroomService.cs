@@ -50,7 +50,7 @@ public sealed class LightroomService
         if (string.Equals(location, "http://www.adobe.com", StringComparison.OrdinalIgnoreCase))
             return (new List<string>(), "Location was www.adobe.com (invalid album).");
 
-        _logger.LogInformation("Found long url for Lightroom album: {Location}", location);
+        _logger.LogInformation($"Found long url for Lightroom album: {location}");
 
         // Now we actually want redirects to follow, so use a normal client
         using var htmlClient = new HttpClient();
@@ -174,7 +174,7 @@ public sealed class LightroomService
 
                     if (outputArr.Count >= _config.GetValue<int>("MaxImages"))
                     {
-                        _logger.LogInformation($"User tried to load more than max images from lightroom\nCurrent image count is {outputArr.Count}");
+                        _logger.LogInformation($"User tried to load more than max images from lightroom.");
                         return (outputArr, "overflow");
                     }
 
@@ -205,7 +205,6 @@ public sealed class LightroomService
                         if (links.TryGetProperty(preferredRendition[i], out rendition) &&
                         rendition.TryGetProperty("href", out hrefElement))
                         {
-                            _logger.LogInformation($"Got lightrooom item from rendition {preferredRendition[i]}");
                             break;
                         }
                     }
@@ -354,7 +353,7 @@ public sealed class LightroomService
 
         bool equal = !oldImgs.Except(newImgs).Any() && !newImgs.Except(oldImgs).Any();
 
-        _logger.LogInformation("Image list equality check result: {Equal}", equal);
+        _logger.LogInformation($"Image list equality check result: {equal}");
 
         if (equal)
             return null;
@@ -407,13 +406,14 @@ public sealed class LightroomService
         {
             if (updatePackage.Count >= _config.GetValue<int>("MaxImages"))
             {
-                _logger.LogInformation($"User tried to load more than max images from lightroom\nCurrent image count is {updatePackage.Count}");
+                _logger.LogInformation($"User tried to load more than max images from lightroom.");
                 break;
             }
-            _logger.LogInformation($"Downloading image {item} to add to updatePackage");
+
             var bytes = new byte[32];
             RandomNumberGenerator.Fill(bytes);
             var newKey = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
             byte[] data = await client.GetByteArrayAsync(item);
             string hash = GlobalHelpers.ComputeHashFromBytes(data);
             hash = hash + "-" + DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
