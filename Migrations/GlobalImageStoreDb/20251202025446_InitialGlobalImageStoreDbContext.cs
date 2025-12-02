@@ -15,7 +15,7 @@ namespace LightSaver.Migrations.GlobalImageStoreDb
                 name: "Resources",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "text", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Key = table.Column<string>(type: "text", nullable: false),
                     SessionCode = table.Column<string>(type: "text", nullable: false),
                     ImageStream = table.Column<byte[]>(type: "bytea", nullable: false),
@@ -23,7 +23,7 @@ namespace LightSaver.Migrations.GlobalImageStoreDb
                     FileType = table.Column<string>(type: "text", nullable: false),
                     RokuId = table.Column<string>(type: "text", nullable: false),
                     Source = table.Column<string>(type: "text", nullable: false),
-                    OriginUrl = table.Column<string>(type: "text", nullable: false),
+                    Origin = table.Column<string>(type: "text", nullable: false),
                     LightroomAlbum = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>

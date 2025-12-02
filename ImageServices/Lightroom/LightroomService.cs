@@ -240,13 +240,12 @@ public sealed class LightroomService
             var bytes = new byte[32];
             RandomNumberGenerator.Fill(bytes);
             var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
             byte[] data = await client.GetByteArrayAsync(item);
-            string hash = GlobalHelpers.ComputeHashFromBytes(data);
-            hash = hash + "-" + DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
 
             ImageShare share = new()
             {
-                Id = hash,
+                Id = Guid.NewGuid(),
                 Key = key,
                 SessionCode = userSession.SessionCode,
                 ImageStream = data,
@@ -254,7 +253,7 @@ public sealed class LightroomService
                 FileType = "",
                 RokuId = userSession.RokuId,
                 Source = "lightroom",
-                OriginUrl = item,
+                Origin = GlobalHelpers.ComputeHashFromString(item),
                 LightroomAlbum = shortCode
             };
             await _store.WriteResourceToStore(share, userSession.MaxScreenSize);
@@ -347,11 +346,19 @@ public sealed class LightroomService
             throw new InvalidOperationException();
         }
 
-        var oldImgs = await _store.GetLightroomOriginUrlsByRokuId(resourceReq.RokuId);
+        // create a dictionary that pairs a key of the hashed url, with the value as the url
+
+        var newImgsDic = new Dictionary<string, string>();
+        foreach (var item in newImgs)
+        {
+            newImgsDic.Add(GlobalHelpers.ComputeHashFromString(item), item);
+        }
+
+        var oldImgs = await _store.GetLightroomOriginByRokuId(resourceReq.RokuId);
         if (oldImgs is null)
             return null;
 
-        bool equal = !oldImgs.Except(newImgs).Any() && !newImgs.Except(oldImgs).Any();
+        bool equal = !oldImgs.Except(newImgsDic.Keys.ToList()).Any() && !newImgsDic.Keys.ToList().Except(oldImgs).Any();
 
         _logger.LogInformation($"Image list equality check result: {equal}");
 
@@ -365,39 +372,39 @@ public sealed class LightroomService
                 using (var scope = _scopeFactory.CreateScope())
                 {
                     var lightroom = scope.ServiceProvider.GetRequiredService<LightroomService>();
-                    await lightroom.UpdateLightroomImagesAsync(oldImgs, newImgs, albumUrl, resourceReq, session);
+                    await lightroom.UpdateLightroomImagesAsync(oldImgs, newImgsDic, albumUrl, resourceReq, session);
                 }
             });
 
             return session.Id;
         }
     }
-    public async Task UpdateLightroomImagesAsync(List<string> oldImgs, List<string> newImgs, string albumUrl, ResourceRequest resourceReq, LightroomUpdateSession session)
+    public async Task UpdateLightroomImagesAsync(List<string> oldImgs, Dictionary<string, string> newImgs, string albumUrl, ResourceRequest resourceReq, LightroomUpdateSession session)
     {
         List<string>? imgsToRemove = new();
         List<string>? imgsToKeep = new();
 
         foreach (var item in oldImgs)
         {
-            if (!newImgs.Contains(item))
+            if (!newImgs.ContainsKey(item))
                 imgsToRemove.Add(item);
             else
-                imgsToKeep.Add(item);
+                imgsToKeep.Add(newImgs[item]);
         }
 
         List<string>? imgsToAdd = new();
 
         foreach (var item in newImgs)
         {
-            if (!oldImgs.Contains(item))
-                imgsToAdd.Add(item);
+            if (!oldImgs.Contains(item.Key))
+                imgsToAdd.Add(item.Value);
         }
 
         _logger.LogInformation($"Found {imgsToRemove.Count} to remove.");
         _logger.LogInformation($"Found {imgsToKeep.Count} to keep.");
         _logger.LogInformation($"Found {imgsToAdd.Count} to add.");
 
-        await _store.RemoveByOriginUrls(imgsToRemove);
+        await _store.RemoveByOrigin(imgsToRemove);
 
         Dictionary<string, string> updatePackage = await _store.GetOldImgsForUpdatePackage(imgsToKeep);
 
@@ -415,12 +422,10 @@ public sealed class LightroomService
             var newKey = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
             byte[] data = await client.GetByteArrayAsync(item);
-            string hash = GlobalHelpers.ComputeHashFromBytes(data);
-            hash = hash + "-" + DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
 
             ImageShare share = new()
             {
-                Id = hash,
+                Id = Guid.NewGuid(),
                 Key = newKey,
                 SessionCode = "",
                 ImageStream = data,
@@ -428,10 +433,10 @@ public sealed class LightroomService
                 FileType = "",
                 RokuId = resourceReq.RokuId,
                 Source = "lightroom",
-                OriginUrl = item,
+                Origin = GlobalHelpers.ComputeHashFromString(item),
                 LightroomAlbum = albumUrl
             };
-            updatePackage.Add(share.Id, share.Key);
+            updatePackage.Add(share.Id.ToString(), share.Key);
             await _store.WriteResourceToStore(share, resourceReq.MaxScreenSize);
         }
         await _updateSessions.WriteLinksToSession(updatePackage, session);

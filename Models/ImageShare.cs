@@ -1,6 +1,6 @@
 public record ImageShare
 {
-    public string Id { get; init; } = "";
+    public Guid Id { get; init; } = Guid.NewGuid();
     public string Key { get; init; } = "";
     public string SessionCode { get; set; } = "";
     public byte[] ImageStream { get; set; } = new byte[0];
@@ -8,6 +8,6 @@ public record ImageShare
     public string FileType { get; init; } = "";
     public string RokuId { get; set; } = "";
     public string Source { get; set; } = "";
-    public string OriginUrl { get; set; } = "";
+    public string Origin { get; set; } = "";
     public string LightroomAlbum { get; set; } = "";
 }

@@ -23,8 +23,9 @@ namespace LightSaver.Migrations.GlobalImageStoreDb
 
             modelBuilder.Entity("ImageShare", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedOn")
                         .HasColumnType("timestamp with time zone");
@@ -45,7 +46,7 @@ namespace LightSaver.Migrations.GlobalImageStoreDb
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("OriginUrl")
+                    b.Property<string>("Origin")
                         .IsRequired()
                         .HasColumnType("text");
 

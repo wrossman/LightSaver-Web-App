@@ -32,18 +32,13 @@ public class GlobalHelpers
         }
         return doc.DocumentNode.OuterHtml;
     }
-    public static string ComputeHashFromBytes(byte[] data)
+    public static string ComputeHashFromString(string data)
     {
         //thanks copilot
         using var sha256 = SHA256.Create();
-        byte[] hashBytes = sha256.ComputeHash(data);
+        byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(data));
 
-        // Convert to hex string
-        var builder = new StringBuilder();
-        foreach (var b in hashBytes)
-            builder.Append(b.ToString("x2"));
-
-        return builder.ToString();
+        return Convert.ToHexString(hashBytes);
     }
     public static bool VerifyImageUpload(List<IFormFile> images, int maxFiles)
     {

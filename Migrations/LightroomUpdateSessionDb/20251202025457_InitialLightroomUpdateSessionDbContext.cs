@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -21,7 +22,9 @@ namespace LightSaver.Migrations.LightroomUpdateSessionDb
                     Id = table.Column<string>(type: "text", nullable: false),
                     RokuId = table.Column<string>(type: "text", nullable: false),
                     ReadyForTransfer = table.Column<bool>(type: "boolean", nullable: false),
-                    Links = table.Column<Dictionary<string, string>>(type: "hstore", nullable: false)
+                    Links = table.Column<Dictionary<string, string>>(type: "hstore", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Expired = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
