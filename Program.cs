@@ -36,6 +36,8 @@ builder.Services.AddDbContext<GlobalImageStoreDbContext>(options =>
 builder.Services.AddDbContext<LightroomUpdateSessionDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
+builder.Services.AddMemoryCache();
+
 //add hosted services for session management and file transfers
 builder.Services.AddHostedService<RemoveStaleUserSessionsService>();
 builder.Services.AddHostedService<RemoveStaleRokuSessionsService>();
