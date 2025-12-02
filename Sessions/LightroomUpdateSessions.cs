@@ -2,12 +2,12 @@ using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-public class LightrooomUpdateSessions
+public class LightroomUpdateSessions
 {
-    private readonly ILogger<LightrooomUpdateSessions> _logger;
+    private readonly ILogger<LightroomUpdateSessions> _logger;
     private readonly LightroomUpdateSessionDbContext _updateSessionDb;
     public static ConcurrentQueue<string> SessionsReadyForTransfer { get; set; } = new();
-    public LightrooomUpdateSessions(ILogger<LightrooomUpdateSessions> logger, LightroomUpdateSessionDbContext updateSessionDb)
+    public LightroomUpdateSessions(ILogger<LightroomUpdateSessions> logger, LightroomUpdateSessionDbContext updateSessionDb)
     {
         _logger = logger;
         _updateSessionDb = updateSessionDb;

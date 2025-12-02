@@ -270,7 +270,7 @@ public static class RokuSessionEndpoints
 
         return Results.File(image, "image/jpeg");
     }
-    public static async Task<IResult> PollUpdateLightroom(HttpContext context, ILogger<LightrooomUpdateSessions> logger, LightrooomUpdateSessions updateSessions)
+    public static async Task<IResult> PollUpdateLightroom(HttpContext context, ILogger<LightroomUpdateSessions> logger, LightroomUpdateSessions updateSessions)
     {
         var body = await RokuSessions.ReadRokuPost(context);
         if (body == "fail")

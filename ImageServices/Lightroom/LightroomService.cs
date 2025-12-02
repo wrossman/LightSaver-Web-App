@@ -6,10 +6,10 @@ public sealed class LightroomService
     private readonly ILogger<LightroomService> _logger;
     private readonly GlobalStoreHelpers _store;
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly LightrooomUpdateSessions _updateSessions;
+    private readonly LightroomUpdateSessions _updateSessions;
     private readonly IConfiguration _config;
     private readonly SessionHelpers _sessionHelpers;
-    public LightroomService(ILogger<LightroomService> logger, IConfiguration config, GlobalStoreHelpers store, IServiceScopeFactory scopeFactory, LightrooomUpdateSessions updateSessions, SessionHelpers sessionHelpers)
+    public LightroomService(ILogger<LightroomService> logger, IConfiguration config, GlobalStoreHelpers store, IServiceScopeFactory scopeFactory, LightroomUpdateSessions updateSessions, SessionHelpers sessionHelpers)
     {
         _logger = logger;
         _store = store;
