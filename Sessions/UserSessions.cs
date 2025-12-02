@@ -120,10 +120,10 @@ public class UserSessions
 
         return true;
     }
-    public async Task<UserSession?> GetUserSession(string userSessiondId)
+    public async Task<UserSession?> GetUserSession(string userSessionId)
     {
         return await _userSessionDb.UserSessions
-                        .FirstOrDefaultAsync(s => s.Id == userSessiondId);
+                        .FirstOrDefaultAsync(s => s.Id == userSessionId);
     }
     public async Task ExpireUserSession(string userSessionId)
     {
