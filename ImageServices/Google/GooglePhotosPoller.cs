@@ -56,12 +56,10 @@ public class GooglePhotosPoller
             else if (responseJson.MediaItemsSet == false)
             {
                 _logger.LogInformation("Waiting for user to select photos.");
-                // return "done";
             }
             else if (DateTime.Now >= sessionStartTime.AddSeconds(timeout))
             {
                 _logger.LogWarning("Timeout reached for photo selection.");
-                // return "timeout";
             }
 
         }
