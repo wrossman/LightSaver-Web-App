@@ -13,7 +13,7 @@ public static class GooglePhotosEndpoints
     {
         return Results.Redirect(GlobalHelpers.BuildGoogleOAuthUrl(config));
     }
-    private static async Task<IResult> HandleOAuthResponse(HttpContext context, UserSessions users, GooglePhotosFlow googlePhotos, GoogleFlow google, ILogger<GoogleFlow> logger)
+    private static async Task<IResult> HandleOAuthResponse(HttpContext context, LinkSessions linkSessions, GooglePhotosFlow googlePhotos, GoogleFlow google, ILogger<GoogleFlow> logger)
     {
         var request = context.Request;
 
@@ -26,17 +26,23 @@ public static class GooglePhotosEndpoints
         if (authCodeString == string.Empty)
             return GlobalHelpers.CreateErrorPage("There was a problem retrieving the google authorization code.");
 
-        string? userSessionId;
-        if (!context.Request.Cookies.TryGetValue("UserSID", out userSessionId))
+        string? linkSessionId;
+        if (!context.Request.Cookies.TryGetValue("UserSID", out linkSessionId))
+        {
+            logger.LogWarning("Failed to get userid at google handle oauth response endpoint");
+            return GlobalHelpers.CreateErrorPage("LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
+        }
+        Guid sessionId;
+        if (!Guid.TryParse(linkSessionId, out sessionId))
         {
             logger.LogWarning("Failed to get userid at google handle oauth response endpoint");
             return GlobalHelpers.CreateErrorPage("LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
         }
 
-        UserSession? userSession = await users.GetUserSession(userSessionId);
-        if (userSession is null)
+        LinkSession? LinkSession = linkSessions.GetSession<LinkSession>(sessionId);
+        if (LinkSession is null)
         {
-            logger.LogWarning("Failed to get user session using sessionid at google handle oauth response endpoint");
+            logger.LogWarning("Failed to get user session using session id at google handle oauth response endpoint");
             return GlobalHelpers.CreateErrorPage("There was a problem linking your google account to lightsaver.");
         }
 
@@ -44,28 +50,28 @@ public static class GooglePhotosEndpoints
         if (accessTokenJson is null)
         {
             logger.LogWarning("Failed to retrieve access token from google oauth server");
-            await users.ExpireUserSession(userSession.Id);
+            linkSessions.ExpireSession(sessionId);
             return GlobalHelpers.CreateErrorPage("There was a problem linking your google account to lightsaver.");
         }
 
         string accessToken = accessTokenJson.AccessToken;
 
-        if (!await users.LinkAccessToken(accessToken, userSession))
+        if (!await linkSessions.LinkAccessToken(accessToken, sessionId))
         {
-            logger.LogWarning("Failed to link access token with userSessionId");
-            await users.ExpireUserSession(userSession.Id);
+            logger.LogWarning("Failed to link access token with LinkSessionId");
+            linkSessions.ExpireSession(sessionId);
             return GlobalHelpers.CreateErrorPage("LightSaver failed to link to google.");
         }
 
         string pickerUri;
         try
         {
-            pickerUri = await googlePhotos.StartGooglePhotosFlow(userSession);
+            pickerUri = await googlePhotos.StartGooglePhotosFlow(sessionId);
         }
         catch
         {
             logger.LogWarning("Failed to start google photo flow for user session");
-            await users.ExpireUserSession(userSession.Id);
+            linkSessions.ExpireSession(sessionId);
             return GlobalHelpers.CreateErrorPage("LightSaver is unable to connect to Google Photos.");
         }
 

@@ -21,31 +21,37 @@ public static class LightroomEndpoints
 
         return Results.Text(html, "text/html");
     }
-    public static async Task<IResult> PostAlbum([FromForm] string lrCode, IConfiguration config, HttpContext context, UserSessions users, LightroomService lightroom, ILogger<LightroomService> logger, IAntiforgery af)
+    public static async Task<IResult> PostAlbum([FromForm] string lrCode, IConfiguration config, HttpContext context, LinkSessions linkSessions, LightroomService lightroom, ILogger<LightroomService> logger, IAntiforgery af)
     {
         await af.ValidateRequestAsync(context);
 
-        string? userSessionId;
-        if (!context.Request.Cookies.TryGetValue("UserSID", out userSessionId))
+        string? linkSessionId;
+        if (!context.Request.Cookies.TryGetValue("UserSID", out linkSessionId))
         {
             logger.LogWarning("Failed to get userid at upload receive images endpoint");
             return GlobalHelpers.CreateErrorPage("LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
         }
-
-        UserSession? userSession = await users.GetUserSession(userSessionId);
-        if (userSession is null)
+        Guid sessionId;
+        if (!Guid.TryParse(linkSessionId, out sessionId))
         {
-            logger.LogWarning("Failed to get userssion from userid at upload receive images endpoint");
-            return GlobalHelpers.CreateErrorPage("Unable to retrieve your user session.", "<a href\"/user/session\">Please Try Again</a>");
+            logger.LogWarning("Failed to get userid at google handle oauth response endpoint");
+            return GlobalHelpers.CreateErrorPage("LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
         }
 
-        var result = await lightroom.GetImageUrisFromShortCodeAsync(lrCode, userSession.MaxScreenSize);
+        LinkSession? LinkSession = linkSessions.GetSession<LinkSession>(sessionId);
+        if (LinkSession is null)
+        {
+            logger.LogWarning("Failed to get session from userid at upload receive images endpoint");
+            return GlobalHelpers.CreateErrorPage("Unable to retrieve your user session.", "<a href\"/link/session\">Please Try Again</a>");
+        }
+
+        var result = await lightroom.GetImageUrisFromShortCodeAsync(lrCode, LinkSession.MaxScreenSize);
         var urlList = result.Item1;
         if (result.Item2 != "success" && urlList is null)
         {
             logger.LogWarning("Failed to get url list from lightroom album");
             logger.LogWarning("Failed with error: " + result.Item2);
-            await users.ExpireUserSession(userSessionId);
+            linkSessions.ExpireSession(sessionId);
             return GlobalHelpers.CreateErrorPage("Failed to get images from Lightroom album", "Please ensure that your album has synced and contains photos.");
         }
         else if (result.Item2 == "overflow")
@@ -56,16 +62,16 @@ public static class LightroomEndpoints
         }
         else if (result.Item1.Count <= 0)
         {
-            logger.LogWarning("Failed to retreive images from Lightroom album. Album had no images.");
-            await users.ExpireUserSession(userSessionId);
+            logger.LogWarning("Failed to retrieve images from Lightroom album. Album had no images.");
+            linkSessions.ExpireSession(sessionId);
             return GlobalHelpers.CreateErrorPage("Your Lightroom album has no images to load.", "Please update your album and <a href=\"/lightroom/select-album\">try again</a>");
         }
 
-        if (!await lightroom.LightroomFlow(urlList, userSession, lrCode))
+        if (!await lightroom.LightroomFlow(urlList, sessionId, lrCode))
         {
-            logger.LogWarning("Failed to retreive images from Lightroom album");
-            await users.ExpireUserSession(userSessionId);
-            return GlobalHelpers.CreateErrorPage("Failed to retreive Lightroom album images.");
+            logger.LogWarning("Failed to retrieve images from Lightroom album");
+            linkSessions.ExpireSession(sessionId);
+            return GlobalHelpers.CreateErrorPage("Failed to retrieve Lightroom album images.");
         }
 
         return Results.Redirect("/LightroomSuccess.html");

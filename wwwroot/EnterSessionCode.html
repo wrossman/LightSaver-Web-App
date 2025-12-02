@@ -120,6 +120,7 @@
             from {
                 opacity: 0;
             }
+
             to {
                 opacity: 1;
             }
@@ -179,10 +180,13 @@
         }
 
         @keyframes wave {
-            0%, 100% {
+
+            0%,
+            100% {
                 transform: scale(1);
                 opacity: 0.3;
             }
+
             50% {
                 transform: scale(1.5);
                 opacity: 0;
@@ -223,10 +227,12 @@
                 width: 0%;
                 margin-left: 0%;
             }
+
             50% {
                 width: 70%;
                 margin-left: 15%;
             }
+
             100% {
                 width: 0%;
                 margin-left: 100%;
@@ -239,7 +245,7 @@
     <div class="container">
         <h1>Enter your 7-character code</h1>
 
-        <form action="/user/source" method="post" novalidate>
+        <form action="/link/source" method="post" novalidate>
             <label for="code">7-character code</label>
             <input id="code" name="code" type="text" pattern="^[A-Z0-9]{7}$" maxlength="7" required
                 placeholder="A1B2C3D" aria-describedby="codeHint" />

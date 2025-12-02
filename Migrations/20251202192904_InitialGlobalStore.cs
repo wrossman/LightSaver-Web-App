@@ -3,10 +3,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace LightSaver.Migrations.GlobalImageStoreDb
+namespace LightSaver.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialGlobalImageStoreDbContext : Migration
+    public partial class InitialGlobalStore : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

@@ -1,9 +1,10 @@
 public record LightroomUpdateSession
 {
-    public string Id { get; set; } = "";
-    public string RokuId { get; set; } = "";
-    public bool ReadyForTransfer { get; set; } = false;
-    public Dictionary<string, string> Links { get; set; } = new();
-    public DateTime CreatedAt { get; set; }
-    public bool Expired { get; set; } = false;
+    public Guid Id { get; init; } = Guid.NewGuid();
+    public string Key { get; init; } = "";
+    public string RokuId { get; init; } = "";
+    public bool ReadyForTransfer { get; init; } = false;
+    public Dictionary<Guid, string> ResourcePackage { get; init; } = new();
+    public DateTime CreatedAt { get; init; }
+    public bool Expired { get; init; } = false;
 }

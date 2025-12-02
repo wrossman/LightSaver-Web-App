@@ -1,21 +1,26 @@
 using System.Security.Cryptography;
-using Microsoft.EntityFrameworkCore;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 public class UploadImages
 {
-    private readonly ILogger<UserSessions> _logger;
+    private readonly ILogger<LinkSessions> _logger;
     private readonly GlobalStoreHelpers _store;
-    private readonly SessionHelpers _sessionHelpers;
-    public UploadImages(ILogger<UserSessions> logger, GlobalStoreHelpers store, SessionHelpers sessionHelpers)
+    private readonly LinkSessions _linkSessions;
+    public UploadImages(ILogger<LinkSessions> logger, GlobalStoreHelpers store, LinkSessions linkSessions)
     {
         _logger = logger;
         _store = store;
-        _sessionHelpers = sessionHelpers;
+        _linkSessions = linkSessions;
     }
-    public async Task<bool> UploadImageFlow(List<IFormFile> images, UserSession userSession)
+    public async Task<bool> UploadImageFlow(List<IFormFile> images, Guid sessionId)
     {
+        var session = _linkSessions.GetSession<LinkSession>(sessionId);
+        if (session is null)
+            return false;
+
+        var updatedSession = session with { };
+
         foreach (var item in images)
         {
             if (item.Length <= 0) continue;
@@ -37,18 +42,23 @@ public class UploadImages
             {
                 Id = Guid.NewGuid(),
                 Key = key,
-                SessionCode = userSession.SessionCode,
+                SessionCode = session.SessionCode,
                 ImageStream = finalImg,
                 CreatedOn = DateTime.UtcNow,
-                FileType = "", // should i figure out how to get the filetype? it isnt really necessary for roku
-                RokuId = userSession.RokuId,
+                FileType = "", // should i figure out how to get the filetype? it isn't really necessary for roku
+                RokuId = session.RokuId,
                 Source = "upload"
             };
-            await _store.WriteResourceToStore(share, userSession.MaxScreenSize);
+            await _store.WriteResourceToStore(share, session.MaxScreenSize);
+            updatedSession.ResourcePackage.Add(share.Id, share.Key);
         }
 
-        await _sessionHelpers.SetReadyToTransfer(userSession.SessionCode);
-        return true;
+        _linkSessions.SetSession<LinkSession>(sessionId, updatedSession);
+
+        if (_linkSessions.SetReadyToTransfer(sessionId))
+            return true;
+        else
+            return false;
     }
     public byte[] FixOrientation(byte[] imageBytes)
     {

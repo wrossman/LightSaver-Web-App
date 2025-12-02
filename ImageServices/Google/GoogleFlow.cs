@@ -1,17 +1,13 @@
-using System.Net;
 using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
 public class GoogleFlow
 {
-    public GoogleFlow(ILogger<GoogleFlow> logger, IConfiguration config, UserSessionDbContext userSessionDb)
+    public GoogleFlow(ILogger<GoogleFlow> logger, IConfiguration config)
     {
         _logger = logger;
         _config = config;
-        _userSessionDb = userSessionDb;
     }
     private readonly ILogger<GoogleFlow> _logger;
     private readonly IConfiguration _config;
-    private readonly UserSessionDbContext _userSessionDb;
     public async Task<GoogleTokenResponse?> GetAccessToken(string code)
     {
         string clientId = _config["OAuth:ClientId"] ?? string.Empty;
@@ -38,7 +34,7 @@ public class GoogleFlow
         var jsonResponse = JsonSerializer.Deserialize<GoogleTokenResponse>(respContent);
         if (jsonResponse is null)
         {
-            _logger.LogWarning("Recieved an empty response from google oauth server");
+            _logger.LogWarning("Received an empty response from google oauth server");
             return null;
         }
         return jsonResponse;

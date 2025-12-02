@@ -1,0 +1,334 @@
+using System.Text.Json;
+using System.Net;
+using Microsoft.Extensions.Primitives;
+using Microsoft.AspNetCore.Mvc;
+public static class LinkSessionEndpoints
+{
+    public static void MapLinkSessionEndpoints(this IEndpointRouteBuilder app)
+    {
+        var group = app.MapGroup("/link")
+            .RequireRateLimiting("by-ip-policy");
+
+        group.MapPost("/code", ProvideSessionCode);
+        group.MapPost("/reception", RokuReception);
+        group.MapPost("/resource-package", (Delegate)ProvideResourcePackage);
+        group.MapGet("/get-resource", ProvideResource);
+        group.MapGet("/initial", InitialStartWallpaper);
+        group.MapPost("/revoke", RevokeAccess);
+        group.MapGet("/background", ProvideBackground);
+        group.MapPost("/update", PollUpdateLightroom);
+        group.MapGet("/session", CodeSubmissionPageUpload);
+        group.MapPost("/source", SelectSource);
+    }
+    private static async Task<IResult> ProvideSessionCode(HttpContext context, LinkSessions linkSessions, ILogger<LinkSessions> logger)
+    {
+        // should i use middleware to manage size restriction for post bodies and then include the json body model in the signature
+        var body = await GlobalHelpers.ReadRokuPost(context);
+        if (body == "fail")
+        {
+            logger.LogWarning("An oversized payload was received at roku session code provider endpoint");
+            return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
+        }
+
+        var remoteIpAddress = context.Request.HttpContext.Connection.RemoteIpAddress ?? new IPAddress(new byte[4]);
+        var jsonBody = JsonSerializer.Deserialize<RokuProvideSessionCodePostBody>(body);
+        var rokuId = jsonBody?.RokuId;
+        var maxScreenSize = jsonBody?.MaxScreenSize;
+
+        if (string.IsNullOrEmpty(rokuId) || maxScreenSize is null)
+        {
+            logger.LogWarning("Roku Id was not found in roku session code provider endpoint connection.");
+            return Results.BadRequest();
+        }
+        int maxScreenSizeInt = (int)maxScreenSize;
+
+        var sessionId = linkSessions.CreateLinkSession(remoteIpAddress, rokuId, maxScreenSizeInt);
+        var sessionCode = linkSessions.GetSessionCodeFromSession(sessionId);
+
+        return Results.Json(new { LinkSessionCode = sessionCode, LinkSessionId = sessionId });
+    }
+    private static async Task<IResult> RokuReception(HttpContext context, LinkSessions linkSessions, ILogger<LinkSessions> logger)
+    {    //be careful about what i return to the user because they cant be able to see what is a valid session code
+
+        //thanks copilot for helping me read the post request
+        var body = await GlobalHelpers.ReadRokuPost(context);
+        if (body == "fail")
+        {
+            logger.LogWarning("An oversized payload was received at roku session code provider endpoint");
+            return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
+        }
+
+        var jsonBody = JsonSerializer.Deserialize<RokuReceptionPostBody>(body);
+        var sessionId = jsonBody?.SessionId;
+        var rokuId = jsonBody?.RokuId;
+        var sessionCode = jsonBody?.SessionCode;
+
+        if (sessionId is null || sessionId == Guid.Empty || string.IsNullOrEmpty(rokuId) || string.IsNullOrEmpty(sessionCode))
+        {
+            logger.LogWarning("An invalid SessionCode was tried at roku reception endpoint");
+            return Results.NotFound("Media is not ready to be transferred.");
+        }
+
+        Guid id = (Guid)sessionId;
+        if (linkSessions.CheckReadyForTransfer(id, rokuId))
+            return Results.Content("Ready");
+        else
+            return Results.NotFound("Media is not ready to be transferred.");
+
+    }
+    private static async Task<IResult> ProvideResourcePackage(HttpContext context, LinkSessions linkSessions, GlobalStoreHelpers store, ILogger<LinkSessions> logger)
+    {
+        var body = await GlobalHelpers.ReadRokuPost(context);
+        if (body == "fail")
+        {
+            logger.LogWarning($"IP: {context.Connection.RemoteIpAddress} failed to retrieve resource package. Request payload was too large.");
+            return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
+        }
+
+        var jsonBody = JsonSerializer.Deserialize<RokuReceptionPostBody>(body);
+        var sessionId = jsonBody?.SessionId;
+        var rokuId = jsonBody?.RokuId;
+        var sessionCode = jsonBody?.SessionCode;
+
+        if (sessionId is null || sessionId == Guid.Empty || string.IsNullOrEmpty(rokuId) || string.IsNullOrEmpty(sessionCode))
+        {
+            logger.LogWarning("Invalid input was detected at the Provide Resource Endpoint.");
+            return Results.NotFound("Failed to retrieve resource package.");
+        }
+
+        Guid id = (Guid)sessionId;
+        var links = linkSessions.GetResourcePackage(id, sessionCode, rokuId);
+        if (links is null || links.Count == 0)
+        {
+            logger.LogWarning($"IP: {context.Connection.RemoteIpAddress} failed to retrieve resource package. Provided RokuId or SessionCode was invalid.");
+            return Results.BadRequest("Failed to retrieve resource package.");
+        }
+
+        //remove images from resource store that are from this roku but from old sessions
+        // this protects from storing old images that the device cant access
+        if (await store.ScrubOldImages(rokuId, sessionCode))
+            logger.LogInformation($"Scrubbed Image Resources of session id {id}");
+        else
+            logger.LogWarning($"Failed to scrub resources of session id {id}");
+
+        if (linkSessions.ExpireSession(id))
+            logger.LogInformation($"Set roku and user session with session id {id} for expiration due to resource package delivery.");
+        else
+            logger.LogWarning($"Failed to set expire for user and roku session with session id {id} after resource package delivery.");
+
+        logger.LogInformation($"Sending resource package for session id {id}");
+        return Results.Json(links);
+    }
+    private static IResult ProvideResource(HttpContext context, GlobalStoreHelpers store, ILogger<LinkSessions> logger)
+    {
+        StringValues inputKey;
+        StringValues inputResourceId;
+        StringValues inputDevice;
+        if (!context.Request.Headers.TryGetValue("Authorization", out inputKey))
+            return Results.Unauthorized();
+        if (!context.Request.Headers.TryGetValue("ResourceId", out inputResourceId))
+            return Results.Unauthorized();
+        if (!context.Request.Headers.TryGetValue("Device", out inputDevice))
+            return Results.Unauthorized();
+
+        string? key = inputKey;
+        string? resourceId = inputResourceId;
+        string? device = inputDevice;
+
+        if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(device) || string.IsNullOrEmpty(resourceId))
+            return Results.Unauthorized();
+
+        (byte[]? image, string? fileType) = store.GetResourceData(resourceId.ToString(), key.ToString(), device.ToString());
+
+        if (image is null || fileType is null)
+        {
+            logger.LogInformation("Old or incorrect keys were tried against the database.");
+            return Results.Unauthorized();
+        }
+
+        // For testing image output - this thing is dangerous, don't let it run for a long time because it writes to desktop unless you stop it
+        // store.WritePhotosToLocal(image, fileType);
+
+        return Results.File(image, $"image/{fileType}");
+    }
+    public static async Task<IResult> InitialStartWallpaper(IConfiguration config, HttpContext context, GlobalStoreHelpers store, LightroomService lightroom, ILogger<LinkSessions> logger)
+    {
+        StringValues inputKey;
+        StringValues inputResourceId;
+        StringValues inputDevice;
+        StringValues inputMaxScreenSize;
+        if (!context.Request.Headers.TryGetValue("Authorization", out inputKey))
+            return Results.Unauthorized();
+        if (!context.Request.Headers.TryGetValue("ResourceId", out inputResourceId))
+            return Results.Unauthorized();
+        if (!context.Request.Headers.TryGetValue("Device", out inputDevice))
+            return Results.Unauthorized();
+        if (!context.Request.Headers.TryGetValue("MaxScreenSize", out inputMaxScreenSize))
+            return Results.Unauthorized();
+
+        string? key = inputKey;
+        Guid resourceId;
+        string? rokuId = inputDevice;
+        int maxScreenSize;
+
+        if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(rokuId) || !Guid.TryParse(inputResourceId, out resourceId) || !Int32.TryParse(inputMaxScreenSize, out maxScreenSize))
+            return Results.Unauthorized();
+
+        logger.LogInformation($"Received Initial request from {context.Connection.RemoteIpAddress}");
+
+        var resourceReq = new ResourceRequest(resourceId, key, rokuId, maxScreenSize);
+
+        if (!(store.GetResourceSource(resourceReq) == "lightroom"))
+            return Results.Ok();
+
+        Guid? updateSessionId;
+        try
+        {
+            updateSessionId = await lightroom.UpdateRokuLinks(resourceReq, maxScreenSize);
+        }
+        catch (InvalidOperationException)
+        {
+            logger.LogWarning("Roku device tried to update a lightroom album but it had more than the max files allowed.");
+            return Results.Json(new { maxImages = config.GetValue<int>("MaxImages") });
+        }
+
+        if (updateSessionId is null || updateSessionId == Guid.Empty)
+            return Results.Ok();
+
+        logger.LogInformation($"Providing session key to client for album update.");
+
+        return Results.Content(updateSessionId.ToString());
+    }
+    private static async Task<IResult> RevokeAccess([FromBody] RevokeAccessPackage revokePackage, GlobalStoreHelpers store, ILogger<LinkSessions> logger)
+    {
+        logger.LogInformation($"Received revoke access package from roku with {revokePackage.Links.Count} resources.");
+
+        var failedRevoke = await store.RevokeResourcePackage(revokePackage);
+
+        if (failedRevoke.Links.Count > 0)
+        {
+            logger.LogWarning($"Failed to remove {failedRevoke.Links.Count} images from revoke package.");
+        }
+
+        return Results.Ok();
+    }
+    private static IResult ProvideBackground(HttpContext context, GlobalStoreHelpers store, ILogger<LinkSessions> logger)
+    {
+        StringValues inputKey;
+        StringValues inputResourceId;
+        StringValues inputDevice;
+        StringValues inputHeight;
+        StringValues inputWidth;
+        if (!context.Request.Headers.TryGetValue("Authorization", out inputKey))
+            return Results.Unauthorized();
+        if (!context.Request.Headers.TryGetValue("ResourceId", out inputResourceId))
+            return Results.Unauthorized();
+        if (!context.Request.Headers.TryGetValue("Device", out inputDevice))
+            return Results.Unauthorized();
+        if (!context.Request.Headers.TryGetValue("Height", out inputHeight))
+            return Results.Unauthorized();
+        if (!context.Request.Headers.TryGetValue("Width", out inputWidth))
+            return Results.Unauthorized();
+
+        string? key = inputKey;
+        string? resourceId = inputResourceId;
+        string? device = inputDevice;
+
+        if (string.IsNullOrEmpty(key) ||
+        string.IsNullOrEmpty(device) ||
+        string.IsNullOrEmpty(resourceId) ||
+        !int.TryParse(inputHeight, out var height) ||
+        !int.TryParse(inputWidth, out var width))
+        {
+            return Results.Unauthorized();
+        }
+
+        byte[]? image = store.GetBackgroundData(resourceId.ToString(), key.ToString(), device.ToString(), height, width);
+
+        if (image is null)
+        {
+            logger.LogInformation("Background image was unable to be created");
+            return Results.Unauthorized();
+        }
+
+        // For testing image output - this thing is dangerous, don't let it run for a long time because it writes to desktop unless you stop it
+        // store.WritePhotosToLocal(image, fileType);
+
+        return Results.File(image, "image/jpeg");
+    }
+    public static async Task<IResult> PollUpdateLightroom(HttpContext context, ILogger<LightroomUpdateSessions> logger, LightroomUpdateSessions updateSessions)
+    {
+        var body = await GlobalHelpers.ReadRokuPost(context);
+        if (body == "fail")
+        {
+            logger.LogWarning("An oversized payload was received at roku session code provider endpoint");
+            return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
+        }
+
+        var jsonBody = JsonSerializer.Deserialize<RokuUpdateLightroomPostBody>(body);
+        var sessionId = jsonBody?.Id;
+        var key = jsonBody?.Key;
+        var rokuId = jsonBody?.RokuId;
+
+        if (sessionId is null || sessionId == Guid.Empty || string.IsNullOrEmpty(key) || string.IsNullOrEmpty(rokuId))
+        {
+            logger.LogWarning("An invalid SessionCode was tried at roku reception endpoint");
+            return Results.Content("Media is not ready to be transferred.");
+        }
+
+        Guid id = (Guid)sessionId;
+        if (updateSessions.CheckReadyForTransfer(id, rokuId))
+        {
+            updateSessions.ExpireSession(id);
+            var resourcePackage = updateSessions.GetResourcePackage(id, key, rokuId);
+            return Results.Json(resourcePackage);
+        }
+        else
+            return Results.Content("Media is not ready to be transferred.");
+    }
+    private static IResult CodeSubmissionPageUpload(IWebHostEnvironment env, HttpContext context)
+    {
+        // append test cookie to response, read it at code submission page and redirect if cookies aren't allowed
+        context.Response.Cookies.Append("AllowCookie", "LightSaver", new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Lax,
+            Path = "/"
+        });
+        return Results.File(env.WebRootPath + "/EnterSessionCode.html", "text/html");
+    }
+    private async static Task<IResult> SelectSource(IWebHostEnvironment env, LinkSessions linkSessions, HttpContext context, ILogger<LinkSessions> logger)
+    {
+        // try get test cookie
+        string? testCookie;
+        if (!context.Request.Cookies.TryGetValue("AllowCookie", out testCookie))
+            return GlobalHelpers.CreateErrorPage("Photo selection failed. LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
+
+        var rokuCodeForm = await context.Request.ReadFormAsync();
+        if (rokuCodeForm is null)
+            return Results.BadRequest();
+
+        string? sessionCode = rokuCodeForm["code"];
+        if (sessionCode is null)
+            return Results.BadRequest();
+
+        Guid sessionId;
+        if (!LinkSessions.SessionCodeMap.TryGetValue(sessionCode, out sessionId))
+        {
+            return GlobalHelpers.CreateErrorPage("Unable to find session.", "Please try again.");
+        }
+
+        logger.LogInformation($"User submitted {sessionCode}");
+
+        context.Response.Cookies.Append("UserSID", sessionId.ToString(), new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Lax,
+            Path = "/"
+        });
+
+        return Results.File(env.WebRootPath + "/SelectImgSource.html", "text/html");
+    }
+}
