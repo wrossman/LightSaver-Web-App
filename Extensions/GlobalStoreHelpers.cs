@@ -221,7 +221,6 @@ public class GlobalStoreHelpers
                 continue;
 
             imgs.Add(resource.Id, resource.Key);
-            _logger.LogInformation($"Added still valid image: {item} to updatePackage");
         }
 
         return imgs;

@@ -74,7 +74,6 @@ public class UploadImages
                 else
                     return imageBytes;
 
-                _logger.LogInformation("Rotating uploaded image. Orientation number: " + orientationShort);
                 switch (orientationShort)
                 {
                     case 2: image.Mutate(x => x.Flip(FlipMode.Horizontal)); break;

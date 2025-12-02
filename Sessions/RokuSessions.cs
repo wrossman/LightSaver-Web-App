@@ -53,16 +53,6 @@ public class RokuSessions
             }
         } while (retry);
 
-        string rokuSessionLog = "";
-        rokuSessionLog += "Finished saving the following roku session to rokuSession database:\n";
-        foreach (PropertyInfo prop in session.GetType().GetProperties())
-        {
-            var name = prop.Name;
-            var value = prop.GetValue(session, null);
-            rokuSessionLog += $"{name} = {value}\n";
-        }
-        _logger.LogInformation(rokuSessionLog);
-
         return session;
     }
     private async Task<string> GenerateSessionId()

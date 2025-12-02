@@ -36,14 +36,6 @@ public class UserSessions
         // add check to ensure that the data was written
         await _userSessionDb.SaveChangesAsync();
 
-        string sessionLog = "The following session was written to the database:";
-        foreach (PropertyInfo prop in session.GetType().GetProperties())
-        {
-            var name = prop.Name;
-            var value = prop.GetValue(session, null);
-            sessionLog += $"\n{name} = {value}";
-        }
-        _logger.LogInformation(sessionLog);
         return session.Id;
     }
     public async Task<string> CreateUploadUserSession(IPAddress ipAddress, string sessionCode)
@@ -65,14 +57,6 @@ public class UserSessions
         // add check to ensure that the data was written
         await _userSessionDb.SaveChangesAsync();
 
-        string sessionLog = "The following session was written to the database:";
-        foreach (PropertyInfo prop in session.GetType().GetProperties())
-        {
-            var name = prop.Name;
-            var value = prop.GetValue(session, null);
-            sessionLog += $"\n{name} = {value}";
-        }
-        _logger.LogInformation(sessionLog);
         return session.Id;
     }
     public async Task<UserSession> CreateUserSession(IPAddress ipAddress, string sessionCode)
@@ -93,14 +77,6 @@ public class UserSessions
         // add check to ensure that the data was written
         await _userSessionDb.SaveChangesAsync();
 
-        string sessionLog = "The following user session was written to the database:";
-        foreach (PropertyInfo prop in session.GetType().GetProperties())
-        {
-            var name = prop.Name;
-            var value = prop.GetValue(session, null);
-            sessionLog += $"\n{name} = {value}";
-        }
-        _logger.LogInformation(sessionLog);
         return session;
     }
     private async Task<string> GenerateSessionId()

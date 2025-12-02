@@ -64,7 +64,7 @@ public static class GooglePhotosEndpoints
         }
         catch
         {
-            logger.LogWarning("Failed to start google photo flow for user session id " + userSession.Id);
+            logger.LogWarning("Failed to start google photo flow for user session");
             await users.ExpireUserSession(userSession.Id);
             return GlobalHelpers.CreateErrorPage("LightSaver is unable to connect to Google Photos.");
         }
