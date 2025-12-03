@@ -1,7 +1,7 @@
 public record ImageShare
 {
-    public Guid Id { get; init; } = Guid.NewGuid();
-    public string Key { get; init; } = "";
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Key { get; set; } = "";
     public string SessionCode { get; set; } = "";
     public byte[] ImageStream { get; set; } = new byte[0];
     public DateTime CreatedOn { get; init; }

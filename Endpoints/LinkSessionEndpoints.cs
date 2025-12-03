@@ -70,7 +70,7 @@ public static class LinkSessionEndpoints
         }
 
         Guid id = (Guid)sessionId;
-        if (linkSessions.CheckReadyForTransfer(id, rokuId))
+        if (linkSessions.CheckReadyForTransfer(id, rokuId, sessionCode))
             return Results.Content("Ready");
         else
             return Results.NotFound("Media is not ready to be transferred.");
@@ -138,7 +138,7 @@ public static class LinkSessionEndpoints
         if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(device) || string.IsNullOrEmpty(resourceId))
             return Results.Unauthorized();
 
-        (byte[]? image, string? fileType) = store.GetResourceData(resourceId.ToString(), key.ToString(), device.ToString());
+        (byte[]? image, string? fileType) = store.GetResourceData(resourceId, key, device);
 
         if (image is null || fileType is null)
         {
@@ -181,23 +181,25 @@ public static class LinkSessionEndpoints
         if (!(store.GetResourceSource(resourceReq) == "lightroom"))
             return Results.Ok();
 
-        Guid? updateSessionId;
+        (Guid, string)? sessionResult;
         try
         {
-            updateSessionId = await lightroom.UpdateRokuLinks(resourceReq, maxScreenSize);
+            sessionResult = await lightroom.UpdateRokuLinks(resourceReq, maxScreenSize);
         }
         catch (InvalidOperationException)
         {
             logger.LogWarning("Roku device tried to update a lightroom album but it had more than the max files allowed.");
-            return Results.Json(new { maxImages = config.GetValue<int>("MaxImages") });
+            return Results.Content($"overflow: {config.GetValue<int>("MaxImages").ToString()}");
         }
 
-        if (updateSessionId is null || updateSessionId == Guid.Empty)
+        if (sessionResult is null)
             return Results.Ok();
 
         logger.LogInformation($"Providing session key to client for album update.");
 
-        return Results.Content(updateSessionId.ToString());
+        var (sessionId, sessionKey) = sessionResult.Value;
+
+        return Results.Json(new { SessionId = sessionId, SessionKey = sessionKey });
     }
     private static async Task<IResult> RevokeAccess([FromBody] RevokeAccessPackage revokePackage, GlobalStoreHelpers store, ILogger<LinkSessions> logger)
     {
@@ -243,7 +245,7 @@ public static class LinkSessionEndpoints
             return Results.Unauthorized();
         }
 
-        byte[]? image = store.GetBackgroundData(resourceId.ToString(), key.ToString(), device.ToString(), height, width);
+        byte[]? image = store.GetBackgroundData(resourceId, key, device, height, width);
 
         if (image is null)
         {
@@ -265,26 +267,31 @@ public static class LinkSessionEndpoints
             return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
         }
 
+        // logger.LogInformation(body);
+
         var jsonBody = JsonSerializer.Deserialize<RokuUpdateLightroomPostBody>(body);
-        var sessionId = jsonBody?.Id;
+        var sessionIdString = jsonBody?.Id;
         var key = jsonBody?.Key;
         var rokuId = jsonBody?.RokuId;
+        Guid id;
 
-        if (sessionId is null || sessionId == Guid.Empty || string.IsNullOrEmpty(key) || string.IsNullOrEmpty(rokuId))
+        if (string.IsNullOrEmpty(sessionIdString) || string.IsNullOrEmpty(key) || string.IsNullOrEmpty(rokuId) || !Guid.TryParse(sessionIdString, out id))
         {
             logger.LogWarning("An invalid SessionCode was tried at roku reception endpoint");
             return Results.Content("Media is not ready to be transferred.");
         }
 
-        Guid id = (Guid)sessionId;
-        if (updateSessions.CheckReadyForTransfer(id, rokuId))
+        if (updateSessions.CheckReadyForTransfer(id, rokuId, key))
         {
-            updateSessions.ExpireSession(id);
             var resourcePackage = updateSessions.GetResourcePackage(id, key, rokuId);
+            updateSessions.ExpireSession(id);
             return Results.Json(resourcePackage);
         }
         else
+        {
+            logger.LogInformation("Check ready for transfer returned false");
             return Results.Content("Media is not ready to be transferred.");
+        }
     }
     private static IResult CodeSubmissionPageUpload(IWebHostEnvironment env, HttpContext context)
     {

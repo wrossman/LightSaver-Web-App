@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Security.Cryptography;
 using Microsoft.Extensions.Caching.Memory;
 public class LightroomUpdateSessions
 {
@@ -12,6 +13,8 @@ public class LightroomUpdateSessions
     }
     public T? GetSession<T>(Guid id)
     {
+        string session = $"{typeof(T).Name}:{id}";
+        _logger.LogInformation($"Getting lightroom update session {session}");
         return _sessionCache.Get<T>($"{typeof(T).Name}:{id}");
     }
     public T SetSession<T>(Guid id, T session)
@@ -23,18 +26,27 @@ public class LightroomUpdateSessions
     }
     public string Key<T>(Guid id)
     {
+        string session = $"{typeof(T).Name}:{id}";
+        _logger.LogInformation($"Created lightroom update session: {session}");
         return $"{typeof(T).Name}:{id}";
     }
     public void RemoveSession<T>(Guid id)
     {
         _sessionCache.Remove(id);
     }
-    public Guid CreateUpdateSession(string rokuId)
+    public (Guid, string) CreateUpdateSession(string rokuId)
     {
         Guid id = Guid.NewGuid();
+
+        var bytes = new byte[32];
+        RandomNumberGenerator.Fill(bytes);
+        var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        var keyDerivation = Pbkdf2Hasher.Hash(key);
+
         LightroomUpdateSession session = new()
         {
             Id = id,
+            Key = keyDerivation,
             RokuId = rokuId,
             ReadyForTransfer = false,
             CreatedAt = DateTime.UtcNow
@@ -42,34 +54,52 @@ public class LightroomUpdateSessions
 
         SetSession<LightroomUpdateSession>(id, session);
 
-        return id;
+        return (id, key);
     }
     public bool SetReadyToTransfer(Guid id)
     {
         var session = GetSession<LightroomUpdateSession>(id);
         if (session is null)
+        {
+            _logger.LogInformation("Set ready to transfer session was null");
             return false;
-
+        }
         var updated = session with { ReadyForTransfer = true };
 
         SetSession<LightroomUpdateSession>(id, updated);
-
+        _logger.LogInformation($"Set ready to transfer for session {id}");
         return true;
     }
-    public bool CheckReadyForTransfer(Guid id, string rokuId)
+    public bool CheckReadyForTransfer(Guid id, string rokuId, string key)
     {
         var session = GetSession<LightroomUpdateSession>(id);
 
+        System.Console.WriteLine(id);
+        System.Console.WriteLine(rokuId);
+        System.Console.WriteLine(key);
+
         if (session is null)
+        {
+            _logger.LogInformation("Session was null");
             return false;
+        }
 
         if (session.RokuId != rokuId)
+        {
+            _logger.LogInformation("roku id did not match");
             return false;
+        }
 
-        if (session.ReadyForTransfer == true)
-            return true;
+        if (Pbkdf2Hasher.Verify(key, session.Key))
+        {
+            _logger.LogInformation($"Session ready for transfer = {session.ReadyForTransfer}");
+            return session.ReadyForTransfer;
+        }
         else
+        {
+            _logger.LogInformation("key was not correct");
             return false;
+        }
     }
     public bool WriteLinksToSession(Dictionary<Guid, string> updatePackage, Guid id)
     {
@@ -102,9 +132,14 @@ public class LightroomUpdateSessions
         if (session is null)
             return null;
 
-        if (session.RokuId != rokuId || session.Key != key)
+        if (session.RokuId != rokuId)
             return null;
-        else
+
+        if (Pbkdf2Hasher.Verify(key, session.Key))
+        {
             return session.ResourcePackage;
+        }
+        else
+            return null;
     }
 }
