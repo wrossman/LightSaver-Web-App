@@ -212,11 +212,9 @@ public static class LinkSessionEndpoints
         StringValues inputKey;
         StringValues inputResourceId;
         StringValues inputDevice;
-        if (!context.Request.Headers.TryGetValue("Authorization", out inputKey))
-            return Results.Unauthorized();
-        if (!context.Request.Headers.TryGetValue("ResourceId", out inputResourceId))
-            return Results.Unauthorized();
-        if (!context.Request.Headers.TryGetValue("Device", out inputDevice))
+        if (!context.Request.Headers.TryGetValue("Authorization", out inputKey)
+        || !context.Request.Headers.TryGetValue("ResourceId", out inputResourceId)
+        || !context.Request.Headers.TryGetValue("Device", out inputDevice))
             return Results.Unauthorized();
 
         string? key = inputKey;
@@ -226,18 +224,26 @@ public static class LinkSessionEndpoints
         if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(device) || string.IsNullOrEmpty(resourceId))
             return Results.Unauthorized();
 
-        (byte[]? image, string? fileType) = store.GetResourceData(resourceId, key, device);
-
-        if (image is null || fileType is null)
+        (byte[] Image, string FileType) resource;
+        try
         {
-            logger.LogInformation("Old or incorrect keys were tried against the database.");
+            resource = store.GetResourceData(resourceId, key, device);
+        }
+        catch (ArgumentException e)
+        {
+            logger.LogError(e, "Client tried an invalid resource Id at the Provide Resource Endpoint.");
+            return Results.Unauthorized();
+        }
+        catch (AuthenticationException e)
+        {
+            logger.LogError(e, "Client tried an invalid key at the Provide Resource Endpoint");
             return Results.Unauthorized();
         }
 
         // For testing image output - this thing is dangerous, don't let it run for a long time because it writes to desktop unless you stop it
         // store.WritePhotosToLocal(image, fileType);
 
-        return Results.File(image, $"image/{fileType}");
+        return Results.File(resource.Image, $"image/{resource.FileType}");
     }
     public static async Task<IResult> InitialStartWallpaper(IConfiguration config, HttpContext context, GlobalStoreHelpers store, LightroomService lightroom, ILogger<LinkSessions> logger)
     {
@@ -245,13 +251,10 @@ public static class LinkSessionEndpoints
         StringValues inputResourceId;
         StringValues inputDevice;
         StringValues inputMaxScreenSize;
-        if (!context.Request.Headers.TryGetValue("Authorization", out inputKey))
-            return Results.Unauthorized();
-        if (!context.Request.Headers.TryGetValue("ResourceId", out inputResourceId))
-            return Results.Unauthorized();
-        if (!context.Request.Headers.TryGetValue("Device", out inputDevice))
-            return Results.Unauthorized();
-        if (!context.Request.Headers.TryGetValue("MaxScreenSize", out inputMaxScreenSize))
+        if (!context.Request.Headers.TryGetValue("Authorization", out inputKey)
+        || !context.Request.Headers.TryGetValue("ResourceId", out inputResourceId)
+        || !context.Request.Headers.TryGetValue("Device", out inputDevice)
+        || !context.Request.Headers.TryGetValue("MaxScreenSize", out inputMaxScreenSize))
             return Results.Unauthorized();
 
         string? key = inputKey;
@@ -266,18 +269,31 @@ public static class LinkSessionEndpoints
 
         var resourceReq = new ResourceRequest(resourceId, key, rokuId, maxScreenSize);
 
-        if (!(store.GetResourceSource(resourceReq) == "lightroom"))
-            return Results.Ok();
+        try
+        {
+            if (!(store.GetResourceSource(resourceReq) == "lightroom"))
+                return Results.Ok();
+        }
+        catch (AuthenticationException)
+        {
+            logger.LogWarning("Client tried invalid resource request to initial get endpoint.");
+            return Results.Unauthorized();
+        }
 
         (Guid, string)? sessionResult;
         try
         {
-            sessionResult = await lightroom.UpdateRokuLinks(resourceReq, maxScreenSize);
+            sessionResult = await lightroom.UpdateRokuLinks(resourceReq);
         }
         catch (InvalidOperationException)
         {
             logger.LogWarning("Roku device tried to update a lightroom album but it had more than the max files allowed.");
             return Results.Json(new { maxImages = config.GetValue<int>("MaxImages").ToString() });
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Unexpected error occurred while getting updated roku links.");
+            return Results.StatusCode(StatusCodes.Status500InternalServerError);
         }
 
         if (sessionResult is null)

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
+using System.Security.Authentication;
 using System.Security.Cryptography;
 public class GlobalStoreHelpers
 {
@@ -41,29 +42,30 @@ public class GlobalStoreHelpers
         _resourceDb.Resources.Add(resource);
         await _resourceDb.SaveChangesAsync();
     }
-    public (byte[]? image, string? fileType) GetResourceData(string location, string key, string device)
+    public (byte[] image, string fileType) GetResourceData(string id, string key, string device)
     {
         var item = _resourceDb.Resources
-        .Where(img => img.Id.ToString() == location && img.RokuId == device)
+        .Where(img => img.Id.ToString() == id && img.RokuId == device)
         .Select(img => img).SingleOrDefault();
 
         if (item is null)
-            return (null, null);
+        {
+            throw new ArgumentException();
+        }
 
         if (Pbkdf2Hasher.Verify(key, item.Key))
         {
-            _logger.LogInformation($"Successfully verified key {key} with {item.Key}");
             return (item.ImageStream, item.FileType);
         }
         else
         {
             _logger.LogWarning("Failed to verify key against stored hash value in image store.");
-            return (null, null);
+            throw new AuthenticationException();
         }
     }
-    public byte[]? GetBackgroundData(string location, string key, string device, int height, int width)
+    public byte[]? GetBackgroundData(string id, string key, string device, int height, int width)
     {
-        var result = GetResourceData(location, key, device);
+        var result = GetResourceData(id, key, device);
 
         if (result.image is null || result.fileType is null)
             return null;
@@ -84,42 +86,28 @@ public class GlobalStoreHelpers
     }
     public string GetResourceSource(ResourceRequest resourceReq)
     {
-        Guid resourceId = resourceReq.Id;
-        string key = resourceReq.Key;
-        string rokuId = resourceReq.RokuId;
-
         var item = _resourceDb.Resources
-        .Where(img => img.Id == resourceId && img.RokuId == rokuId).SingleOrDefault();
+        .Where(img => img.Id == resourceReq.Id && img.RokuId == resourceReq.RokuId).SingleOrDefault();
 
-        if (item is null)
-            return "Unknown";
-
-        if (Pbkdf2Hasher.Verify(key, item.Key))
-        {
-            _logger.LogInformation($"Successfully verified key {key} with {item.Key}");
-            return item.Source;
-        }
-        else
+        if (item is null || !Pbkdf2Hasher.Verify(resourceReq.Key, item.Key))
         {
             _logger.LogWarning("Failed to verify key against stored hash value in image store.");
-            return "Unknown";
+            throw new AuthenticationException();
         }
+
+        return item.Source;
+
     }
     public string GetResourceLightroomAlbum(ResourceRequest resourceReq)
     {
-        Guid resourceId = resourceReq.Id;
-        string key = resourceReq.Key;
-        string rokuId = resourceReq.RokuId;
-
         var item = _resourceDb.Resources
-        .Where(img => img.Id == resourceId && img.RokuId == rokuId).SingleOrDefault();
+        .Where(img => img.Id == resourceReq.Id && img.RokuId == resourceReq.RokuId).SingleOrDefault();
 
         if (item is null)
             return "";
 
-        if (Pbkdf2Hasher.Verify(key, item.Key))
+        if (Pbkdf2Hasher.Verify(resourceReq.Key, item.Key))
         {
-            _logger.LogInformation($"Successfully verified key {key} with {item.Key}");
             return item.LightroomAlbum;
         }
         else

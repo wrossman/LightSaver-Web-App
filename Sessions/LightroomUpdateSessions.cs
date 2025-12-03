@@ -92,7 +92,6 @@ public class LightroomUpdateSessions
 
         if (Pbkdf2Hasher.Verify(key, session.Key))
         {
-            _logger.LogInformation($"Session ready for transfer = {session.ReadyForTransfer}");
             return session.ReadyForTransfer;
         }
         else
