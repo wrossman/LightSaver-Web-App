@@ -37,11 +37,12 @@ public class UploadImages
             var bytes = new byte[32];
             RandomNumberGenerator.Fill(bytes);
             var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+            var keyDerivation = Pbkdf2Hasher.Hash(key);
 
             ImageShare share = new()
             {
                 Id = Guid.NewGuid(),
-                Key = key,
+                Key = keyDerivation,
                 SessionCode = session.SessionCode,
                 ImageStream = finalImg,
                 CreatedOn = DateTime.UtcNow,
@@ -50,7 +51,7 @@ public class UploadImages
                 Source = "upload"
             };
             await _store.WriteResourceToStore(share, session.MaxScreenSize);
-            updatedSession.ResourcePackage.Add(share.Id, share.Key);
+            updatedSession.ResourcePackage.Add(share.Id, key);
         }
 
         _linkSessions.SetSession<LinkSession>(sessionId, updatedSession);

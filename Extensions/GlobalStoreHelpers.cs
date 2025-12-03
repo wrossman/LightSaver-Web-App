@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
+using System.Security.Cryptography;
 public class GlobalStoreHelpers
 {
     private readonly ILogger<GlobalStoreHelpers> _logger;
@@ -43,26 +44,33 @@ public class GlobalStoreHelpers
     public (byte[]? image, string? fileType) GetResourceData(string location, string key, string device)
     {
         var item = _resourceDb.Resources
-        .Where(img => img.Id.ToString() == location && img.Key == key && img.RokuId == device)
-        .Select(img => img).SingleOrDefault();
-
-        if (item is not null)
-            return (item.ImageStream, item.FileType);
-        else
-            return (null, null);
-    }
-    public byte[]? GetBackgroundData(string location, string key, string device, int height, int width)
-    {
-        var item = _resourceDb.Resources
-        .Where(img => img.Id.ToString() == location && img.Key == key && img.RokuId == device)
+        .Where(img => img.Id.ToString() == location && img.RokuId == device)
         .Select(img => img).SingleOrDefault();
 
         if (item is null)
+            return (null, null);
+
+        if (Pbkdf2Hasher.Verify(key, item.Key))
+        {
+            _logger.LogInformation($"Successfully verified key {key} with {item.Key}");
+            return (item.ImageStream, item.FileType);
+        }
+        else
+        {
+            _logger.LogWarning("Failed to verify key against stored hash value in image store.");
+            return (null, null);
+        }
+    }
+    public byte[]? GetBackgroundData(string location, string key, string device, int height, int width)
+    {
+        var result = GetResourceData(location, key, device);
+
+        if (result.image is null || result.fileType is null)
             return null;
 
         try
         {
-            using var image = Image.Load(item.ImageStream);
+            using var image = Image.Load(result.image);
             image.Mutate(x => x.GaussianBlur(50f).Resize(width, height));
             using var outputStream = new MemoryStream();
             image.Save(outputStream, new JpegEncoder());
@@ -81,24 +89,44 @@ public class GlobalStoreHelpers
         string rokuId = resourceReq.RokuId;
 
         var item = _resourceDb.Resources
-        .Where(img => img.Id == resourceId && img.Key == key && img.RokuId == rokuId)
-        .Select(img => img.Source).SingleOrDefault();
+        .Where(img => img.Id == resourceId && img.RokuId == rokuId).SingleOrDefault();
 
-        if (string.IsNullOrEmpty(item))
+        if (item is null)
             return "Unknown";
 
-        return item;
+        if (Pbkdf2Hasher.Verify(key, item.Key))
+        {
+            _logger.LogInformation($"Successfully verified key {key} with {item.Key}");
+            return item.Source;
+        }
+        else
+        {
+            _logger.LogWarning("Failed to verify key against stored hash value in image store.");
+            return "Unknown";
+        }
     }
     public string GetResourceLightroomAlbum(ResourceRequest resourceReq)
     {
+        Guid resourceId = resourceReq.Id;
+        string key = resourceReq.Key;
+        string rokuId = resourceReq.RokuId;
+
         var item = _resourceDb.Resources
-        .Where(img => img.Id == resourceReq.Id && img.Key == resourceReq.Key && img.RokuId == resourceReq.RokuId)
-        .Select(img => img.LightroomAlbum).SingleOrDefault();
+        .Where(img => img.Id == resourceId && img.RokuId == rokuId).SingleOrDefault();
 
-        if (string.IsNullOrEmpty(item))
-            return "Unknown";
+        if (item is null)
+            return "";
 
-        return item;
+        if (Pbkdf2Hasher.Verify(key, item.Key))
+        {
+            _logger.LogInformation($"Successfully verified key {key} with {item.Key}");
+            return item.LightroomAlbum;
+        }
+        else
+        {
+            _logger.LogWarning("Failed to verify key against stored hash value in image store.");
+            return "";
+        }
     }
     public async Task<bool> ScrubOldImages(string rokuId, string sessionCode)
     {
@@ -216,13 +244,30 @@ public class GlobalStoreHelpers
 
         foreach (var item in imgsToKeep)
         {
+            string hash = GlobalHelpers.ComputeHashFromString(item);
             var resource = await _resourceDb.Resources
-            .FirstOrDefaultAsync(r => r.Origin == item);
+            .FirstOrDefaultAsync(r => r.Origin == hash);
 
             if (resource is null)
                 continue;
 
-            imgs.Add(resource.Id, resource.Key);
+            var bytes = new byte[32];
+            RandomNumberGenerator.Fill(bytes);
+            var newKey = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+            var keyDerivation = Pbkdf2Hasher.Hash(newKey);
+
+            var newResource = resource with
+            {
+                Key = keyDerivation,
+                Id = Guid.NewGuid()
+            };
+
+            _resourceDb.Resources.Remove(resource);
+            await _resourceDb.Resources.AddAsync(newResource);
+
+            await _resourceDb.SaveChangesAsync();
+
+            imgs.Add(newResource.Id, newKey);
         }
 
         return imgs;

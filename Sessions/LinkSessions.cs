@@ -55,7 +55,7 @@ public class LinkSessions
 
         return true;
     }
-    public bool CheckReadyForTransfer(Guid id, string rokuId)
+    public bool CheckReadyForTransfer(Guid id, string rokuId, string sessionCode)
     {
         var session = GetSession<LinkSession>(id);
 
@@ -63,6 +63,9 @@ public class LinkSessions
             return false;
 
         if (session.RokuId != rokuId)
+            return false;
+
+        if (session.SessionCode != sessionCode)
             return false;
 
         if (session.ReadyForTransfer == true)

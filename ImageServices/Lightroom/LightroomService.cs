@@ -246,13 +246,14 @@ public sealed class LightroomService
             var bytes = new byte[32];
             RandomNumberGenerator.Fill(bytes);
             var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+            var keyDerivation = Pbkdf2Hasher.Hash(key);
 
             byte[] data = await client.GetByteArrayAsync(item);
 
             ImageShare share = new()
             {
                 Id = Guid.NewGuid(),
-                Key = key,
+                Key = keyDerivation,
                 SessionCode = session.SessionCode,
                 ImageStream = data,
                 CreatedOn = DateTime.UtcNow,
@@ -263,7 +264,7 @@ public sealed class LightroomService
                 LightroomAlbum = shortCode
             };
             await _store.WriteResourceToStore(share, session.MaxScreenSize);
-            updatedSession.ResourcePackage.Add(share.Id, share.Key);
+            updatedSession.ResourcePackage.Add(share.Id, key);
         }
 
         _linkSessions.SetSession<LinkSession>(sessionId, updatedSession);
@@ -335,7 +336,7 @@ public sealed class LightroomService
         // Never found matching closing brace
         return null;
     }
-    public async Task<Guid?> UpdateRokuLinks(ResourceRequest resourceReq, int maxScreenSize)
+    public async Task<(Guid, string)?> UpdateRokuLinks(ResourceRequest resourceReq, int maxScreenSize)
     {
         string albumUrl = _store.GetResourceLightroomAlbum(resourceReq);
         var result = await GetImageUrisFromShortCodeAsync(albumUrl, maxScreenSize);
@@ -346,12 +347,14 @@ public sealed class LightroomService
             await _store.RemoveByLightroomAlbum(albumUrl);
             return null;
         }
+
         if (result.Item2 != "success" && newImgs is null)
         {
             _logger.LogWarning("Failed to get url list from lightroom album");
             _logger.LogWarning("Failed with error: " + result.Item2);
             return null;
         }
+
         if (result.Item2 == "overflow")
         {
             throw new InvalidOperationException();
@@ -377,17 +380,25 @@ public sealed class LightroomService
             return null;
         else
         {
-            var sessionId = _updateSessions.CreateUpdateSession(resourceReq.RokuId);
+            var sessionResult = _updateSessions.CreateUpdateSession(resourceReq.RokuId);
             _ = Task.Run(async () =>
             {
-                using (var scope = _scopeFactory.CreateScope())
+                try
                 {
-                    var lightroom = scope.ServiceProvider.GetRequiredService<LightroomService>();
-                    await lightroom.UpdateLightroomImagesAsync(oldImgs, newImgsDic, albumUrl, resourceReq, sessionId);
+                    using (var scope = _scopeFactory.CreateScope())
+                    {
+                        var lightroom = scope.ServiceProvider.GetRequiredService<LightroomService>();
+                        await lightroom.UpdateLightroomImagesAsync(oldImgs, newImgsDic, albumUrl, resourceReq, sessionResult.Item1);
+                    }
                 }
+                catch (Exception e)
+                {
+                    _logger.LogInformation($"Fire and forget failed with error {e.Message}");
+                }
+
             });
 
-            return sessionId;
+            return (sessionResult.Item1, sessionResult.Item2);
         }
     }
     public async Task UpdateLightroomImagesAsync(List<string> oldImgs, Dictionary<string, string> newImgs, string albumUrl, ResourceRequest resourceReq, Guid sessionId)
@@ -431,13 +442,14 @@ public sealed class LightroomService
             var bytes = new byte[32];
             RandomNumberGenerator.Fill(bytes);
             var newKey = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+            var keyDerivation = Pbkdf2Hasher.Hash(newKey);
 
             byte[] data = await client.GetByteArrayAsync(item);
 
             ImageShare share = new()
             {
                 Id = Guid.NewGuid(),
-                Key = newKey,
+                Key = keyDerivation,
                 SessionCode = "",
                 ImageStream = data,
                 CreatedOn = DateTime.UtcNow,
@@ -448,7 +460,7 @@ public sealed class LightroomService
                 LightroomAlbum = albumUrl
             };
             await _store.WriteResourceToStore(share, resourceReq.MaxScreenSize);
-            updatePackage.Add(share.Id, share.Key);
+            updatePackage.Add(share.Id, newKey);
         }
         _updateSessions.WriteLinksToSession(updatePackage, sessionId);
         _updateSessions.SetReadyToTransfer(sessionId);

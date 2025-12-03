@@ -106,13 +106,14 @@ public class GooglePhotosPoller
             var bytes = new byte[32];
             RandomNumberGenerator.Fill(bytes);
             var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+            var keyDerivation = Pbkdf2Hasher.Hash(key);
 
             byte[] data = await client.GetByteArrayAsync(item.Key);
 
             ImageShare share = new()
             {
                 Id = Guid.NewGuid(),
-                Key = key,
+                Key = keyDerivation,
                 SessionCode = session.SessionCode,
                 ImageStream = data,
                 CreatedOn = DateTime.UtcNow,
@@ -122,7 +123,7 @@ public class GooglePhotosPoller
                 Origin = GlobalHelpers.ComputeHashFromString(item.Key)
             };
             await _store.WriteResourceToStore(share, session.MaxScreenSize);
-            updatedSession.ResourcePackage.Add(share.Id, share.Key);
+            updatedSession.ResourcePackage.Add(share.Id, key);
         }
         _linkSessions.SetSession<LinkSession>(linkSessionId, updatedSession);
     }
