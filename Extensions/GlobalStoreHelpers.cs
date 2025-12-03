@@ -48,31 +48,29 @@ public class GlobalStoreHelpers
         .Where(img => img.Id.ToString() == id && img.RokuId == device)
         .Select(img => img).SingleOrDefault();
 
-        if (item is null)
+        if (item is null || !Pbkdf2Hasher.Verify(key, item.Key))
         {
-            throw new ArgumentException();
-        }
-
-        if (Pbkdf2Hasher.Verify(key, item.Key))
-        {
-            return (item.ImageStream, item.FileType);
-        }
-        else
-        {
-            _logger.LogWarning("Failed to verify key against stored hash value in image store.");
             throw new AuthenticationException();
         }
+
+        return (item.ImageStream, item.FileType);
     }
     public byte[]? GetBackgroundData(string id, string key, string device, int height, int width)
     {
-        var result = GetResourceData(id, key, device);
-
-        if (result.image is null || result.fileType is null)
+        (byte[] Image, string FileType) result;
+        try
+        {
+            result = GetResourceData(id, key, device);
+        }
+        catch (AuthenticationException)
+        {
+            _logger.LogWarning("Incorrect keys were tried at the get background data method.");
             return null;
+        }
 
         try
         {
-            using var image = Image.Load(result.image);
+            using var image = Image.Load(result.Image);
             image.Mutate(x => x.GaussianBlur(50f).Resize(width, height));
             using var outputStream = new MemoryStream();
             image.Save(outputStream, new JpegEncoder());

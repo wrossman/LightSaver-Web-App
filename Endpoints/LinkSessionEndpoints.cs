@@ -325,15 +325,11 @@ public static class LinkSessionEndpoints
         StringValues inputDevice;
         StringValues inputHeight;
         StringValues inputWidth;
-        if (!context.Request.Headers.TryGetValue("Authorization", out inputKey))
-            return Results.Unauthorized();
-        if (!context.Request.Headers.TryGetValue("ResourceId", out inputResourceId))
-            return Results.Unauthorized();
-        if (!context.Request.Headers.TryGetValue("Device", out inputDevice))
-            return Results.Unauthorized();
-        if (!context.Request.Headers.TryGetValue("Height", out inputHeight))
-            return Results.Unauthorized();
-        if (!context.Request.Headers.TryGetValue("Width", out inputWidth))
+        if (!context.Request.Headers.TryGetValue("Authorization", out inputKey)
+        || !context.Request.Headers.TryGetValue("ResourceId", out inputResourceId)
+        || !context.Request.Headers.TryGetValue("Device", out inputDevice)
+        || !context.Request.Headers.TryGetValue("Height", out inputHeight)
+        || !context.Request.Headers.TryGetValue("Width", out inputWidth))
             return Results.Unauthorized();
 
         string? key = inputKey;
@@ -353,8 +349,7 @@ public static class LinkSessionEndpoints
 
         if (image is null)
         {
-            logger.LogInformation("Background image was unable to be created");
-            return Results.Unauthorized();
+            return Results.Empty;
         }
 
         // For testing image output - this thing is dangerous, don't let it run for a long time because it writes to desktop unless you stop it
@@ -380,30 +375,51 @@ public static class LinkSessionEndpoints
             return Results.StatusCode(StatusCodes.Status500InternalServerError);
         }
 
-        // logger.LogInformation(body);
-
-        var jsonBody = JsonSerializer.Deserialize<RokuUpdateLightroomPostBody>(body);
-        var sessionIdString = jsonBody?.Id;
-        var key = jsonBody?.Key;
-        var rokuId = jsonBody?.RokuId;
-        Guid id;
-
-        if (string.IsNullOrEmpty(sessionIdString) || string.IsNullOrEmpty(key) || string.IsNullOrEmpty(rokuId) || !Guid.TryParse(sessionIdString, out id))
+        RokuUpdateLightroomPostBody? jsonBody;
+        try
         {
-            logger.LogWarning("An invalid SessionCode was tried at roku reception endpoint");
-            return Results.Content("Media is not ready to be transferred.");
+            jsonBody = JsonSerializer.Deserialize<RokuUpdateLightroomPostBody>(body);
+            if (jsonBody is null)
+            {
+                logger.LogWarning("Request body could not be deserialized into RokuProvideSessionCodePostBody.");
+                return Results.BadRequest("Invalid request body.");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Invalid JSON received at Roku session code provider endpoint.");
+            return Results.BadRequest("Invalid JSON.");
         }
 
-        if (updateSessions.CheckReadyForTransfer(id, rokuId, key))
+        Guid id = jsonBody.Id;
+        var key = jsonBody.Key;
+        var rokuId = jsonBody.RokuId;
+
+        if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(rokuId) || id == Guid.Empty)
         {
-            var resourcePackage = updateSessions.GetResourcePackage(id, key, rokuId);
-            updateSessions.ExpireSession(id);
-            return Results.Json(resourcePackage);
+            logger.LogWarning("Invalid body was posted to lightroom update polling endpoint.");
+            return Results.Unauthorized();
         }
-        else
+
+        try
         {
-            logger.LogInformation("Check ready for transfer returned false");
-            return Results.Content("Media is not ready to be transferred.");
+            if (updateSessions.CheckReadyForTransfer(id, rokuId, key))
+            {
+                var resourcePackage = updateSessions.GetResourcePackage(id, key, rokuId);
+                updateSessions.ExpireSession(id);
+                return Results.Json(resourcePackage);
+            }
+            else
+            {
+                logger.LogInformation("Check ready for transfer returned false");
+                return Results.Content("Media is not ready to be transferred.");
+            }
+        }
+        catch (AuthenticationException)
+        {
+            logger.LogError("User tried invalid keys at Poll Update Lightroom endpoint.");
+            return Results.Unauthorized();
         }
     }
     private static IResult CodeSubmissionPageUpload(IWebHostEnvironment env, HttpContext context)

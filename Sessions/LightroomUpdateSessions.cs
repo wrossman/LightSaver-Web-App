@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Security.Authentication;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Caching.Memory;
 public class LightroomUpdateSessions
@@ -13,8 +14,6 @@ public class LightroomUpdateSessions
     }
     public T? GetSession<T>(Guid id)
     {
-        string session = $"{typeof(T).Name}:{id}";
-        _logger.LogInformation($"Getting lightroom update session {session}");
         return _sessionCache.Get<T>($"{typeof(T).Name}:{id}");
     }
     public T SetSession<T>(Guid id, T session)
@@ -26,8 +25,6 @@ public class LightroomUpdateSessions
     }
     public string Key<T>(Guid id)
     {
-        string session = $"{typeof(T).Name}:{id}";
-        _logger.LogInformation($"Created lightroom update session: {session}");
         return $"{typeof(T).Name}:{id}";
     }
     public void RemoveSession<T>(Guid id)
@@ -74,31 +71,13 @@ public class LightroomUpdateSessions
     {
         var session = GetSession<LightroomUpdateSession>(id);
 
-        System.Console.WriteLine(id);
-        System.Console.WriteLine(rokuId);
-        System.Console.WriteLine(key);
-
-        if (session is null)
+        if (session is null || session.RokuId != rokuId || !Pbkdf2Hasher.Verify(key, session.Key))
         {
-            _logger.LogInformation("Session was null");
-            return false;
+            throw new AuthenticationException();
         }
 
-        if (session.RokuId != rokuId)
-        {
-            _logger.LogInformation("roku id did not match");
-            return false;
-        }
+        return session.ReadyForTransfer;
 
-        if (Pbkdf2Hasher.Verify(key, session.Key))
-        {
-            return session.ReadyForTransfer;
-        }
-        else
-        {
-            _logger.LogInformation("key was not correct");
-            return false;
-        }
     }
     public bool WriteLinksToSession(Dictionary<Guid, string> updatePackage, Guid id)
     {
@@ -116,7 +95,10 @@ public class LightroomUpdateSessions
     {
         var session = GetSession<LightroomUpdateSession>(id);
         if (session is null)
+        {
+            _logger.LogWarning($"Failed to expire session with id {id} due to session not found.");
             return false;
+        }
 
         var updated = session with { Expired = true };
 
@@ -128,17 +110,10 @@ public class LightroomUpdateSessions
     {
         var session = GetSession<LightroomUpdateSession>(id);
 
-        if (session is null)
-            return null;
+        if (session is null || session.RokuId != rokuId || !Pbkdf2Hasher.Verify(key, session.Key))
+            throw new AuthenticationException();
 
-        if (session.RokuId != rokuId)
-            return null;
+        return session.ResourcePackage;
 
-        if (Pbkdf2Hasher.Verify(key, session.Key))
-        {
-            return session.ResourcePackage;
-        }
-        else
-            return null;
     }
 }
