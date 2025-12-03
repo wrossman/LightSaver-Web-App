@@ -81,40 +81,70 @@ public static class LinkSessionEndpoints
     }
     private static async Task<IResult> RokuReception(HttpContext context, LinkSessions linkSessions, ILogger<LinkSessions> logger)
     {    //be careful about what i return to the user because they cant be able to see what is a valid session code
-
-        //thanks copilot for helping me read the post request
-        var body = await GlobalHelpers.ReadRokuPost(context);
-        if (body == "fail")
+        string body;
+        try
+        {
+            body = await GlobalHelpers.ReadRokuPost(context);
+        }
+        catch (ArgumentException)
         {
             logger.LogWarning("An oversized payload was received at roku session code provider endpoint");
             return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
         }
-
-        var jsonBody = JsonSerializer.Deserialize<RokuReceptionPostBody>(body);
-        var sessionId = jsonBody?.SessionId;
-        var rokuId = jsonBody?.RokuId;
-        var sessionCode = jsonBody?.SessionCode;
-
-        if (sessionId is null || sessionId == Guid.Empty || string.IsNullOrEmpty(rokuId) || string.IsNullOrEmpty(sessionCode))
+        catch (Exception e)
         {
-            logger.LogWarning("An invalid SessionCode was tried at roku reception endpoint");
-            return Results.NotFound("Media is not ready to be transferred.");
+            logger.LogError(e, "An unknown error occurred: ");
+            return Results.StatusCode(StatusCodes.Status500InternalServerError);
         }
 
-        Guid id = (Guid)sessionId;
-        if (linkSessions.CheckReadyForTransfer(id, rokuId, sessionCode))
+        RokuReceptionPostBody? jsonBody;
+        try
+        {
+            jsonBody = JsonSerializer.Deserialize<RokuReceptionPostBody>(body);
+            if (jsonBody is null)
+            {
+                logger.LogWarning("Request body could not be deserialized into RokuProvideSessionCodePostBody.");
+                return Results.BadRequest("Invalid request body.");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Invalid JSON received at Roku session code provider endpoint.");
+            return Results.BadRequest("Invalid JSON.");
+        }
+
+        var sessionId = jsonBody.SessionId;
+        var rokuId = jsonBody.RokuId;
+        var sessionCode = jsonBody.SessionCode;
+
+        if (sessionId == Guid.Empty || string.IsNullOrEmpty(rokuId) || string.IsNullOrEmpty(sessionCode))
+        {
+            logger.LogWarning("An invalid SessionCode was tried at roku reception endpoint");
+            return Results.BadRequest("Media is not ready to be transferred.");
+        }
+
+        if (linkSessions.CheckReadyForTransfer(sessionId, rokuId, sessionCode))
             return Results.Content("Ready");
         else
-            return Results.NotFound("Media is not ready to be transferred.");
-
+            return Results.BadRequest("Media is not ready to be transferred.");
     }
     private static async Task<IResult> ProvideResourcePackage(HttpContext context, LinkSessions linkSessions, GlobalStoreHelpers store, ILogger<LinkSessions> logger)
     {
-        var body = await GlobalHelpers.ReadRokuPost(context);
-        if (body == "fail")
+        string body;
+        try
         {
-            logger.LogWarning($"IP: {context.Connection.RemoteIpAddress} failed to retrieve resource package. Request payload was too large.");
+            body = await GlobalHelpers.ReadRokuPost(context);
+        }
+        catch (ArgumentException)
+        {
+            logger.LogWarning("An oversized payload was received at roku session code provider endpoint");
             return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "An unknown error occurred: ");
+            return Results.StatusCode(StatusCodes.Status500InternalServerError);
         }
 
         var jsonBody = JsonSerializer.Deserialize<RokuReceptionPostBody>(body);
@@ -292,11 +322,20 @@ public static class LinkSessionEndpoints
     }
     public static async Task<IResult> PollUpdateLightroom(HttpContext context, ILogger<LightroomUpdateSessions> logger, LightroomUpdateSessions updateSessions)
     {
-        var body = await GlobalHelpers.ReadRokuPost(context);
-        if (body == "fail")
+        string body;
+        try
+        {
+            body = await GlobalHelpers.ReadRokuPost(context);
+        }
+        catch (ArgumentException)
         {
             logger.LogWarning("An oversized payload was received at roku session code provider endpoint");
             return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "An unknown error occurred: ");
+            return Results.StatusCode(StatusCodes.Status500InternalServerError);
         }
 
         // logger.LogInformation(body);
