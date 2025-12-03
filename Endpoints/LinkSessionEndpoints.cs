@@ -189,7 +189,7 @@ public static class LinkSessionEndpoints
         catch (InvalidOperationException)
         {
             logger.LogWarning("Roku device tried to update a lightroom album but it had more than the max files allowed.");
-            return Results.Content($"overflow: {config.GetValue<int>("MaxImages").ToString()}");
+            return Results.Json(new { maxImages = config.GetValue<int>("MaxImages").ToString() });
         }
 
         if (sessionResult is null)
