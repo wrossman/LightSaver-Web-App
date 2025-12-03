@@ -23,27 +23,59 @@ public static class LinkSessionEndpoints
     private static async Task<IResult> ProvideSessionCode(HttpContext context, LinkSessions linkSessions, ILogger<LinkSessions> logger)
     {
         // should i use middleware to manage size restriction for post bodies and then include the json body model in the signature
-        var body = await GlobalHelpers.ReadRokuPost(context);
-        if (body == "fail")
+        string body;
+        try
+        {
+            body = await GlobalHelpers.ReadRokuPost(context);
+        }
+        catch (ArgumentException)
         {
             logger.LogWarning("An oversized payload was received at roku session code provider endpoint");
             return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
         }
+        catch (Exception e)
+        {
+            logger.LogError(e, "An unknown error occurred: ");
+            return Results.StatusCode(StatusCodes.Status500InternalServerError);
+        }
 
         var remoteIpAddress = context.Request.HttpContext.Connection.RemoteIpAddress ?? new IPAddress(new byte[4]);
-        var jsonBody = JsonSerializer.Deserialize<RokuProvideSessionCodePostBody>(body);
-        var rokuId = jsonBody?.RokuId;
-        var maxScreenSize = jsonBody?.MaxScreenSize;
-
-        if (string.IsNullOrEmpty(rokuId) || maxScreenSize is null)
+        RokuProvideSessionCodePostBody? jsonBody;
+        try
         {
-            logger.LogWarning("Roku Id was not found in roku session code provider endpoint connection.");
+            jsonBody = JsonSerializer.Deserialize<RokuProvideSessionCodePostBody>(body);
+            if (jsonBody is null)
+            {
+                logger.LogWarning("Request body could not be deserialized into RokuProvideSessionCodePostBody.");
+                return Results.BadRequest("Invalid request body.");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Invalid JSON received at Roku session code provider endpoint.");
+            return Results.BadRequest("Invalid JSON.");
+        }
+
+        var rokuId = jsonBody.RokuId;
+        var maxScreenSize = jsonBody.MaxScreenSize;
+        if (string.IsNullOrEmpty(rokuId) || maxScreenSize == 0)
+        {
+            logger.LogWarning("Roku Id or maxScreen size was not found in roku session code provider endpoint connection.");
             return Results.BadRequest();
         }
-        int maxScreenSizeInt = (int)maxScreenSize;
 
-        var sessionId = linkSessions.CreateLinkSession(remoteIpAddress, rokuId, maxScreenSizeInt);
-        var sessionCode = linkSessions.GetSessionCodeFromSession(sessionId);
+        var sessionId = linkSessions.CreateLinkSession(remoteIpAddress, rokuId, maxScreenSize);
+        string sessionCode;
+        try
+        {
+            sessionCode = linkSessions.GetSessionCodeFromSession(sessionId);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to get session from created session Id");
+            return Results.StatusCode(StatusCodes.Status500InternalServerError);
+        }
 
         return Results.Json(new { LinkSessionCode = sessionCode, LinkSessionId = sessionId });
     }

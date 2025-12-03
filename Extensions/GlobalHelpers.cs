@@ -86,7 +86,7 @@ public class GlobalHelpers
             totalBytes += bytesRead;
 
             if (totalBytes > maxBytes)
-                return "fail";
+                throw new ArgumentException();
 
             await memoryStream.WriteAsync(buffer, 0, bytesRead);
         }

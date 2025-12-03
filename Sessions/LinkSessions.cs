@@ -90,7 +90,10 @@ public class LinkSessions
         var session = GetSession<LinkSession>(id);
 
         if (session is null)
+        {
             _logger.LogWarning("Tried to access session code of null session");
+            throw new InvalidOperationException();
+        }
 
         return session?.SessionCode ?? "";
     }
