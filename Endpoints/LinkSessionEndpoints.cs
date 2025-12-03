@@ -437,8 +437,7 @@ public static class LinkSessionEndpoints
     private async static Task<IResult> SelectSource(IWebHostEnvironment env, LinkSessions linkSessions, HttpContext context, ILogger<LinkSessions> logger)
     {
         // try get test cookie
-        string? testCookie;
-        if (!context.Request.Cookies.TryGetValue("AllowCookie", out testCookie))
+        if (!context.Request.Cookies.TryGetValue("AllowCookie", out _))
             return GlobalHelpers.CreateErrorPage("Photo selection failed. LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
 
         var rokuCodeForm = await context.Request.ReadFormAsync();
@@ -452,7 +451,7 @@ public static class LinkSessionEndpoints
         Guid sessionId;
         if (!LinkSessions.SessionCodeMap.TryGetValue(sessionCode, out sessionId))
         {
-            return GlobalHelpers.CreateErrorPage("Unable to find session.", "Please try again.");
+            return GlobalHelpers.CreateErrorPage("Unable to find session.", "<a href=\"/link/session\">Please Try Again</a>");
         }
 
         logger.LogInformation($"User submitted {sessionCode}");

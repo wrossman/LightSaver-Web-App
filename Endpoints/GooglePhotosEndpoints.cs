@@ -19,9 +19,11 @@ public static class GooglePhotosEndpoints
 
         if (context.Request.Query.ContainsKey("error"))
             return GlobalHelpers.CreateErrorPage("There was a problem allowing <strong>Lightsaver</strong> to access your photos.");
+
         var authCode = request.Query["code"];
         if (authCode == StringValues.Empty)
             return GlobalHelpers.CreateErrorPage("There was a problem retrieving the google authorization code.");
+
         string authCodeString = authCode.ToString();
         if (authCodeString == string.Empty)
             return GlobalHelpers.CreateErrorPage("There was a problem retrieving the google authorization code.");
@@ -32,6 +34,7 @@ public static class GooglePhotosEndpoints
             logger.LogWarning("Failed to get userid at google handle oauth response endpoint");
             return GlobalHelpers.CreateErrorPage("LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
         }
+
         Guid sessionId;
         if (!Guid.TryParse(linkSessionId, out sessionId))
         {
@@ -54,13 +57,11 @@ public static class GooglePhotosEndpoints
             return GlobalHelpers.CreateErrorPage("There was a problem linking your google account to lightsaver.");
         }
 
-        string accessToken = accessTokenJson.AccessToken;
-
-        if (!await linkSessions.LinkAccessToken(accessToken, sessionId))
+        if (!await linkSessions.LinkAccessToken(accessTokenJson.AccessToken, sessionId))
         {
             logger.LogWarning("Failed to link access token with LinkSessionId");
             linkSessions.ExpireSession(sessionId);
-            return GlobalHelpers.CreateErrorPage("LightSaver failed to link to google.");
+            return GlobalHelpers.CreateErrorPage("LightSaver failed to link to google.", "Please Try Again");
         }
 
         string pickerUri;
