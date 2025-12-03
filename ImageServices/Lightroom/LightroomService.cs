@@ -336,10 +336,10 @@ public sealed class LightroomService
         // Never found matching closing brace
         return null;
     }
-    public async Task<(Guid, string)?> UpdateRokuLinks(ResourceRequest resourceReq, int maxScreenSize)
+    public async Task<(Guid, string)?> UpdateRokuLinks(ResourceRequest resourceReq)
     {
         string albumUrl = _store.GetResourceLightroomAlbum(resourceReq);
-        var result = await GetImageUrisFromShortCodeAsync(albumUrl, maxScreenSize);
+        var result = await GetImageUrisFromShortCodeAsync(albumUrl, resourceReq.MaxScreenSize);
         var newImgs = result.Item1;
 
         if (result.Item2 == "Failed to retrieve any images from album.")
