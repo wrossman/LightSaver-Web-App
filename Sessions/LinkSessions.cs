@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Net;
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Caching.Memory;
+using System.Security.Authentication;
 public class LinkSessions
 {
     private readonly ILogger<LinkSessions> _logger;
@@ -97,15 +98,12 @@ public class LinkSessions
 
         return session?.SessionCode ?? "";
     }
-    public Dictionary<Guid, string>? GetResourcePackage(Guid id, string sessionCode, string rokuId)
+    public Dictionary<Guid, string> GetResourcePackage(Guid id, string sessionCode, string rokuId)
     {
         var session = GetSession<LinkSession>(id);
 
-        if (session is null)
-            return null;
-
-        if (session.RokuId != rokuId || session.SessionCode != sessionCode)
-            return null;
+        if (session is null || session.RokuId != rokuId || session.SessionCode != sessionCode)
+            throw new AuthenticationException();
         else
             return session.ResourcePackage;
     }

@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Net;
 using Microsoft.Extensions.Primitives;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Authentication;
 public static class LinkSessionEndpoints
 {
     public static void MapLinkSessionEndpoints(this IEndpointRouteBuilder app)
@@ -147,38 +148,63 @@ public static class LinkSessionEndpoints
             return Results.StatusCode(StatusCodes.Status500InternalServerError);
         }
 
-        var jsonBody = JsonSerializer.Deserialize<RokuReceptionPostBody>(body);
-        var sessionId = jsonBody?.SessionId;
-        var rokuId = jsonBody?.RokuId;
-        var sessionCode = jsonBody?.SessionCode;
+        RokuReceptionPostBody? jsonBody;
+        try
+        {
+            jsonBody = JsonSerializer.Deserialize<RokuReceptionPostBody>(body);
+            if (jsonBody is null)
+            {
+                logger.LogWarning("Request body could not be deserialized into RokuProvideSessionCodePostBody.");
+                return Results.BadRequest("Invalid request body.");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Invalid JSON received at Roku session code provider endpoint.");
+            return Results.BadRequest("Invalid JSON.");
+        }
 
-        if (sessionId is null || sessionId == Guid.Empty || string.IsNullOrEmpty(rokuId) || string.IsNullOrEmpty(sessionCode))
+        var sessionId = jsonBody.SessionId;
+        var rokuId = jsonBody.RokuId;
+        var sessionCode = jsonBody.SessionCode;
+
+        if (sessionId == Guid.Empty || string.IsNullOrEmpty(rokuId) || string.IsNullOrEmpty(sessionCode))
         {
             logger.LogWarning("Invalid input was detected at the Provide Resource Endpoint.");
             return Results.NotFound("Failed to retrieve resource package.");
         }
 
-        Guid id = (Guid)sessionId;
-        var links = linkSessions.GetResourcePackage(id, sessionCode, rokuId);
-        if (links is null || links.Count == 0)
+        Dictionary<Guid, string> links;
+        try
         {
-            logger.LogWarning($"IP: {context.Connection.RemoteIpAddress} failed to retrieve resource package. Provided RokuId or SessionCode was invalid.");
-            return Results.BadRequest("Failed to retrieve resource package.");
+            links = linkSessions.GetResourcePackage(sessionId, sessionCode, rokuId);
+        }
+        catch (AuthenticationException e)
+        {
+            logger.LogError(e, "User tried to access a session with incorrect credentials.");
+            return Results.Unauthorized();
+        }
+
+        if (links.Count == 0)
+        {
+            logger.LogWarning($"User tried to retrieve an empty resource package.");
+            return Results.StatusCode(StatusCodes.Status500InternalServerError);
         }
 
         //remove images from resource store that are from this roku but from old sessions
         // this protects from storing old images that the device cant access
         if (await store.ScrubOldImages(rokuId, sessionCode))
-            logger.LogInformation($"Scrubbed Image Resources of session id {id}");
+            logger.LogInformation($"Scrubbed Image Resources of session id {sessionId}");
         else
-            logger.LogWarning($"Failed to scrub resources of session id {id}");
+            logger.LogWarning($"Failed to scrub resources of session id {sessionId}");
 
-        if (linkSessions.ExpireSession(id))
-            logger.LogInformation($"Set roku and user session with session id {id} for expiration due to resource package delivery.");
+        if (linkSessions.ExpireSession(sessionId))
+            logger.LogInformation($"Set roku and user session with session id {sessionId} for expiration due to resource package delivery.");
         else
-            logger.LogWarning($"Failed to set expire for user and roku session with session id {id} after resource package delivery.");
+            logger.LogWarning($"Failed to set expire for user and roku session with session id {sessionId} after resource package delivery.");
 
-        logger.LogInformation($"Sending resource package for session id {id}");
+        logger.LogInformation($"Sending resource package for session id {sessionId}");
         return Results.Json(links);
     }
     private static IResult ProvideResource(HttpContext context, GlobalStoreHelpers store, ILogger<LinkSessions> logger)
