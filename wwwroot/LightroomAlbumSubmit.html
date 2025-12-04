@@ -11,41 +11,38 @@
 <body class="page-lightroom-submit">
     <div class="container">
         <div class="brand-title">LightSaver</div>
-        <h1>Link Your Lightroom Album</h1>
-        <p class="hint">
-            Enter only the code at the end of your public Lightroom URL.
-        </p>
+        <div class="prompt-content">
+            <h1>Link Your Lightroom Album</h1>
+            <p class="hint">
+                Enter only the code at the end of your public Lightroom URL.
+            </p>
 
-        <form id="lrForm" action="/lightroom/post-album" method="post" novalidate>
-            <input type="hidden" name="__RequestVerificationToken" value="{{CSRF_TOKEN}}">
-            <label for="lrCode">Lightroom album code</label>
+            <form id="lrForm" action="/lightroom/post-album" method="post" novalidate>
+                <input type="hidden" name="__RequestVerificationToken" value="{{CSRF_TOKEN}}">
+                <label for="lrCode">Lightroom album code</label>
 
-            <div class="input-row">
-                <span class="prefix">https://adobe.ly/</span>
-                <input id="lrCode" name="lrCode" type="text" maxlength="16" placeholder="XXXXXXX"
-                    pattern="^[A-Za-z0-9]{4,16}$" required />
-            </div>
+                <div class="input-row">
+                    <span class="prefix">https://adobe.ly/</span>
+                    <input id="lrCode" name="lrCode" type="text" maxlength="16" placeholder="XXXXXXX"
+                        pattern="^[A-Za-z0-9]{4,16}$" required />
+                </div>
 
-            <div class="small-hint">
-                Example full URL:
-                <strong>https://adobe.ly/<u>XXXXXXX</u></strong><br />
-                Only enter the underlined part.
-            </div>
+                <div class="small-hint">
+                    Example full URL:
+                    <strong>https://adobe.ly/<u>XXXXXXX</u></strong><br />
+                    Only enter the underlined part.
+                </div>
 
-            <button id="submitBtn" type="submit">Continue</button>
-        </form>
+                <button id="submitBtn" type="submit">Continue</button>
+            </form>
+        </div>
     </div>
 
     <!-- Loading overlay -->
     <div id="loadingOverlay" class="loading-overlay" hidden>
         <div class="loading-box">
             <div class="loading-animation">
-                <div class="loading-wave"></div>
-                <div class="loading-inner"></div>
-            </div>
-            <div class="loading-text">Submitting, please wait…</div>
-            <div class="loading-progress">
-                <div class="loading-progress-bar"></div>
+                <div class="loading-spinner"></div>
             </div>
         </div>
     </div>

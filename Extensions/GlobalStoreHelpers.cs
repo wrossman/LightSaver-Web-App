@@ -152,10 +152,17 @@ public class GlobalStoreHelpers
         foreach (var item in links)
         {
             var session = await _resourceDb.Resources
-            .FirstOrDefaultAsync(x => x.Key == item.Value && x.Id.ToString() == item.Key && x.RokuId == rokuId);
+            .FirstOrDefaultAsync(x => x.Id == item.Key && x.RokuId == rokuId);
 
             if (session == null)
             {
+                failedRevoke.Links.Add(item.Key, item.Value);
+                continue;
+            }
+
+            if (!Pbkdf2Hasher.Verify(item.Value, session.Key))
+            {
+                _logger.LogWarning("An incorrect key was passed in a revoke resource package.");
                 failedRevoke.Links.Add(item.Key, item.Value);
                 continue;
             }
