@@ -125,6 +125,9 @@ public static class LinkSessionEndpoints
             return Results.BadRequest("Media is not ready to be transferred.");
         }
 
+        if (linkSessions.CheckExpired(sessionId, rokuId, sessionCode))
+            return Results.Content("Expired");
+
         if (linkSessions.CheckReadyForTransfer(sessionId, rokuId, sessionCode))
             return Results.Content("Ready");
         else
@@ -312,9 +315,9 @@ public static class LinkSessionEndpoints
         var failedRevoke = await store.RevokeResourcePackage(revokePackage);
 
         if (failedRevoke.Links.Count > 0)
-        {
             logger.LogWarning($"Failed to remove {failedRevoke.Links.Count} images from revoke package.");
-        }
+        else
+            logger.LogInformation($"Removed {revokePackage.Links.Count} images from resource database.");
 
         return Results.Ok();
     }

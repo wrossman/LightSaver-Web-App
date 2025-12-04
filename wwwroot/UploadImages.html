@@ -9,44 +9,39 @@
 </head>
 
 <body class="page-upload-images">
-    <div class="container">
+    <div class="container upload-container">
         <div class="brand-title">LightSaver</div>
-        <h1>Upload Images</h1>
-
-        <div class="upload-area">
-            <div class="file-input-wrapper">
-                <input id="imageInput" type="file" accept="image/*" multiple />
-                <label for="imageInput" class="file-input-label" id="fileInputLabel">
-                    <span class="file-input-icon">
-                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path
-                                d="M3 7V5C3 3.89543 3.89543 3 5 3H9.58579C9.851 3 10.1054 3.10536 10.2929 3.29289L12.7071 5.70711C12.8946 5.89464 13.149 6 13.4142 6H19C20.1046 6 21 6.89543 21 8V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V7Z" />
-                            <path d="M9 3V7C9 7.55228 9.44772 8 10 8H14" />
-                        </svg>
-                    </span>
-                    <span class="file-input-text">Click to select images</span>
-                    <span class="file-input-hint">or drag and drop here</span>
-                    <span id="inputLimit" class="file-input-limit"></span>
-                </label>
+        <div class="prompt-content">
+            <div class="upload-area">
+                <div class="file-input-wrapper">
+                    <input id="imageInput" type="file" accept="image/*" multiple />
+                    <label for="imageInput" class="file-input-label" id="fileInputLabel">
+                        <span class="file-input-icon">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                    d="M3 7V5C3 3.89543 3.89543 3 5 3H9.58579C9.851 3 10.1054 3.10536 10.2929 3.29289L12.7071 5.70711C12.8946 5.89464 13.149 6 13.4142 6H19C20.1046 6 21 6.89543 21 8V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V7Z" />
+                                <path d="M9 3V7C9 7.55228 9.44772 8 10 8H14" />
+                            </svg>
+                        </span>
+                        <span class="file-input-text">Click to select images</span>
+                        <span class="file-input-hint">or drag and drop here</span>
+                        <span id="inputLimit" class="file-input-limit"></span>
+                    </label>
+                </div>
+                <span class="file-count" id="fileCount"></span>
+                <button id="uploadBtn" type="button" class="upload-button" disabled>Upload Images</button>
             </div>
-            <span class="file-count" id="fileCount"></span>
-            <button id="uploadBtn" type="button" class="upload-button" disabled>Upload Images</button>
-        </div>
 
-        <h2 id="previewTitle" style="display: none;">Selected Images</h2>
-        <div id="preview"></div>
+            <h2 id="previewTitle" style="display: none;">Selected Images</h2>
+            <div id="preview"></div>
+        </div>
     </div>
 
     <!-- Loading overlay -->
     <div id="loadingOverlay" class="loading-overlay" hidden>
         <div class="loading-box">
             <div class="loading-animation">
-                <div class="loading-wave"></div>
-                <div class="loading-inner"></div>
-            </div>
-            <div class="loading-text">Uploading images, please wait…</div>
-            <div class="loading-progress">
-                <div class="loading-progress-bar"></div>
+                <div class="loading-spinner"></div>
             </div>
         </div>
     </div>
@@ -62,6 +57,12 @@
         const fileCount = document.getElementById('fileCount');
         const fileInputLabel = document.getElementById('fileInputLabel');
         const previewTitle = document.getElementById('previewTitle');
+        const uploadContainer = document.querySelector('.upload-container');
+        const BASE_UPLOAD_HEIGHT = 620;
+
+        if (uploadContainer) {
+            uploadContainer.style.setProperty('--upload-container-height', `${BASE_UPLOAD_HEIGHT}px`);
+        }
 
         // set upload image limit
         document.getElementById("inputLimit").textContent = `Select up to ${MAX_FILES} images (max 10MB each)`;
@@ -87,11 +88,47 @@
             return true;
         }
 
-        function updatePreview(files) {
+        function animateContainerToFit() {
+            if (!uploadContainer) {
+                return Promise.resolve();
+            }
+
+            const targetHeight = Math.max(BASE_UPLOAD_HEIGHT, uploadContainer.scrollHeight);
+            const currentHeight = parseFloat(getComputedStyle(uploadContainer).height);
+
+            if (Math.abs(targetHeight - currentHeight) < 1) {
+                uploadContainer.style.setProperty('--upload-container-height', `${targetHeight}px`);
+                return Promise.resolve();
+            }
+
+            return new Promise((resolve) => {
+                const onTransitionEnd = (event) => {
+                    if (event.propertyName === 'height') {
+                        uploadContainer.removeEventListener('transitionend', onTransitionEnd);
+                        resolve();
+                    }
+                };
+
+                uploadContainer.addEventListener('transitionend', onTransitionEnd);
+
+                // Fallback resolve in case transitionend doesn't fire
+                setTimeout(() => {
+                    uploadContainer.removeEventListener('transitionend', onTransitionEnd);
+                    resolve();
+                }, 600);
+
+                requestAnimationFrame(() => {
+                    uploadContainer.style.setProperty('--upload-container-height', `${targetHeight}px`);
+                });
+            });
+        }
+
+        async function updatePreview(files) {
             preview.innerHTML = '';
 
             if (!files || !files.length) {
                 updateFileCount(0);
+                await animateContainerToFit();
                 return;
             }
 
@@ -116,7 +153,7 @@
 
             updateFileCount(validFiles.length);
 
-            validFiles.forEach(file => {
+            const thumbPromises = validFiles.map(file => new Promise(resolve => {
                 const reader = new FileReader();
                 reader.onload = e => {
                     const div = document.createElement('div');
@@ -128,9 +165,19 @@
 
                     div.appendChild(img);
                     preview.appendChild(div);
+                    resolve(div);
                 };
 
+                reader.onerror = () => resolve(null);
                 reader.readAsDataURL(file);
+            }));
+
+            const newThumbs = (await Promise.all(thumbPromises)).filter(Boolean);
+            await animateContainerToFit();
+
+            newThumbs.forEach(thumb => {
+                thumb.classList.remove('thumb-visible');
+                thumb.removeAttribute('style');
             });
         }
 

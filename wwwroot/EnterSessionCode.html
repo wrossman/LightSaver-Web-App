@@ -11,28 +11,25 @@
 <body class="page-enter-code">
     <div class="container">
         <div class="brand-title">LightSaver</div>
-        <h1>Enter your 7-character code</h1>
+        <div class="prompt-content">
+            <h1>Enter your 7-character code</h1>
 
-        <form action="/link/source" method="post" novalidate>
-            <label for="code">7-character code</label>
-            <input id="code" name="code" type="text" pattern="^[A-Z0-9]{7}$" maxlength="7" required
-                placeholder="A1B2C3D" aria-describedby="codeHint" />
-            <div id="codeHint" class="hint">Exactly 7 letters or numbers.</div>
+            <form action="/link/source" method="post" novalidate>
+                <label for="code">7-character code</label>
+                <input id="code" name="code" type="text" pattern="^[A-Z0-9]{7}$" maxlength="7" required
+                    placeholder="A1B2C3D" aria-describedby="codeHint" />
+                <div id="codeHint" class="hint">Exactly 7 letters or numbers.</div>
 
-            <button type="submit">Verify</button>
-        </form>
+                <button type="submit">Verify</button>
+            </form>
+        </div>
     </div>
 
     <!-- Loading overlay -->
     <div id="loadingOverlay" class="loading-overlay" hidden>
         <div class="loading-box">
             <div class="loading-animation">
-                <div class="loading-wave"></div>
-                <div class="loading-inner"></div>
-            </div>
-            <div class="loading-text">Verifying code, please wait…</div>
-            <div class="loading-progress">
-                <div class="loading-progress-bar"></div>
+                <div class="loading-spinner"></div>
             </div>
         </div>
     </div>

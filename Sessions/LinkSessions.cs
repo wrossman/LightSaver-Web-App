@@ -21,7 +21,7 @@ public class LinkSessions
     {
         return _sessionCache.Set(Key<T>(id), session, new MemoryCacheEntryOptions
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
+            // AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
         });
     }
     public string Key<T>(Guid id)
@@ -69,10 +69,22 @@ public class LinkSessions
         if (session.SessionCode != sessionCode)
             return false;
 
-        if (session.ReadyForTransfer == true)
+        return session.ReadyForTransfer;
+    }
+    public bool CheckExpired(Guid id, string rokuId, string sessionCode)
+    {
+        var session = GetSession<LinkSession>(id);
+
+        if (session is null)
             return true;
-        else
-            return false;
+
+        if (session.RokuId != rokuId)
+            return true;
+
+        if (session.SessionCode != sessionCode)
+            return true;
+
+        return session.Expired;
     }
     public bool ExpireSession(Guid id)
     {
