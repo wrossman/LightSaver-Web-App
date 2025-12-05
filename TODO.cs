@@ -34,7 +34,7 @@ DESIGN ITEMS
 -------------------
 WEB APP TO-DO ITEMS
 -------------------
-- Before uploading, check to see if session is expired.
+- Verify how many items a roku id has in resource database before uploading.
 - Encryption for image files.
 - Update keys for resources on monthly intervals. Maybe less? Maybe more?
     Should I do it based on how many times they are accessed? Create an access counter property for the image.
@@ -43,7 +43,6 @@ WEB APP TO-DO ITEMS
 -------------------
 ROKU TO-DO ITEMS
 -------------------
-- Fix wacky lightroom parsing of overflow
 - Handle all response codes from HttpClients.
 - Find a way to get background image in parallel.
 - Retry logic for failed connections.
@@ -52,6 +51,8 @@ ROKU TO-DO ITEMS
 -------------------
 DONE
 -------------------
+X Fix wacky lightroom parsing of overflow
+X Before uploading, check to see if session is expired for each service.
 X Implement PBKDF2 for resource keys.
 X Implement memory cache for handling user, Roku, and Lightroom update sessions; delete DbContext?
     Add plaintext keys to session in dictionary <guid, key>, property name: ResourcePackage.
