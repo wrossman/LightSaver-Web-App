@@ -10,11 +10,14 @@
 
 <body class="page-enter-code">
     <div class="container">
-        <div class="brand-title">LightSaver</div>
-        <div class="prompt-content">
-            <h1>Enter your 7-character code</h1>
+        <div class="container-inner">
+            <div class="brand-title-wrapper">
+                <div class="brand-title">LightSaver</div>
+            </div>
+            <div class="prompt-content">
+                <h1>Enter your 7-character code</h1>
 
-            <form action="/link/source" method="post" novalidate>
+                <form action="/link/source" method="post" novalidate>
                 <label for="code">7-character code</label>
                 <input id="code" name="code" type="text" pattern="^[A-Z0-9]{7}$" maxlength="7" required
                     placeholder="A1B2C3D" aria-describedby="codeHint" />
@@ -22,6 +25,7 @@
 
                 <button type="submit">Verify</button>
             </form>
+            </div>
         </div>
     </div>
 
