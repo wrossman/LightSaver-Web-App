@@ -10,30 +10,34 @@
 
 <body class="page-upload-images">
     <div class="container upload-container">
-        <div class="brand-title">LightSaver</div>
-        <div class="prompt-content">
-            <div class="upload-area">
-                <div class="file-input-wrapper">
-                    <input id="imageInput" type="file" accept="image/*" multiple />
-                    <label for="imageInput" class="file-input-label" id="fileInputLabel">
-                        <span class="file-input-icon">
-                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path
-                                    d="M3 7V5C3 3.89543 3.89543 3 5 3H9.58579C9.851 3 10.1054 3.10536 10.2929 3.29289L12.7071 5.70711C12.8946 5.89464 13.149 6 13.4142 6H19C20.1046 6 21 6.89543 21 8V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V7Z" />
-                                <path d="M9 3V7C9 7.55228 9.44772 8 10 8H14" />
-                            </svg>
-                        </span>
-                        <span class="file-input-text">Click to select images</span>
-                        <span class="file-input-hint">or drag and drop here</span>
-                        <span id="inputLimit" class="file-input-limit"></span>
-                    </label>
-                </div>
-                <span class="file-count" id="fileCount"></span>
-                <button id="uploadBtn" type="button" class="upload-button" disabled>Upload Images</button>
+        <div class="container-inner">
+            <div class="brand-title-wrapper">
+                <div class="brand-title">LightSaver</div>
             </div>
+            <div class="prompt-content">
+                <div class="upload-area">
+                    <div class="file-input-wrapper">
+                        <input id="imageInput" type="file" accept="image/*" multiple />
+                        <label for="imageInput" class="file-input-label" id="fileInputLabel">
+                            <span class="file-input-icon">
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path
+                                        d="M3 7V5C3 3.89543 3.89543 3 5 3H9.58579C9.851 3 10.1054 3.10536 10.2929 3.29289L12.7071 5.70711C12.8946 5.89464 13.149 6 13.4142 6H19C20.1046 6 21 6.89543 21 8V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V7Z" />
+                                    <path d="M9 3V7C9 7.55228 9.44772 8 10 8H14" />
+                                </svg>
+                            </span>
+                            <span class="file-input-text">Click to select images</span>
+                            <span class="file-input-hint">or drag and drop here</span>
+                            <span id="inputLimit" class="file-input-limit"></span>
+                        </label>
+                    </div>
+                    <span class="file-count" id="fileCount"></span>
+                    <button id="uploadBtn" type="button" class="upload-button" disabled>Upload Images</button>
+                </div>
 
-            <h2 id="previewTitle" style="display: none;">Selected Images</h2>
-            <div id="preview"></div>
+                <h2 id="previewTitle" style="display: none;">Selected Images</h2>
+                <div id="preview"></div>
+            </div>
         </div>
     </div>
 
@@ -72,10 +76,12 @@
                 fileCount.textContent = '';
                 uploadBtn.disabled = true;
                 previewTitle.style.display = 'none';
+                preview.style.display = 'none';
             } else {
                 fileCount.textContent = `${count} image${count !== 1 ? 's' : ''} selected`;
                 uploadBtn.disabled = false;
                 previewTitle.style.display = 'block';
+                preview.style.display = 'grid';
             }
         }
 
@@ -93,8 +99,13 @@
                 return Promise.resolve();
             }
 
-            const targetHeight = Math.max(BASE_UPLOAD_HEIGHT, uploadContainer.scrollHeight);
-            const currentHeight = parseFloat(getComputedStyle(uploadContainer).height);
+            const styles = getComputedStyle(uploadContainer);
+            const paddingY = parseFloat(styles.paddingTop) + parseFloat(styles.paddingBottom);
+            const inner = uploadContainer.querySelector('.container-inner');
+            const innerHeight = inner ? inner.scrollHeight : 0;
+            const desiredHeight = innerHeight + paddingY;
+            const targetHeight = Math.max(BASE_UPLOAD_HEIGHT, desiredHeight);
+            const currentHeight = parseFloat(styles.height);
 
             if (Math.abs(targetHeight - currentHeight) < 1) {
                 uploadContainer.style.setProperty('--upload-container-height', `${targetHeight}px`);
@@ -312,6 +323,19 @@
                     window.location.href = response.url;
                     return;
                 }
+
+                const html = await response.text();
+
+                if (html.length > 0) {
+                    document.open();
+                    document.write(html);
+                    document.close();
+                }
+                else {
+                    window.location.href = '/Error.html';
+                }
+
+
 
                 // Fallback success case if no redirect
                 // alert('Upload successful.');

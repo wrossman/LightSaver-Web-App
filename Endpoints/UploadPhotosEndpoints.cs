@@ -42,6 +42,7 @@ public static class UploadPhotosEndpoints
             logger.LogWarning("Failed to get userid at upload receive images endpoint");
             return GlobalHelpers.CreateErrorPage("LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
         }
+
         Guid sessionId;
         if (!Guid.TryParse(linkSessionId, out sessionId))
         {
@@ -49,11 +50,17 @@ public static class UploadPhotosEndpoints
             return GlobalHelpers.CreateErrorPage("LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
         }
 
-        LinkSession? LinkSession = linkSessions.GetSession<LinkSession>(sessionId);
-        if (LinkSession is null)
+        LinkSession? linkSession = linkSessions.GetSession<LinkSession>(sessionId);
+        if (linkSession is null)
         {
             logger.LogWarning("Failed to get LinkSession from user id at upload receive images endpoint");
             return GlobalHelpers.CreateErrorPage("Failed to retrieve your user session.", "<a href=\"/upload/upload\">Please Try Again</a>");
+        }
+
+        if (linkSession.Expired == true)
+        {
+            logger.LogWarning("User tried to upload photos with an expired session.");
+            return GlobalHelpers.CreateErrorPage("Your session has expired.", "<a href=\"/link/session\">Please Try Again</a>");
         }
 
         if (!await upload.UploadImageFlow(images, sessionId))

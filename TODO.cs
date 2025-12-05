@@ -34,6 +34,7 @@ DESIGN ITEMS
 -------------------
 WEB APP TO-DO ITEMS
 -------------------
+- Before uploading, check to see if session is expired.
 - Encryption for image files.
 - Update keys for resources on monthly intervals. Maybe less? Maybe more?
     Should I do it based on how many times they are accessed? Create an access counter property for the image.
