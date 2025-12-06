@@ -78,7 +78,7 @@ if (app.Environment.IsDevelopment())
     System.Console.WriteLine("Running in development");
 }
 
-// app.UseHttpsRedirection(); //enable this once im done with getting the app service up
+app.UseHttpsRedirection(); //enable this once im done with getting the app service up
 
 app.MapGooglePhotosEndpoints(); // Google Photos Feature Endpoints
 
