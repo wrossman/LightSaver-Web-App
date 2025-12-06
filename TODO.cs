@@ -34,6 +34,7 @@ DESIGN ITEMS
 -------------------
 WEB APP TO-DO ITEMS
 -------------------
+- Add warning for uploading weird sized images
 - Verify how many items a roku id has in resource database before uploading.
 - Encryption for image files.
 - Update keys for resources on monthly intervals. Maybe less? Maybe more?
@@ -43,6 +44,8 @@ WEB APP TO-DO ITEMS
 -------------------
 ROKU TO-DO ITEMS
 -------------------
+- add menu wallpaper components
+- Add option for black background
 - Handle all response codes from HttpClients.
 - Find a way to get background image in parallel.
 - Retry logic for failed connections.
