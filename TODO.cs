@@ -21,6 +21,9 @@ NEW FEATURE IDEAS
 -------------------
 DESIGN ITEMS
 -------------------
+- soft qr code edges
+- add images to start up screen
+- on get photos screen add a how to upload images "To upload images scan qr code or go to lightsaver.app, enter the code"
 - Create app logo.
 - Create an uploading animation.
 - On startup, display an image matching the splash screen, then fade it out so the splash screen appears to fade naturally.

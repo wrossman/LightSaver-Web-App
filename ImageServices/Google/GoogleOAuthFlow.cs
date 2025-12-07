@@ -1,12 +1,12 @@
 using System.Text.Json;
-public class GoogleFlow
+public class GoogleOAuthFlow
 {
-    public GoogleFlow(ILogger<GoogleFlow> logger, IConfiguration config)
+    public GoogleOAuthFlow(ILogger<GoogleOAuthFlow> logger, IConfiguration config)
     {
         _logger = logger;
         _config = config;
     }
-    private readonly ILogger<GoogleFlow> _logger;
+    private readonly ILogger<GoogleOAuthFlow> _logger;
     private readonly IConfiguration _config;
     public async Task<GoogleTokenResponse?> GetAccessToken(string code)
     {

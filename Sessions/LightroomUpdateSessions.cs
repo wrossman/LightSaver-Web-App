@@ -20,7 +20,7 @@ public class LightroomUpdateSessions
     {
         return _sessionCache.Set(Key<T>(id), session, new MemoryCacheEntryOptions
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1)
         });
     }
     public string Key<T>(Guid id)

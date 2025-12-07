@@ -451,8 +451,8 @@ public static class LinkSessionEndpoints
         if (sessionCode is null)
             return Results.BadRequest();
 
-        Guid sessionId;
-        if (!LinkSessions.SessionCodeMap.TryGetValue(sessionCode, out sessionId))
+        Guid sessionId = linkSessions.GetSessionCodeSession(sessionCode);
+        if (sessionId == Guid.Empty)
         {
             return GlobalHelpers.CreateErrorPage("Unable to find session.", "<a href=\"/link/session\">Please Try Again</a>");
         }

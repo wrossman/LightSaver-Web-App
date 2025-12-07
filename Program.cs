@@ -36,7 +36,7 @@ builder.Services.AddSingleton<LinkSessions>();
 builder.Services.AddSingleton<LightroomUpdateSessions>();
 
 // register classes for DI
-builder.Services.AddScoped<GoogleFlow>();
+builder.Services.AddScoped<GoogleOAuthFlow>();
 builder.Services.AddScoped<GooglePhotosFlow>();
 builder.Services.AddScoped<UploadImages>();
 builder.Services.AddScoped<LightroomService>();
