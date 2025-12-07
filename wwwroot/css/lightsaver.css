@@ -195,6 +195,14 @@ body.page-upload-success .prompt-content {
     animation: spin 0.9s linear infinite;
 }
 
+.loading-text {
+    font-size: 1rem;
+    color: #001f3f;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.4;
+}
+
 
 body.page-enter-code h1 {
     margin-bottom: 24px;

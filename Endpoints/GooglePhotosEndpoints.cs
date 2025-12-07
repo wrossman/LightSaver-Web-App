@@ -13,7 +13,7 @@ public static class GooglePhotosEndpoints
     {
         return Results.Redirect(GlobalHelpers.BuildGoogleOAuthUrl(config));
     }
-    private static async Task<IResult> HandleOAuthResponse(HttpContext context, LinkSessions linkSessions, GooglePhotosFlow googlePhotos, GoogleFlow google, ILogger<GoogleFlow> logger)
+    private static async Task<IResult> HandleOAuthResponse(HttpContext context, LinkSessions linkSessions, GooglePhotosFlow googlePhotos, GoogleOAuthFlow google, ILogger<GoogleOAuthFlow> logger)
     {
         var request = context.Request;
 

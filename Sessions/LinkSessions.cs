@@ -7,7 +7,6 @@ public class LinkSessions
 {
     private readonly ILogger<LinkSessions> _logger;
     private readonly IMemoryCache _sessionCache;
-    public static ConcurrentDictionary<string, Guid> SessionCodeMap { get; set; } = new();
     public LinkSessions(ILogger<LinkSessions> logger, IMemoryCache sessionCache)
     {
         _logger = logger;
@@ -21,8 +20,19 @@ public class LinkSessions
     {
         return _sessionCache.Set(Key<T>(id), session, new MemoryCacheEntryOptions
         {
-            // AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
         });
+    }
+    public Guid SetSessionCodeSession(string id, Guid guid)
+    {
+        return _sessionCache.Set(id, guid, new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
+        });
+    }
+    public Guid GetSessionCodeSession(string id)
+    {
+        return _sessionCache.Get<Guid>(id);
     }
     public string Key<T>(Guid id)
     {
@@ -96,6 +106,9 @@ public class LinkSessions
 
         SetSession<LinkSession>(id, updated);
 
+        var sessionCode = session.SessionCode;
+        _sessionCache.Remove(sessionCode);
+
         return true;
     }
     public string GetSessionCodeFromSession(Guid id)
@@ -127,7 +140,7 @@ public class LinkSessions
         do
         {
             sessionCode = GenerateSessionCode();
-        } while (!SessionCodeMap.TryAdd(sessionCode, id));
+        } while (_sessionCache.TryGetValue(sessionCode, out var _));
 
         LinkSession session = new()
         {
@@ -142,6 +155,8 @@ public class LinkSessions
         };
 
         SetSession<LinkSession>(id, session);
+        SetSessionCodeSession(sessionCode, id);
+
         return id;
     }
     private static string GenerateSessionCode()
