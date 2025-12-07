@@ -45,6 +45,7 @@ public class UploadImages
             {
                 Id = Guid.NewGuid(),
                 Key = keyDerivation,
+                KeyCreated = DateTime.UtcNow,
                 SessionCode = session.SessionCode,
                 ImageStream = finalImg,
                 CreatedOn = DateTime.UtcNow,

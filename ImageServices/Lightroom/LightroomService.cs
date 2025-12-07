@@ -256,6 +256,7 @@ public sealed class LightroomService
             {
                 Id = Guid.NewGuid(),
                 Key = keyDerivation,
+                KeyCreated = DateTime.UtcNow,
                 SessionCode = session.SessionCode,
                 ImageStream = data,
                 CreatedOn = DateTime.UtcNow,
@@ -452,6 +453,7 @@ public sealed class LightroomService
             {
                 Id = Guid.NewGuid(),
                 Key = keyDerivation,
+                KeyCreated = DateTime.UtcNow,
                 SessionCode = "",
                 ImageStream = data,
                 CreatedOn = DateTime.UtcNow,
