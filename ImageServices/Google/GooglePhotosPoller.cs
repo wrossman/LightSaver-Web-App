@@ -116,6 +116,7 @@ public class GooglePhotosPoller
             {
                 Id = Guid.NewGuid(),
                 Key = keyDerivation,
+                KeyCreated = DateTime.UtcNow,
                 SessionCode = session.SessionCode,
                 ImageStream = data,
                 CreatedOn = DateTime.UtcNow,

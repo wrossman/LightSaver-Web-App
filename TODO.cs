@@ -37,6 +37,7 @@ DESIGN ITEMS
 -------------------
 WEB APP TO-DO ITEMS
 -------------------
+- set to write the imageShares as a range instead of writing each one at once
 - add constraints to the width height and device max size inputs for endpoints from roku pings
 - add a message that the pictures will expire after a certain amount of time after upload success
 - Add warning for uploading weird sized images
