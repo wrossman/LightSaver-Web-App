@@ -7,10 +7,12 @@ public class UploadImages
     private readonly ILogger<LinkSessions> _logger;
     private readonly GlobalStoreHelpers _store;
     private readonly LinkSessions _linkSessions;
-    public UploadImages(ILogger<LinkSessions> logger, GlobalStoreHelpers store, LinkSessions linkSessions)
+    private readonly HmacService _hmacService;
+    public UploadImages(ILogger<LinkSessions> logger, GlobalStoreHelpers store, LinkSessions linkSessions, HmacService hmacService)
     {
         _logger = logger;
         _store = store;
+        _hmacService = hmacService;
         _linkSessions = linkSessions;
     }
     public async Task<bool> UploadImageFlow(List<IFormFile> images, Guid sessionId)
@@ -37,7 +39,7 @@ public class UploadImages
             var bytes = new byte[32];
             RandomNumberGenerator.Fill(bytes);
             var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-            var keyDerivation = Pbkdf2Hasher.Hash(key);
+            var keyDerivation = _hmacService.Hash(key);
 
             ImageShare share = new()
             {

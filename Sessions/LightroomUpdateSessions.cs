@@ -6,10 +6,12 @@ public class LightroomUpdateSessions
 {
     private readonly ILogger<LightroomUpdateSessions> _logger;
     private readonly IMemoryCache _sessionCache;
+    private readonly HmacService _hmacService;
     public static ConcurrentQueue<string> SessionsReadyForTransfer { get; set; } = new();
-    public LightroomUpdateSessions(ILogger<LightroomUpdateSessions> logger, IMemoryCache sessionCache)
+    public LightroomUpdateSessions(ILogger<LightroomUpdateSessions> logger, IMemoryCache sessionCache, HmacService hmacService)
     {
         _logger = logger;
+        _hmacService = hmacService;
         _sessionCache = sessionCache;
     }
     public T? GetSession<T>(Guid id)
@@ -38,7 +40,7 @@ public class LightroomUpdateSessions
         var bytes = new byte[32];
         RandomNumberGenerator.Fill(bytes);
         var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-        var keyDerivation = Pbkdf2Hasher.Hash(key);
+        var keyDerivation = _hmacService.Hash(key);
 
         LightroomUpdateSession session = new()
         {
@@ -71,7 +73,7 @@ public class LightroomUpdateSessions
     {
         var session = GetSession<LightroomUpdateSession>(id);
 
-        if (session is null || session.RokuId != rokuId || !Pbkdf2Hasher.Verify(key, session.Key))
+        if (session is null || session.RokuId != rokuId || !_hmacService.Verify(key, session.Key))
         {
             throw new AuthenticationException();
         }
@@ -110,7 +112,7 @@ public class LightroomUpdateSessions
     {
         var session = GetSession<LightroomUpdateSession>(id);
 
-        if (session is null || session.RokuId != rokuId || !Pbkdf2Hasher.Verify(key, session.Key))
+        if (session is null || session.RokuId != rokuId || !_hmacService.Verify(key, session.Key))
             throw new AuthenticationException();
 
         return session.ResourcePackage;

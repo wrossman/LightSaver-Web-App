@@ -34,6 +34,7 @@ builder.Services.AddDbContext<GlobalImageStoreDbContext>(options =>
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<LinkSessions>();
 builder.Services.AddSingleton<LightroomUpdateSessions>();
+builder.Services.AddSingleton<HmacService>();
 
 // register classes for DI
 builder.Services.AddScoped<GoogleOAuthFlow>();

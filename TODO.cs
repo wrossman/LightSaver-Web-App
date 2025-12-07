@@ -37,6 +37,8 @@ DESIGN ITEMS
 -------------------
 WEB APP TO-DO ITEMS
 -------------------
+- add constraints to the width height and device max size inputs for endpoints from roku pings
+- add a message that the pictures will expire after a certain amount of time after upload success
 - Add warning for uploading weird sized images
 - Verify how many items a roku id has in resource database before uploading.
 - Encryption for image files.

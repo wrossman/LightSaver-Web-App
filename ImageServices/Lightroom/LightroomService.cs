@@ -8,8 +8,9 @@ public sealed class LightroomService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly LightroomUpdateSessions _updateSessions;
     private readonly LinkSessions _linkSessions;
+    private readonly HmacService _hmacService;
     private readonly IConfiguration _config;
-    public LightroomService(ILogger<LightroomService> logger, IConfiguration config, GlobalStoreHelpers store, IServiceScopeFactory scopeFactory, LightroomUpdateSessions updateSessions, LinkSessions linkSessions)
+    public LightroomService(ILogger<LightroomService> logger, HmacService hmacService, IConfiguration config, GlobalStoreHelpers store, IServiceScopeFactory scopeFactory, LightroomUpdateSessions updateSessions, LinkSessions linkSessions)
     {
         _logger = logger;
         _store = store;
@@ -17,6 +18,7 @@ public sealed class LightroomService
         _updateSessions = updateSessions;
         _config = config;
         _linkSessions = linkSessions;
+        _hmacService = hmacService;
     }
     public async Task<(List<string>, string)> GetImageUrisFromShortCodeAsync(string shortCode, int maxScreenSize)
     {
@@ -246,7 +248,7 @@ public sealed class LightroomService
             var bytes = new byte[32];
             RandomNumberGenerator.Fill(bytes);
             var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-            var keyDerivation = Pbkdf2Hasher.Hash(key);
+            var keyDerivation = _hmacService.Hash(key);
 
             byte[] data = await client.GetByteArrayAsync(item);
 
@@ -442,7 +444,7 @@ public sealed class LightroomService
             var bytes = new byte[32];
             RandomNumberGenerator.Fill(bytes);
             var newKey = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-            var keyDerivation = Pbkdf2Hasher.Hash(newKey);
+            var keyDerivation = _hmacService.Hash(newKey);
 
             byte[] data = await client.GetByteArrayAsync(item);
 

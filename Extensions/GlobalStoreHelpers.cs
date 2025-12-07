@@ -9,11 +9,13 @@ public class GlobalStoreHelpers
     private readonly ILogger<GlobalStoreHelpers> _logger;
     private readonly GlobalImageStoreDbContext _resourceDb;
     private readonly IConfiguration _config;
-    public GlobalStoreHelpers(GlobalImageStoreDbContext resourceDb, ILogger<GlobalStoreHelpers> logger, IConfiguration config)
+    private readonly HmacService _hmacService;
+    public GlobalStoreHelpers(GlobalImageStoreDbContext resourceDb, ILogger<GlobalStoreHelpers> logger, IConfiguration config, HmacService hmacService)
     {
         _logger = logger;
         _resourceDb = resourceDb;
         _config = config;
+        _hmacService = hmacService;
     }
     public Dictionary<string, string>? GetResourcePackage(LinkSession LinkSession)
     {
@@ -48,7 +50,7 @@ public class GlobalStoreHelpers
         .Where(img => img.Id.ToString() == id && img.RokuId == device)
         .Select(img => img).SingleOrDefault();
 
-        if (item is null || !Pbkdf2Hasher.Verify(key, item.Key))
+        if (item is null || !_hmacService.Verify(key, item.Key))
         {
             throw new AuthenticationException();
         }
@@ -73,9 +75,9 @@ public class GlobalStoreHelpers
             using var image = Image.Load(result.Image);
             image.Mutate(x =>
                         {
-                            x.Resize(width / 8, height / 8);     // downscale to 25%
-                            x.GaussianBlur(4);          // small but effective sigma
-                            x.Resize(width, height);             // back to original size
+                            x.Resize(width / 8, height / 8);
+                            x.GaussianBlur(6);
+                            x.Resize(width, height);
                         });
             using var outputStream = new MemoryStream();
             image.Save(outputStream, new JpegEncoder());
@@ -92,7 +94,7 @@ public class GlobalStoreHelpers
         var item = _resourceDb.Resources
         .Where(img => img.Id == resourceReq.Id && img.RokuId == resourceReq.RokuId).SingleOrDefault();
 
-        if (item is null || !Pbkdf2Hasher.Verify(resourceReq.Key, item.Key))
+        if (item is null || !_hmacService.Verify(resourceReq.Key, item.Key))
         {
             _logger.LogWarning("Failed to verify key against stored hash value in image store.");
             throw new AuthenticationException();
@@ -109,7 +111,7 @@ public class GlobalStoreHelpers
         if (item is null)
             return "";
 
-        if (Pbkdf2Hasher.Verify(resourceReq.Key, item.Key))
+        if (_hmacService.Verify(resourceReq.Key, item.Key))
         {
             return item.LightroomAlbum;
         }
@@ -165,7 +167,7 @@ public class GlobalStoreHelpers
                 continue;
             }
 
-            if (!Pbkdf2Hasher.Verify(item.Value, session.Key))
+            if (!_hmacService.Verify(item.Value, session.Key))
             {
                 _logger.LogWarning("An incorrect key was passed in a revoke resource package.");
                 failedRevoke.Links.Add(item.Key, item.Value);
@@ -252,7 +254,7 @@ public class GlobalStoreHelpers
             var bytes = new byte[32];
             RandomNumberGenerator.Fill(bytes);
             var newKey = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-            var keyDerivation = Pbkdf2Hasher.Hash(newKey);
+            var keyDerivation = _hmacService.Hash(newKey);
 
             var newResource = resource with
             {
