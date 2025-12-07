@@ -8,10 +8,12 @@ public class GooglePhotosFlow
     private readonly ILogger<GooglePhotosFlow> _logger;
     private readonly IConfiguration _config;
     private readonly LinkSessions _linkSessions;
+    private readonly HmacService _hmacService;
     private readonly IServiceScopeFactory _scopeFactory;
-    public GooglePhotosFlow(ILogger<GooglePhotosFlow> logger, IConfiguration config, IServiceScopeFactory scopeFactory, LinkSessions linkSessions)
+    public GooglePhotosFlow(ILogger<GooglePhotosFlow> logger, IConfiguration config, IServiceScopeFactory scopeFactory, LinkSessions linkSessions, HmacService hmacService)
     {
         _logger = logger;
+        _hmacService = hmacService;
         _config = config;
         _scopeFactory = scopeFactory;
         _linkSessions = linkSessions;
@@ -37,7 +39,7 @@ public class GooglePhotosFlow
                     _logger.LogWarning("Failed to start polling services for Google Photos");
                     return;
                 }
-                GooglePhotosPoller poller = new(_config, _logger, store, linkSessions);
+                GooglePhotosPoller poller = new(_config, _logger, store, linkSessions, _hmacService);
                 await poller.PollPhotos(pickerSession, sessionId);
             }
         });
