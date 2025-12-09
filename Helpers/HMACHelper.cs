@@ -7,7 +7,7 @@ public class HmacService
     private readonly ILogger<HmacService> _logger;
     public HmacService(IConfiguration config, ILogger<HmacService> logger)
     {
-        var serverKey = config.GetValue<string>("Hmac:Key");
+        var serverKey = config.GetValue<string>("Hmac");
 
         if (serverKey is null)
             throw new ArgumentNullException();
