@@ -6,6 +6,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddAntiforgery();
 
+builder.Logging.AddAzureWebAppDiagnostics();
+
 builder.Services.AddOpenApi();
 builder.Services.AddRateLimiter(options =>
 {
