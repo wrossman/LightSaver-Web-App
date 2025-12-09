@@ -18,7 +18,7 @@ public class GlobalHelpers
         string errorPage = doc.DocumentNode.OuterHtml;
         return Results.Content(errorPage, "text/html");
     }
-    public static string CreateLightroomOverflowPage(string message, string action = "")
+    public static IResult CreateLightroomOverflowPage(string message, int maxFiles, string action = "")
     {
         var doc = new HtmlDocument();
         doc.LoadHtml(File.ReadAllText("./wwwroot/Error.html"));
@@ -30,7 +30,9 @@ public class GlobalHelpers
             errorNode.InnerHtml = message;
             actionNode.InnerHtml = action;
         }
-        return doc.DocumentNode.OuterHtml;
+        string html = doc.DocumentNode.OuterHtml;
+        html = html.Replace("MAXFILES", maxFiles.ToString());
+        return Results.Content(html, "text/html");
     }
     public static string ComputeHashFromString(string data)
     {

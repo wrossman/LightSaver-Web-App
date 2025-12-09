@@ -62,9 +62,7 @@ public static class LightroomEndpoints
         }
         else if (result.Item2 == "overflow")
         {
-            var html = GlobalHelpers.CreateLightroomOverflowPage("Your album is too large.", "Please edit your Lightroom album so it has less than MAXFILES images and <a href=\"/lightroom/select-album\">try again</a>");
-            html = html.Replace("MAXFILES", config.GetValue<int>("MaxImages").ToString());
-            return Results.Content(html, "text/html");
+            return GlobalHelpers.CreateLightroomOverflowPage("Your album is too large.", config.GetValue<int>("MaxImages"), "Please edit your Lightroom album so it has less than MAXFILES images and <a href=\"/lightroom/select-album\">try again</a>");
         }
         else if (result.Item1.Count <= 0)
         {

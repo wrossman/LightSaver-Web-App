@@ -4,9 +4,6 @@ using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
-
 builder.Services.AddAntiforgery();
 
 builder.Services.AddOpenApi();
@@ -28,7 +25,7 @@ builder.Services.AddRateLimiter(options =>
 
 //add database
 builder.Services.AddDbContext<GlobalImageStoreDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
 // add cache for sessions
 builder.Services.AddMemoryCache();
@@ -70,13 +67,6 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     services.GetRequiredService<GlobalImageStoreDbContext>().Database.Migrate();
-}
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    System.Console.WriteLine("Running in development");
 }
 
 app.UseHttpsRedirection(); //enable this once im done with getting the app service up
