@@ -4,18 +4,22 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
 using System.Security.Authentication;
 using System.Security.Cryptography;
-public class GlobalStoreHelpers
+using System.Net.Http.Headers;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+public class GlobalStore
 {
-    private readonly ILogger<GlobalStoreHelpers> _logger;
+    private readonly ILogger<GlobalStore> _logger;
     private readonly GlobalImageStoreDbContext _resourceDb;
     private readonly IConfiguration _config;
     private readonly HmacHelper _hmacService;
-    public GlobalStoreHelpers(GlobalImageStoreDbContext resourceDb, ILogger<GlobalStoreHelpers> logger, IConfiguration config, HmacHelper hmacService)
+    private readonly LinkSessions _linkSessions;
+    public GlobalStore(LinkSessions linkSessions, GlobalImageStoreDbContext resourceDb, ILogger<GlobalStore> logger, IConfiguration config, HmacHelper hmacService)
     {
         _logger = logger;
         _resourceDb = resourceDb;
         _config = config;
         _hmacService = hmacService;
+        _linkSessions = linkSessions;
     }
     public Dictionary<string, string>? GetResourcePackage(LinkSession LinkSession)
     {
@@ -38,13 +42,7 @@ public class GlobalStoreHelpers
 
         return links;
     }
-    public async Task WriteResourceToStore(ImageShare resource, int maxScreenSize)
-    {
-        resource.ImageStream = ResizeToMaxBox(resource.ImageStream, maxScreenSize);
-        _resourceDb.Resources.Add(resource);
-        await _resourceDb.SaveChangesAsync();
-    }
-    public (byte[] image, string fileType) GetResourceData(string id, string key, string device)
+    public async Task<(byte[] image, string fileType)> GetResourceData(string id, string key, string device)
     {
         var item = _resourceDb.Resources
         .Where(img => img.Id.ToString() == id && img.RokuId == device)
@@ -55,7 +53,17 @@ public class GlobalStoreHelpers
             throw new AuthenticationException();
         }
 
-        return (item.ImageStream, item.FileType);
+        byte[] img;
+        try
+        {
+            img = await File.ReadAllBytesAsync(item.ImageUri);
+        }
+        catch
+        {
+            throw new IOException();
+        }
+
+        return (img, item.FileType);
     }
     // public Dictionary<Guid, string> GetUpdateKeys(string id, string key, string device)
     // {
@@ -72,16 +80,21 @@ public class GlobalStoreHelpers
 
     //         return;
     // }
-    public byte[]? GetBackgroundData(string id, string key, string device, int height, int width)
+    public async Task<byte[]?> GetBackgroundData(string id, string key, string device, int height, int width)
     {
         (byte[] Image, string FileType) result;
         try
         {
-            result = GetResourceData(id, key, device);
+            result = await GetResourceData(id, key, device);
         }
         catch (AuthenticationException)
         {
             _logger.LogWarning("Incorrect keys were tried at the get background data method.");
+            return null;
+        }
+        catch (IOException)
+        {
+            _logger.LogWarning("Background data was attempted to be retrieved for file that does not exist.");
             return null;
         }
 
@@ -147,21 +160,47 @@ public class GlobalStoreHelpers
             return false;
         }
 
+        RemoveListFromLocalStore(sessions.Select(x => x.ImageUri).ToList());
+
         _resourceDb.Resources.RemoveRange(sessions);
         await _resourceDb.SaveChangesAsync();
 
         return true;
     }
-    public void WritePhotosToLocal(byte[] img, string fileType)
+    public void RemoveListFromLocalStore(List<string> uris)
     {
-        string folderPath = @"C:\Users\billuswillus\Desktop\";
-        var filePath = folderPath + "img" + DateTime.UtcNow.ToString("HHmmssfff") + "." + fileType;
+        foreach (var filePath in uris)
+        {
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
+        }
+    }
+    public void RemoveSingleFromLocalStore(string uri)
+    {
+        if (File.Exists(uri))
+        {
+            File.Delete(uri);
+        }
+    }
+    public string WritePhotosToLocal(Guid resourceId, byte[] img, string? fileType, int maxScreenSize)
+    {
+        var resizedImg = ResizeToMaxBox(img, maxScreenSize);
+
+        string folderPath = _config.GetValue<string>("LocalResourceStorePath")
+         ?? "C:\\Users\\billuswillus\\Documents\\GitHub\\LightSaver-Web-App\\LocalResourceStore\\";
+        var filePath = folderPath + resourceId;
+
+        if (fileType is not null)
+            filePath += "." + fileType;
 
         using (FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
         {
-            fs.Write(img, 0, img.Length);
+            fs.Write(resizedImg, 0, resizedImg.Length);
         }
 
+        return filePath;
     }
     public async Task<RevokeAccessPackage> RevokeResourcePackage(RevokeAccessPackage revokePackage)
     {
@@ -189,6 +228,8 @@ public class GlobalStoreHelpers
                 continue;
             }
 
+            RemoveSingleFromLocalStore(session.ImageUri);
+
             _resourceDb.Resources.Remove(session);
             await _resourceDb.SaveChangesAsync();
         }
@@ -200,6 +241,8 @@ public class GlobalStoreHelpers
         var items = await _resourceDb.Resources
         .Where(x => x.LightroomAlbum == albumUrl)
         .ToListAsync();
+
+        RemoveListFromLocalStore(items.Select(x => x.ImageUri).ToList());
 
         _resourceDb.Resources.RemoveRange(items);
         await _resourceDb.SaveChangesAsync();
@@ -220,6 +263,8 @@ public class GlobalStoreHelpers
         var itemsToRemove = await _resourceDb.Resources
         .Where(x => origins.Contains(x.Origin))
         .ToListAsync();
+
+        RemoveListFromLocalStore(itemsToRemove.Select(x => x.ImageUri).ToList());
 
         _resourceDb.Resources.RemoveRange(itemsToRemove);
         await _resourceDb.SaveChangesAsync();
@@ -286,5 +331,152 @@ public class GlobalStoreHelpers
         }
 
         return imgs;
+    }
+    public async Task WriteSessionImages(Guid linkSessionId, ImageShareSource source, List<IFormFile>? images = null)
+    {
+        if (images is null)
+        {
+            var linkSession = _linkSessions.GetSession<LinkSession>(linkSessionId);
+            if (linkSession is null)
+                throw new ArgumentNullException();
+
+            var updatedSession = linkSession with { };
+
+            using HttpClient client = new();
+
+            if (!string.IsNullOrEmpty(linkSession.AccessToken))
+            {
+                client.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Bearer", linkSession.AccessToken);
+            }
+
+            List<ImageShare> sharesToAdd = new();
+
+            foreach (KeyValuePair<string, string?> item in linkSession.ImageServiceLinks)
+            {
+                var bytes = new byte[32];
+                RandomNumberGenerator.Fill(bytes);
+                var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+                var keyDerivation = _hmacService.Hash(key);
+
+                byte[] data = await client.GetByteArrayAsync(item.Key);
+                if (data.Length == 0)
+                    continue;
+
+                Guid shareId = Guid.NewGuid();
+
+                ImageShare share = new()
+                {
+                    Id = shareId,
+                    Key = keyDerivation,
+                    KeyCreated = DateTime.UtcNow,
+                    SessionCode = linkSession.SessionCode,
+                    ImageUri = WritePhotosToLocal(shareId, data, item.Value, linkSession.MaxScreenSize),
+                    CreatedOn = DateTime.UtcNow,
+                    FileType = item.Value ?? "",
+                    RokuId = linkSession.RokuId,
+                    Source = source,
+                    Origin = GlobalHelpers.ComputeHashFromString(item.Key)
+                };
+                updatedSession.ResourcePackage.Add(share.Id, key);
+                sharesToAdd.Add(share);
+            }
+            await _resourceDb.AddRangeAsync(sharesToAdd);
+            await _resourceDb.SaveChangesAsync();
+            updatedSession.ReadyForTransfer = true;
+            _linkSessions.SetSession<LinkSession>(linkSessionId, updatedSession);
+        }
+        else
+        {
+            var linkSession = _linkSessions.GetSession<LinkSession>(linkSessionId);
+            if (linkSession is null)
+                throw new ArgumentNullException();
+
+            var updatedSession = linkSession with { };
+
+            List<ImageShare> sharesToAdd = new();
+
+            foreach (var item in images)
+            {
+                if (item.Length <= 0) continue;
+
+                byte[] imgBytes;
+                using (var ms = new MemoryStream())
+                {
+                    await item.CopyToAsync(ms);
+                    imgBytes = ms.ToArray();
+                }
+
+                var finalImg = FixOrientation(imgBytes);
+
+                var bytes = new byte[32];
+                RandomNumberGenerator.Fill(bytes);
+                var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+                var keyDerivation = _hmacService.Hash(key);
+
+                Guid shareId = Guid.NewGuid();
+
+                ImageShare share = new()
+                {
+                    Id = shareId,
+                    Key = keyDerivation,
+                    KeyCreated = DateTime.UtcNow,
+                    SessionCode = linkSession.SessionCode,
+                    ImageUri = WritePhotosToLocal(shareId, finalImg, null, linkSession.MaxScreenSize),
+                    CreatedOn = DateTime.UtcNow,
+                    FileType = "", // should i figure out how to get the filetype? it isn't really necessary for roku
+                    RokuId = linkSession.RokuId,
+                    Source = source
+                };
+                updatedSession.ResourcePackage.Add(share.Id, key);
+                sharesToAdd.Add(share);
+            }
+            await _resourceDb.AddRangeAsync(sharesToAdd);
+            await _resourceDb.SaveChangesAsync();
+            updatedSession.ReadyForTransfer = true;
+            _linkSessions.SetSession<LinkSession>(linkSessionId, updatedSession);
+        }
+    }
+    public byte[] FixOrientation(byte[] imageBytes)
+    {
+        using var image = Image.Load(imageBytes);
+
+        if (image.Metadata?.ExifProfile != null)
+        {
+            IExifValue<ushort>? orientation;
+            if (image.Metadata.ExifProfile.TryGetValue(ExifTag.Orientation, out orientation))
+            {
+                object? orientationVal;
+                if (orientation is not null)
+                    orientationVal = orientation.GetValue();
+                else
+                    return imageBytes;
+
+                UInt16 orientationShort;
+                if (orientationVal is not null)
+                    orientationShort = (UInt16)orientationVal;
+                else
+                    return imageBytes;
+
+                switch (orientationShort)
+                {
+                    case 2: image.Mutate(x => x.Flip(FlipMode.Horizontal)); break;
+                    case 3: image.Mutate(x => x.Rotate(180)); break;
+                    case 4: image.Mutate(x => x.Flip(FlipMode.Vertical)); break;
+                    case 5: image.Mutate(x => { x.Rotate(90); x.Flip(FlipMode.Horizontal); }); break;
+                    case 6: image.Mutate(x => x.Rotate(90)); break;
+                    case 7: image.Mutate(x => { x.Rotate(-90); x.Flip(FlipMode.Horizontal); }); break;
+                    case 8: image.Mutate(x => x.Rotate(-90)); break;
+                }
+
+                // After fixing, remove orientation tag to avoid double-rotation later
+                image.Metadata.ExifProfile.RemoveValue(ExifTag.Orientation);
+            }
+
+        }
+
+        using var ms = new MemoryStream();
+        image.SaveAsJpeg(ms);
+        return ms.ToArray();
     }
 }

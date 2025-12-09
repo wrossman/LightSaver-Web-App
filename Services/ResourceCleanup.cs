@@ -38,6 +38,15 @@ public class ResourceCleanup : IHostedService, IDisposable
             {
                 _logger.LogInformation(
                     "Removing {Count} resources with expired keys.", expiredSessions.Length);
+
+                foreach (var filePath in expiredSessions.Select(x => x.ImageUri))
+                {
+                    if (File.Exists(filePath))
+                    {
+                        File.Delete(filePath);
+                    }
+                }
+
                 resourceDb.RemoveRange(expiredSessions);
                 resourceDb.SaveChanges();
             }

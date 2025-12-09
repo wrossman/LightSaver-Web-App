@@ -1,14 +1,13 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
-using System.Security.Cryptography;
 public class GooglePhotosPoller
 {
     private readonly ILogger<GooglePhotosFlow> _logger;
     private readonly IConfiguration _config;
-    private readonly GlobalStoreHelpers _store;
+    private readonly GlobalStore _store;
     private readonly LinkSessions _linkSessions;
     private readonly HmacHelper _hmacService;
-    public GooglePhotosPoller(IConfiguration config, ILogger<GooglePhotosFlow> logger, GlobalStoreHelpers store, LinkSessions linkSessions, HmacHelper hmacService)
+    public GooglePhotosPoller(IConfiguration config, ILogger<GooglePhotosFlow> logger, GlobalStore store, LinkSessions linkSessions, HmacHelper hmacService)
     {
         _logger = logger;
         _hmacService = hmacService;
@@ -16,7 +15,6 @@ public class GooglePhotosPoller
         _store = store;
         _linkSessions = linkSessions;
     }
-    public Dictionary<string, string> FileUrls { get; set; } = new();
     public async Task PollPhotos(PickerSession pickerSession, Guid linkSessionId)
     {
         var linkSession = _linkSessions.GetSession<LinkSession>(linkSessionId);
@@ -55,8 +53,8 @@ public class GooglePhotosPoller
                 _logger.LogInformation("User finished selecting photos.");
                 string photoList = await GooglePhotosFlow.GetPhotoList(pickerSession, linkSession.AccessToken);
 
-                AddUrlsToList(photoList, linkSession);
-                await WritePhotosToDb(linkSessionId);
+                AddUrlsToSession(photoList, linkSession.Id);
+                await _store.WriteSessionImages(linkSessionId, ImageShareSource.Google);
                 _linkSessions.SetReadyToTransfer(linkSessionId);
 
                 break;
@@ -71,11 +69,18 @@ public class GooglePhotosPoller
             }
         }
     }
-    public void AddUrlsToList(string photoList, LinkSession LinkSession)
+    public void AddUrlsToSession(string photoList, Guid linkSessionId)
     {
+        var linkSession = _linkSessions.GetSession<LinkSession>(linkSessionId);
+        if (linkSession is null)
+        {
+            _logger.LogWarning($"Failed to get session fo {linkSessionId} at AddUrlsToSession");
+            throw new ArgumentNullException();
+        }
+
         MediaItemsResponse photoListJson = JsonSerializer.Deserialize<MediaItemsResponse>(photoList) ?? new();
         List<MediaItem> mediaItems = photoListJson.MediaItems;
-        string maxScreenSize = $"w{LinkSession.MaxScreenSize}-h{LinkSession.MaxScreenSize}";
+        string maxScreenSize = $"w{linkSession.MaxScreenSize}-h{linkSession.MaxScreenSize}";
 
         foreach (MediaItem item in mediaItems)
         {
@@ -88,46 +93,9 @@ public class GooglePhotosPoller
             string.Equals(fileType, "gif", StringComparison.OrdinalIgnoreCase)))
             {
                 MediaFile tempFile = item.MediaFile;
-                FileUrls.Add($"{tempFile.BaseUrl}={maxScreenSize}", fileType);
+                linkSession.ImageServiceLinks.Add($"{tempFile.BaseUrl}={maxScreenSize}", fileType);
             }
         }
-    }
-    public async Task WritePhotosToDb(Guid linkSessionId)
-    {
-        var session = _linkSessions.GetSession<LinkSession>(linkSessionId);
-        if (session is null)
-            return;
-
-        var updatedSession = session with { };
-
-        using HttpClient client = new();
-        client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", session.AccessToken);
-        foreach (KeyValuePair<string, string> item in FileUrls)
-        {
-            var bytes = new byte[32];
-            RandomNumberGenerator.Fill(bytes);
-            var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-            var keyDerivation = _hmacService.Hash(key);
-
-            byte[] data = await client.GetByteArrayAsync(item.Key);
-
-            ImageShare share = new()
-            {
-                Id = Guid.NewGuid(),
-                Key = keyDerivation,
-                KeyCreated = DateTime.UtcNow,
-                SessionCode = session.SessionCode,
-                ImageStream = data,
-                CreatedOn = DateTime.UtcNow,
-                FileType = item.Value,
-                RokuId = session.RokuId,
-                Source = ImageShareSource.Google,
-                Origin = GlobalHelpers.ComputeHashFromString(item.Key)
-            };
-            await _store.WriteResourceToStore(share, session.MaxScreenSize);
-            updatedSession.ResourcePackage.Add(share.Id, key);
-        }
-        _linkSessions.SetSession<LinkSession>(linkSessionId, updatedSession);
+        _linkSessions.SetSession<LinkSession>(linkSessionId, linkSession);
     }
 }

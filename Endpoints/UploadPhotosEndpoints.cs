@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Antiforgery;
-
 public static class UploadPhotosEndpoints
 {
     public static void MapUploadPhotosEndpoints(this IEndpointRouteBuilder app)
@@ -22,7 +21,7 @@ public static class UploadPhotosEndpoints
 
         return Results.Text(html, "text/html");
     }
-    public static async Task<IResult> ReceiveImages(IConfiguration config, UploadImages upload, LinkSessions linkSessions, IFormFileCollection imageCollection, HttpContext context, ILogger<LinkSession> logger, IAntiforgery af)
+    public static async Task<IResult> ReceiveImages(IConfiguration config, LinkSessions linkSessions, IFormFileCollection imageCollection, HttpContext context, ILogger<LinkSession> logger, IAntiforgery af, GlobalStore store)
     {
         await af.ValidateRequestAsync(context);
 
@@ -62,8 +61,11 @@ public static class UploadPhotosEndpoints
             logger.LogWarning("User tried to upload photos with an expired session.");
             return GlobalHelpers.CreateErrorPage("Your session has expired.", "<a href=\"/link/session\">Please Try Again</a>");
         }
-
-        if (!await upload.UploadImageFlow(images, sessionId))
+        try
+        {
+            await store.WriteSessionImages(sessionId, ImageShareSource.Upload, images);
+        }
+        catch
         {
             logger.LogWarning("Failed to upload photos for user session.");
             linkSessions.ExpireSession(sessionId);

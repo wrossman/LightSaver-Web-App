@@ -36,11 +36,9 @@ builder.Services.AddSingleton<LightroomUpdateSessions>();
 builder.Services.AddSingleton<HmacHelper>();
 
 // register classes for DI
-builder.Services.AddScoped<GoogleOAuthFlow>();
 builder.Services.AddScoped<GooglePhotosFlow>();
-builder.Services.AddScoped<UploadImages>();
 builder.Services.AddScoped<LightroomService>();
-builder.Services.AddScoped<GlobalStoreHelpers>();
+builder.Services.AddScoped<GlobalStore>();
 
 // hosted service for resource cleanup
 builder.Services.AddHostedService<ResourceCleanup>();

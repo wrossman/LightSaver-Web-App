@@ -4,7 +4,7 @@ public record ImageShare
     public string Key { get; set; } = "";
     public required DateTime KeyCreated { get; set; }
     public string SessionCode { get; set; } = "";
-    public byte[] ImageStream { get; set; } = new byte[0];
+    public string ImageUri { get; set; } = "";
     public DateTime CreatedOn { get; init; }
     public string FileType { get; init; } = "";
     public string RokuId { get; set; } = "";

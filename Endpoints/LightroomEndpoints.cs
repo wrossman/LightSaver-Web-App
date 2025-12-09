@@ -21,7 +21,7 @@ public static class LightroomEndpoints
 
         return Results.Text(html, "text/html");
     }
-    public static async Task<IResult> PostAlbum([FromForm] string lrCode, IConfiguration config, HttpContext context, LinkSessions linkSessions, LightroomService lightroom, ILogger<LightroomService> logger, IAntiforgery af)
+    public static async Task<IResult> PostAlbum([FromForm] string lrCode, IConfiguration config, HttpContext context, GlobalStore store, LinkSessions linkSessions, LightroomService lightroom, ILogger<LightroomService> logger, IAntiforgery af)
     {
         await af.ValidateRequestAsync(context);
 
@@ -64,14 +64,19 @@ public static class LightroomEndpoints
         {
             return GlobalHelpers.CreateLightroomOverflowPage("Your album is too large.", config.GetValue<int>("MaxImages"), "Please edit your Lightroom album so it has less than MAXFILES images and <a href=\"/lightroom/select-album\">try again</a>");
         }
-        else if (result.Item1.Count <= 0)
+        else if (result.Item1 is null || result.Item1.Count <= 0)
         {
             logger.LogWarning("Failed to retrieve images from Lightroom album. Album had no images.");
             linkSessions.ExpireSession(sessionId);
             return GlobalHelpers.CreateErrorPage("Your Lightroom album has no images to load.", "Please update your album and <a href=\"/lightroom/select-album\">try again</a>");
         }
 
-        if (!await lightroom.LightroomFlow(urlList, sessionId, lrCode))
+        try
+        {
+            linkSessions.SetResourcePackage(sessionId, result.Item1);
+            await store.WriteSessionImages(sessionId, ImageShareSource.Lightroom);
+        }
+        catch
         {
             logger.LogWarning("Failed to retrieve images from Lightroom album");
             linkSessions.ExpireSession(sessionId);

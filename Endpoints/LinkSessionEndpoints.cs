@@ -138,7 +138,7 @@ public static class LinkSessionEndpoints
         else
             return Results.BadRequest("Media is not ready to be transferred.");
     }
-    private static async Task<IResult> ProvideResourcePackage(HttpContext context, LinkSessions linkSessions, GlobalStoreHelpers store, ILogger<LinkSessions> logger)
+    private static async Task<IResult> ProvideResourcePackage(HttpContext context, LinkSessions linkSessions, GlobalStore store, ILogger<LinkSessions> logger)
     {
         string body;
         try
@@ -215,7 +215,7 @@ public static class LinkSessionEndpoints
         logger.LogInformation($"Sending resource package for session id {sessionId}");
         return Results.Json(links);
     }
-    private static IResult ProvideResource(HttpContext context, GlobalStoreHelpers store, ILogger<LinkSessions> logger)
+    private static async Task<IResult> ProvideResource(HttpContext context, GlobalStore store, ILogger<LinkSessions> logger)
     {
         StringValues inputKey;
         StringValues inputResourceId;
@@ -236,7 +236,7 @@ public static class LinkSessionEndpoints
         try
         {
             // var updateKeys = store.GetUpdateKeys(resourceId, key, device);
-            resource = store.GetResourceData(resourceId, key, device);
+            resource = await store.GetResourceData(resourceId, key, device);
         }
         catch (ArgumentException e)
         {
@@ -248,13 +248,18 @@ public static class LinkSessionEndpoints
             logger.LogError(e, "Client tried an invalid key at the Provide Resource Endpoint");
             return Results.Unauthorized();
         }
+        catch (IOException)
+        {
+            logger.LogWarning("User tried to access a file that does not exist any more.");
+            return Results.Unauthorized();
+        }
 
         // For testing image output - this thing is dangerous, don't let it run for a long time because it writes to desktop unless you stop it
         // store.WritePhotosToLocal(image, fileType);
 
         return Results.File(resource.Image, $"image/{resource.FileType}");
     }
-    public static async Task<IResult> InitialStartWallpaper(IConfiguration config, HttpContext context, GlobalStoreHelpers store, LightroomService lightroom, ILogger<LinkSessions> logger)
+    public static async Task<IResult> InitialStartWallpaper(IConfiguration config, HttpContext context, GlobalStore store, LightroomService lightroom, ILogger<LinkSessions> logger)
     {
         StringValues inputKey;
         StringValues inputResourceId;
@@ -314,7 +319,7 @@ public static class LinkSessionEndpoints
 
         return Results.Json(new { SessionId = sessionId, SessionKey = sessionKey });
     }
-    private static async Task<IResult> RevokeAccess([FromBody] RevokeAccessPackage revokePackage, GlobalStoreHelpers store, ILogger<LinkSessions> logger)
+    private static async Task<IResult> RevokeAccess([FromBody] RevokeAccessPackage revokePackage, GlobalStore store, ILogger<LinkSessions> logger)
     {
         logger.LogInformation($"Received revoke access package from roku with {revokePackage.Links.Count} resources.");
 
@@ -327,7 +332,7 @@ public static class LinkSessionEndpoints
 
         return Results.Ok();
     }
-    private static IResult ProvideBackground(HttpContext context, GlobalStoreHelpers store, ILogger<LinkSessions> logger)
+    private static async Task<IResult> ProvideBackground(HttpContext context, GlobalStore store, ILogger<LinkSessions> logger)
     {
         StringValues inputKey;
         StringValues inputResourceId;
@@ -354,7 +359,7 @@ public static class LinkSessionEndpoints
             return Results.Unauthorized();
         }
 
-        byte[]? image = store.GetBackgroundData(resourceId, key, device, height, width);
+        byte[]? image = await store.GetBackgroundData(resourceId, key, device, height, width);
 
         if (image is null)
         {

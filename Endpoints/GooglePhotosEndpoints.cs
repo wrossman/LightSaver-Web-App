@@ -13,7 +13,7 @@ public static class GooglePhotosEndpoints
     {
         return Results.Redirect(GlobalHelpers.BuildGoogleOAuthUrl(config));
     }
-    private static async Task<IResult> HandleOAuthResponse(HttpContext context, LinkSessions linkSessions, GooglePhotosFlow googlePhotos, GoogleOAuthFlow google, ILogger<GoogleOAuthFlow> logger)
+    private static async Task<IResult> HandleOAuthResponse(HttpContext context, LinkSessions linkSessions, GooglePhotosFlow googlePhotos, ILogger<GooglePhotosFlow> logger)
     {
         var request = context.Request;
 
@@ -55,7 +55,7 @@ public static class GooglePhotosEndpoints
             return GlobalHelpers.CreateErrorPage("Your session has expired.", "<a href=\"/link/session\">Please Try Again</a>");
         }
 
-        GoogleTokenResponse? accessTokenJson = await google.GetAccessToken(authCodeString);
+        GoogleTokenResponse? accessTokenJson = await googlePhotos.GetAccessToken(authCodeString);
         if (accessTokenJson is null)
         {
             logger.LogWarning("Failed to retrieve access token from google oauth server");
@@ -63,7 +63,7 @@ public static class GooglePhotosEndpoints
             return GlobalHelpers.CreateErrorPage("There was a problem linking your google account to lightsaver.");
         }
 
-        if (!await linkSessions.LinkAccessToken(accessTokenJson.AccessToken, sessionId))
+        if (!linkSessions.LinkAccessToken(accessTokenJson.AccessToken, sessionId))
         {
             logger.LogWarning("Failed to link access token with LinkSessionId");
             linkSessions.ExpireSession(sessionId);

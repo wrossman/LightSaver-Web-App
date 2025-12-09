@@ -1,17 +1,16 @@
 using System.Text.Json;
 using System.Security.Cryptography;
-using Microsoft.EntityFrameworkCore;
-using SixLabors.ImageSharp;
 public sealed class LightroomService
 {
     private readonly ILogger<LightroomService> _logger;
-    private readonly GlobalStoreHelpers _store;
+    private readonly GlobalStore _store;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly LightroomUpdateSessions _updateSessions;
     private readonly LinkSessions _linkSessions;
     private readonly HmacHelper _hmacService;
     private readonly IConfiguration _config;
-    public LightroomService(ILogger<LightroomService> logger, HmacHelper hmacService, IConfiguration config, GlobalStoreHelpers store, IServiceScopeFactory scopeFactory, LightroomUpdateSessions updateSessions, LinkSessions linkSessions)
+    private readonly GlobalImageStoreDbContext _resourceDb;
+    public LightroomService(ILogger<LightroomService> logger, GlobalImageStoreDbContext resourceDb, HmacHelper hmacService, IConfiguration config, GlobalStore store, IServiceScopeFactory scopeFactory, LightroomUpdateSessions updateSessions, LinkSessions linkSessions)
     {
         _logger = logger;
         _store = store;
@@ -19,9 +18,10 @@ public sealed class LightroomService
         _updateSessions = updateSessions;
         _config = config;
         _linkSessions = linkSessions;
+        _resourceDb = resourceDb;
         _hmacService = hmacService;
     }
-    public async Task<(List<string>, string)> GetImageUrisFromShortCodeAsync(string shortCode, int maxScreenSize)
+    public async Task<(Dictionary<string, string?>?, string)> GetImageUrisFromShortCodeAsync(string shortCode, int maxScreenSize)
     {
         // thanks chat for helping me translate from brs, even though you did a bad job
         const string lightroomShortPrefix = "https://adobe.ly/";
@@ -42,16 +42,16 @@ public sealed class LightroomService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to send request to {Url}", url);
-            return (new List<string>(), "Failed to send request.");
+            return (null, "Failed to send request.");
         }
 
         var location = response.Headers.Location?.ToString();
 
         if (string.IsNullOrWhiteSpace(location))
-            return (new List<string>(), "No Location header found on redirect.");
+            return (new Dictionary<string, string?>(), "No Location header found on redirect.");
 
         if (string.Equals(location, "http://www.adobe.com", StringComparison.OrdinalIgnoreCase))
-            return (new List<string>(), "Location was www.adobe.com (invalid album).");
+            return (null, "Location was www.adobe.com (invalid album).");
 
         _logger.LogInformation($"Found long url for Lightroom album: {location}");
 
@@ -66,12 +66,12 @@ public sealed class LightroomService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to get album HTML from {Location}", location);
-            return (new List<string>(), "Failed to get album HTML.");
+            return (null, "Failed to get album HTML.");
         }
 
         string? json = ExtractAlbumAttributesJson(lightroomAlbumHtml);
         if (json is null)
-            return (new List<string> { }, "Failed to parse albumAttributes");
+            return (null, "Failed to parse albumAttributes");
 
         JsonDocument doc;
         try
@@ -81,7 +81,7 @@ public sealed class LightroomService
         catch (JsonException ex)
         {
             _logger.LogError(ex, "Failed to parse albumAttributes JSON: {Json}", json);
-            return (new List<string>(), "Album attributes were not valid JSON.");
+            return (null, "Album attributes were not valid JSON.");
         }
 
         using (doc)
@@ -95,11 +95,11 @@ public sealed class LightroomService
                     .GetString();
 
             if (selfHref is null)
-                return (new List<string>(), "Failed to get asset URLs from Lightroom album.");
+                return (null, "Failed to get asset URLs from Lightroom album.");
 
             int idx = selfHref.IndexOf("/albums", StringComparison.OrdinalIgnoreCase);
             if (idx <= 0)
-                return (new List<string>(), "Failed to get space URL from album.");
+                return (null, "Failed to get space URL from album.");
 
             string spaceLink = selfHref.Substring(0, idx);
 
@@ -120,11 +120,11 @@ public sealed class LightroomService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to get album data from {AlbumUrl}", albumUrl);
-                return (new List<string>(), "Failed to get album data.");
+                return (null, "Failed to get album data.");
             }
 
             if (string.IsNullOrWhiteSpace(albumResponse))
-                return (new List<string>(), "Album data response was empty.");
+                return (null, "Album data response was empty.");
 
             string raw = albumResponse;
 
@@ -154,7 +154,7 @@ public sealed class LightroomService
             catch (JsonException ex)
             {
                 _logger.LogError(ex, "Failed to parse album data JSON: {Result}", albumAttributesJson);
-                return (new List<string>(), "Failed to parse album data.");
+                return (null, "Failed to parse album data.");
             }
 
             using (final)
@@ -164,10 +164,10 @@ public sealed class LightroomService
                 if (!finalJson.TryGetProperty("resources", out JsonElement resources) ||
                     resources.ValueKind != JsonValueKind.Array)
                 {
-                    return (new List<string>(), "Album data does not contain a resources array.");
+                    return (null, "Album data does not contain a resources array.");
                 }
 
-                List<string> outputArr = new();
+                Dictionary<string, string?> outputArr = new();
 
                 foreach (JsonElement item in resources.EnumerateArray())
                 {
@@ -225,7 +225,7 @@ public sealed class LightroomService
                     // Just prepend https://photos.adobe.io
                     string itemUrl = apiRoot + spaceLink + "/" + href;
 
-                    outputArr.Add(itemUrl);
+                    outputArr.Add(itemUrl, null);
                 }
 
                 if (outputArr.Count == 0)
@@ -234,49 +234,6 @@ public sealed class LightroomService
                 return (outputArr, "success");
             }
         }
-    }
-    public async Task<bool> LightroomFlow(List<string> urls, Guid sessionId, string shortCode)
-    {
-        var session = _linkSessions.GetSession<LinkSession>(sessionId);
-        if (session is null)
-            return false;
-
-        var updatedSession = session with { };
-
-        using HttpClient client = new();
-        foreach (var item in urls)
-        {
-            var bytes = new byte[32];
-            RandomNumberGenerator.Fill(bytes);
-            var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-            var keyDerivation = _hmacService.Hash(key);
-
-            byte[] data = await client.GetByteArrayAsync(item);
-
-            ImageShare share = new()
-            {
-                Id = Guid.NewGuid(),
-                Key = keyDerivation,
-                KeyCreated = DateTime.UtcNow,
-                SessionCode = session.SessionCode,
-                ImageStream = data,
-                CreatedOn = DateTime.UtcNow,
-                FileType = "",
-                RokuId = session.RokuId,
-                Source = ImageShareSource.Lightroom,
-                Origin = GlobalHelpers.ComputeHashFromString(item),
-                LightroomAlbum = shortCode
-            };
-            await _store.WriteResourceToStore(share, session.MaxScreenSize);
-            updatedSession.ResourcePackage.Add(share.Id, key);
-        }
-
-        _linkSessions.SetSession<LinkSession>(sessionId, updatedSession);
-
-        if (_linkSessions.SetReadyToTransfer(sessionId))
-            return true;
-        else
-            return false;
     }
     private static string? ExtractAlbumAttributesJson(string html)
     {
@@ -352,16 +309,16 @@ public sealed class LightroomService
             return null;
         }
 
-        if (result.Item2 != "success" && newImgs is null)
+        if (result.Item2 == "overflow")
+        {
+            throw new InvalidOperationException();
+        }
+
+        if (newImgs is null)
         {
             _logger.LogWarning("Failed to get url list from lightroom album");
             _logger.LogWarning("Failed with error: " + result.Item2);
             return null;
-        }
-
-        if (result.Item2 == "overflow")
-        {
-            throw new InvalidOperationException();
         }
 
         // create a dictionary that pairs a key of the hashed url, with the value as the url
@@ -369,7 +326,7 @@ public sealed class LightroomService
         var newImgsDic = new Dictionary<string, string>();
         foreach (var item in newImgs)
         {
-            newImgsDic.Add(GlobalHelpers.ComputeHashFromString(item), item);
+            newImgsDic.Add(GlobalHelpers.ComputeHashFromString(item.Key), item.Key);
         }
 
         var oldImgs = await _store.GetLightroomOriginByRokuId(resourceReq.RokuId);
@@ -434,6 +391,8 @@ public sealed class LightroomService
 
         Dictionary<Guid, string> updatePackage = await _store.GetOldImgsForUpdatePackage(imgsToKeep);
 
+        List<ImageShare> sharesToAdd = new();
+
         using HttpClient client = new();
         foreach (var item in imgsToAdd)
         {
@@ -450,13 +409,15 @@ public sealed class LightroomService
 
             byte[] data = await client.GetByteArrayAsync(item);
 
+
+            Guid shareId = Guid.NewGuid();
             ImageShare share = new()
             {
-                Id = Guid.NewGuid(),
+                Id = shareId,
                 Key = keyDerivation,
                 KeyCreated = DateTime.UtcNow,
                 SessionCode = "",
-                ImageStream = data,
+                ImageUri = _store.WritePhotosToLocal(shareId, data, null, resourceReq.MaxScreenSize),
                 CreatedOn = DateTime.UtcNow,
                 FileType = "",
                 RokuId = resourceReq.RokuId,
@@ -464,9 +425,11 @@ public sealed class LightroomService
                 Origin = GlobalHelpers.ComputeHashFromString(item),
                 LightroomAlbum = albumUrl
             };
-            await _store.WriteResourceToStore(share, resourceReq.MaxScreenSize);
+            sharesToAdd.Add(share);
             updatePackage.Add(share.Id, newKey);
         }
+        await _resourceDb.AddRangeAsync(sharesToAdd);
+        await _resourceDb.SaveChangesAsync();
         _updateSessions.WriteLinksToSession(updatePackage, sessionId);
         _updateSessions.SetReadyToTransfer(sessionId);
     }

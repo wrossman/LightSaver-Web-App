@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Text;
-
 public class HmacHelper
 {
     private readonly byte[] _serverKey;

@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Net;
-using System.Collections.Concurrent;
 using Microsoft.Extensions.Caching.Memory;
 using System.Security.Authentication;
 public class LinkSessions
@@ -42,13 +41,25 @@ public class LinkSessions
     {
         _sessionCache.Remove(id);
     }
-    public async Task<bool> LinkAccessToken(string accessToken, Guid id)
+    public bool LinkAccessToken(string accessToken, Guid id)
     {
         var session = GetSession<LinkSession>(id);
         if (session is null)
             return false;
 
         var updated = session with { AccessToken = accessToken };
+
+        SetSession<LinkSession>(id, updated);
+
+        return true;
+    }
+    public bool SetResourcePackage(Guid id, Dictionary<string, string?> imageServiceLinks)
+    {
+        var session = GetSession<LinkSession>(id);
+        if (session is null)
+            return false;
+
+        var updated = session with { ImageServiceLinks = imageServiceLinks };
 
         SetSession<LinkSession>(id, updated);
 

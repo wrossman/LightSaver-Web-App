@@ -27,6 +27,20 @@
 			],
 			"problemMatcher": "$msCompile",
 			"dependsOn": "clean"
+		},
+		{
+			"label": "build",
+			"command": "dotnet",
+			"type": "process",
+			"args": [
+				"build",
+				"${workspaceFolder}/LightSaver.csproj"
+			],
+			"problemMatcher": "$msCompile",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
 		}
 	]
 }
