@@ -4,9 +4,6 @@ using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
-
 builder.Services.AddAntiforgery();
 
 builder.Services.AddOpenApi();
@@ -27,8 +24,11 @@ builder.Services.AddRateLimiter(options =>
 });
 
 //add database
+// builder.Services.AddDbContext<GlobalImageStoreDbContext>(options =>
+//     options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+
 builder.Services.AddDbContext<GlobalImageStoreDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
 // add cache for sessions
 builder.Services.AddMemoryCache();

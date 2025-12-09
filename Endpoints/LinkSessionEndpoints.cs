@@ -20,6 +20,7 @@ public static class LinkSessionEndpoints
         group.MapPost("/update", PollUpdateLightroom);
         group.MapGet("/session", CodeSubmissionPageUpload);
         group.MapPost("/source", SelectSource);
+
     }
     private static async Task<IResult> ProvideSessionCode(HttpContext context, LinkSessions linkSessions, ILogger<LinkSessions> logger)
     {
@@ -78,10 +79,14 @@ public static class LinkSessionEndpoints
             return Results.StatusCode(StatusCodes.Status500InternalServerError);
         }
 
+        logger.LogInformation("Providing session code.");
+
         return Results.Json(new { LinkSessionCode = sessionCode, LinkSessionId = sessionId });
     }
     private static async Task<IResult> RokuReception(HttpContext context, LinkSessions linkSessions, ILogger<LinkSessions> logger)
     {    //be careful about what i return to the user because they cant be able to see what is a valid session code
+
+        logger.LogInformation("Client reached reception.");
         string body;
         try
         {
@@ -230,6 +235,7 @@ public static class LinkSessionEndpoints
         (byte[] Image, string FileType) resource;
         try
         {
+            // var updateKeys = store.GetUpdateKeys(resourceId, key, device);
             resource = store.GetResourceData(resourceId, key, device);
         }
         catch (ArgumentException e)
