@@ -24,9 +24,6 @@ builder.Services.AddRateLimiter(options =>
 });
 
 //add database
-// builder.Services.AddDbContext<GlobalImageStoreDbContext>(options =>
-//     options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
-
 builder.Services.AddDbContext<GlobalImageStoreDbContext>(options =>
 options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
@@ -70,13 +67,6 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     services.GetRequiredService<GlobalImageStoreDbContext>().Database.Migrate();
-}
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    System.Console.WriteLine("Running in development");
 }
 
 app.UseHttpsRedirection(); //enable this once im done with getting the app service up
