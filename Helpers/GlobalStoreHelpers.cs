@@ -57,6 +57,21 @@ public class GlobalStoreHelpers
 
         return (item.ImageStream, item.FileType);
     }
+    // public Dictionary<Guid, string> GetUpdateKeys(string id, string key, string device)
+    // {
+    //     var item = _resourceDb.Resources
+    //     .Where(img => img.Id.ToString() == id && img.RokuId == device)
+    //     .Select(img => img).SingleOrDefault();
+
+    //     if (item is null || !_hmacService.Verify(key, item.Key))
+    //     {
+    //         throw new AuthenticationException();
+    //     }
+
+    //     if (DateTime.UtcNow > item.KeyCreated.AddDays(20))
+
+    //         return;
+    // }
     public byte[]? GetBackgroundData(string id, string key, string device, int height, int width)
     {
         (byte[] Image, string FileType) result;
