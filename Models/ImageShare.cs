@@ -8,7 +8,7 @@ public record ImageShare
     public DateTime CreatedOn { get; init; }
     public string FileType { get; init; } = "";
     public string RokuId { get; set; } = "";
-    public string Source { get; set; } = "";
+    public ImageShareSource Source { get; set; } = ImageShareSource.Unknown;
     public string Origin { get; set; } = "";
     public string LightroomAlbum { get; set; } = "";
 }

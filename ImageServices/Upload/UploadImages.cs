@@ -51,7 +51,7 @@ public class UploadImages
                 CreatedOn = DateTime.UtcNow,
                 FileType = "", // should i figure out how to get the filetype? it isn't really necessary for roku
                 RokuId = session.RokuId,
-                Source = "upload"
+                Source = ImageShareSource.Upload
             };
             await _store.WriteResourceToStore(share, session.MaxScreenSize);
             updatedSession.ResourcePackage.Add(share.Id, key);

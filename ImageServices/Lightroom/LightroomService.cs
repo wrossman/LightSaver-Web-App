@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
+using SixLabors.ImageSharp;
 public sealed class LightroomService
 {
     private readonly ILogger<LightroomService> _logger;
@@ -262,7 +263,7 @@ public sealed class LightroomService
                 CreatedOn = DateTime.UtcNow,
                 FileType = "",
                 RokuId = session.RokuId,
-                Source = "lightroom",
+                Source = ImageShareSource.Lightroom,
                 Origin = GlobalHelpers.ComputeHashFromString(item),
                 LightroomAlbum = shortCode
             };
@@ -459,7 +460,7 @@ public sealed class LightroomService
                 CreatedOn = DateTime.UtcNow,
                 FileType = "",
                 RokuId = resourceReq.RokuId,
-                Source = "lightroom",
+                Source = ImageShareSource.Lightroom,
                 Origin = GlobalHelpers.ComputeHashFromString(item),
                 LightroomAlbum = albumUrl
             };

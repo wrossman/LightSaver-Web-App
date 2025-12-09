@@ -280,7 +280,7 @@ public static class LinkSessionEndpoints
 
         try
         {
-            if (!(store.GetResourceSource(resourceReq) == "lightroom"))
+            if (!(store.GetResourceSource(resourceReq) == ImageShareSource.Lightroom))
                 return Results.Ok();
         }
         catch (AuthenticationException)

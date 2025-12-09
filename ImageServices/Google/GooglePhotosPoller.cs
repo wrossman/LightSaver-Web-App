@@ -122,7 +122,7 @@ public class GooglePhotosPoller
                 CreatedOn = DateTime.UtcNow,
                 FileType = item.Value,
                 RokuId = session.RokuId,
-                Source = "google",
+                Source = ImageShareSource.Google,
                 Origin = GlobalHelpers.ComputeHashFromString(item.Key)
             };
             await _store.WriteResourceToStore(share, session.MaxScreenSize);

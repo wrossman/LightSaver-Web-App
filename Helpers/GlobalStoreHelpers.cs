@@ -104,7 +104,7 @@ public class GlobalStoreHelpers
             return null;
         }
     }
-    public string GetResourceSource(ResourceRequest resourceReq)
+    public ImageShareSource GetResourceSource(ResourceRequest resourceReq)
     {
         var item = _resourceDb.Resources
         .Where(img => img.Id == resourceReq.Id && img.RokuId == resourceReq.RokuId).SingleOrDefault();
@@ -208,7 +208,7 @@ public class GlobalStoreHelpers
     {
         return await _resourceDb.Resources
             .Where(x => x.RokuId == rokuId &&
-                        x.Source == "lightroom")
+                        x.Source == ImageShareSource.Lightroom)
             .Select(x => x.Origin)
             .ToListAsync();
     }
