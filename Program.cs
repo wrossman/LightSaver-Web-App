@@ -33,7 +33,7 @@ options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<LinkSessions>();
 builder.Services.AddSingleton<LightroomUpdateSessions>();
-builder.Services.AddSingleton<HmacService>();
+builder.Services.AddSingleton<HmacHelper>();
 
 // register classes for DI
 builder.Services.AddScoped<GoogleOAuthFlow>();
@@ -42,6 +42,8 @@ builder.Services.AddScoped<UploadImages>();
 builder.Services.AddScoped<LightroomService>();
 builder.Services.AddScoped<GlobalStoreHelpers>();
 
+// hosted service for resource cleanup
+builder.Services.AddHostedService<ResourceCleanup>();
 
 // start all services at the same time so they don't block each other
 builder.Services.Configure<HostOptions>(options =>

@@ -8,9 +8,9 @@ public class GooglePhotosFlow
     private readonly ILogger<GooglePhotosFlow> _logger;
     private readonly IConfiguration _config;
     private readonly LinkSessions _linkSessions;
-    private readonly HmacService _hmacService;
+    private readonly HmacHelper _hmacService;
     private readonly IServiceScopeFactory _scopeFactory;
-    public GooglePhotosFlow(ILogger<GooglePhotosFlow> logger, IConfiguration config, IServiceScopeFactory scopeFactory, LinkSessions linkSessions, HmacService hmacService)
+    public GooglePhotosFlow(ILogger<GooglePhotosFlow> logger, IConfiguration config, IServiceScopeFactory scopeFactory, LinkSessions linkSessions, HmacHelper hmacService)
     {
         _logger = logger;
         _hmacService = hmacService;

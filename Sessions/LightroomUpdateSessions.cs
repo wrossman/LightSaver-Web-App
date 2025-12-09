@@ -6,9 +6,9 @@ public class LightroomUpdateSessions
 {
     private readonly ILogger<LightroomUpdateSessions> _logger;
     private readonly IMemoryCache _sessionCache;
-    private readonly HmacService _hmacService;
+    private readonly HmacHelper _hmacService;
     public static ConcurrentQueue<string> SessionsReadyForTransfer { get; set; } = new();
-    public LightroomUpdateSessions(ILogger<LightroomUpdateSessions> logger, IMemoryCache sessionCache, HmacService hmacService)
+    public LightroomUpdateSessions(ILogger<LightroomUpdateSessions> logger, IMemoryCache sessionCache, HmacHelper hmacService)
     {
         _logger = logger;
         _hmacService = hmacService;

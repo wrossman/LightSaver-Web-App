@@ -7,8 +7,8 @@ public class UploadImages
     private readonly ILogger<LinkSessions> _logger;
     private readonly GlobalStoreHelpers _store;
     private readonly LinkSessions _linkSessions;
-    private readonly HmacService _hmacService;
-    public UploadImages(ILogger<LinkSessions> logger, GlobalStoreHelpers store, LinkSessions linkSessions, HmacService hmacService)
+    private readonly HmacHelper _hmacService;
+    public UploadImages(ILogger<LinkSessions> logger, GlobalStoreHelpers store, LinkSessions linkSessions, HmacHelper hmacService)
     {
         _logger = logger;
         _store = store;

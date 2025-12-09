@@ -9,8 +9,8 @@ public class GlobalStoreHelpers
     private readonly ILogger<GlobalStoreHelpers> _logger;
     private readonly GlobalImageStoreDbContext _resourceDb;
     private readonly IConfiguration _config;
-    private readonly HmacService _hmacService;
-    public GlobalStoreHelpers(GlobalImageStoreDbContext resourceDb, ILogger<GlobalStoreHelpers> logger, IConfiguration config, HmacService hmacService)
+    private readonly HmacHelper _hmacService;
+    public GlobalStoreHelpers(GlobalImageStoreDbContext resourceDb, ILogger<GlobalStoreHelpers> logger, IConfiguration config, HmacHelper hmacService)
     {
         _logger = logger;
         _resourceDb = resourceDb;

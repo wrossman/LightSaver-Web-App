@@ -8,9 +8,9 @@ public sealed class LightroomService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly LightroomUpdateSessions _updateSessions;
     private readonly LinkSessions _linkSessions;
-    private readonly HmacService _hmacService;
+    private readonly HmacHelper _hmacService;
     private readonly IConfiguration _config;
-    public LightroomService(ILogger<LightroomService> logger, HmacService hmacService, IConfiguration config, GlobalStoreHelpers store, IServiceScopeFactory scopeFactory, LightroomUpdateSessions updateSessions, LinkSessions linkSessions)
+    public LightroomService(ILogger<LightroomService> logger, HmacHelper hmacService, IConfiguration config, GlobalStoreHelpers store, IServiceScopeFactory scopeFactory, LightroomUpdateSessions updateSessions, LinkSessions linkSessions)
     {
         _logger = logger;
         _store = store;

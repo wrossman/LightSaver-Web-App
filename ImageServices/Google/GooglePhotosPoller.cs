@@ -7,8 +7,8 @@ public class GooglePhotosPoller
     private readonly IConfiguration _config;
     private readonly GlobalStoreHelpers _store;
     private readonly LinkSessions _linkSessions;
-    private readonly HmacService _hmacService;
-    public GooglePhotosPoller(IConfiguration config, ILogger<GooglePhotosFlow> logger, GlobalStoreHelpers store, LinkSessions linkSessions, HmacService hmacService)
+    private readonly HmacHelper _hmacService;
+    public GooglePhotosPoller(IConfiguration config, ILogger<GooglePhotosFlow> logger, GlobalStoreHelpers store, LinkSessions linkSessions, HmacHelper hmacService)
     {
         _logger = logger;
         _hmacService = hmacService;

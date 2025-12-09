@@ -1,11 +1,11 @@
 using System.Security.Cryptography;
 using System.Text;
 
-public class HmacService
+public class HmacHelper
 {
     private readonly byte[] _serverKey;
-    private readonly ILogger<HmacService> _logger;
-    public HmacService(IConfiguration config, ILogger<HmacService> logger)
+    private readonly ILogger<HmacHelper> _logger;
+    public HmacHelper(IConfiguration config, ILogger<HmacHelper> logger)
     {
         var serverKey = config.GetValue<string>("Hmac");
 
