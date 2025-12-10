@@ -33,7 +33,6 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddDbContext<GlobalImageStoreDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
-
 // SINGLETONS
 builder.Services.AddSingleton<LinkSessions>();
 builder.Services.AddSingleton<LightroomUpdateSessions>();
