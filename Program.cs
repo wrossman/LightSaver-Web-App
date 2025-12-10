@@ -81,12 +81,12 @@ if (builder.Configuration["SaveMethod"] == "cloud")
         var blobUri = new Uri($"https://{accountName}.blob.core.windows.net");
         return new BlobServiceClient(blobUri, credential);
     });
-    builder.Services.AddScoped<IResourceSave, CloudSave>();
+    builder.Services.AddSingleton<IResourceSave, CloudSave>();
 }
 else
 {
     System.Console.WriteLine("Program will be Saving resources to local...");
-    builder.Services.AddScoped<IResourceSave, LocalSave>();
+    builder.Services.AddSingleton<IResourceSave, LocalSave>();
 }
 
 var app = builder.Build();

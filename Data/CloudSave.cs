@@ -1,6 +1,4 @@
-using System.Threading.Tasks;
 using Azure.Storage.Blobs;
-using Microsoft.AspNetCore.Identity;
 public class CloudSave : IResourceSave
 {
     private readonly BlobServiceClient _blobService;
@@ -22,7 +20,6 @@ public class CloudSave : IResourceSave
         byte[] img = content.Value.Content.ToArray();
         return img;
     }
-
     public async Task<bool> RemoveList(List<ImageShare> resources)
     {
         foreach (var resource in resources)

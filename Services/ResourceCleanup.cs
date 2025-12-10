@@ -1,75 +1,61 @@
-public class ResourceCleanup : IHostedService, IDisposable
+using Microsoft.EntityFrameworkCore;
+
+public class ResourceCleanup : BackgroundService
 {
-    private int executionCount = 0;
     private readonly ILogger<ResourceCleanup> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
-    private Timer? _timer = null;
+    private readonly IResourceSave _resourceSave;
+    private readonly PeriodicTimer _timer = new(TimeSpan.FromDays(1));
 
-    public ResourceCleanup(ILogger<ResourceCleanup> logger, IServiceScopeFactory scopeFactory)
+    public ResourceCleanup(ILogger<ResourceCleanup> logger, IServiceScopeFactory scopeFactory, IResourceSave resourceSave)
     {
         _logger = logger;
         _scopeFactory = scopeFactory;
+        _resourceSave = resourceSave;
     }
-
-    public Task StartAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Resource Cleanup service is running ");
-
-        _timer = new Timer(DoWork, null, TimeSpan.Zero,
-            TimeSpan.FromDays(1));
-
-        return Task.CompletedTask;
+        await RunCleanup(stoppingToken);
+        while (await _timer.WaitForNextTickAsync(stoppingToken))
+        {
+            await RunCleanup(stoppingToken);
+        }
     }
-
-    private void DoWork(object? state)
+    protected async Task RunCleanup(CancellationToken stoppingToken)
     {
-        var count = Interlocked.Increment(ref executionCount);
-
-        _logger.LogInformation(
-            "Cleaning up Resources. Times cleanup has ran: {Count}", count);
-
         try
         {
+            _logger.LogInformation("Running resource cleanup.");
             using var scope = _scopeFactory.CreateScope();
             using GlobalImageStoreDbContext resourceDb = scope.ServiceProvider.GetRequiredService<GlobalImageStoreDbContext>();
+
             var cutoff = DateTime.UtcNow.AddDays(-30);
-            var expiredSessions = resourceDb.Resources.Where(r => r.KeyCreated < cutoff).ToArray();
-            if (expiredSessions.Length > 0)
+            var expiredSessions = await resourceDb.Resources.Where(r => r.KeyCreated < cutoff).ToListAsync(stoppingToken);
+
+            if (expiredSessions.Count > 0)
             {
                 _logger.LogInformation(
-                    "Removing {Count} resources with expired keys.", expiredSessions.Length);
+                    $"Removing {expiredSessions.Count} resources with expired keys.");
 
-                foreach (var filePath in expiredSessions.Select(x => x.ImageUri))
-                {
-                    if (File.Exists(filePath))
-                    {
-                        File.Delete(filePath);
-                    }
-                }
+                await _resourceSave.RemoveList(expiredSessions);
 
                 resourceDb.RemoveRange(expiredSessions);
-                resourceDb.SaveChanges();
+                await resourceDb.SaveChangesAsync(stoppingToken);
             }
             else
             {
                 _logger.LogInformation("No resources with keys older than cutoff were found to remove.");
+                return;
             }
         }
         catch (Exception e)
         {
-            _logger.LogWarning($"Failed to cleanup old Resources with error: {e.Message}");
+            _logger.LogError(e, $"Failed to cleanup old Resources with error.");
         }
     }
-
-    public Task StopAsync(CancellationToken stoppingToken)
+    public override void Dispose()
     {
-        _timer?.Change(Timeout.Infinite, 0);
-
-        return Task.CompletedTask;
-    }
-
-    public void Dispose()
-    {
-        _timer?.Dispose();
+        _timer.Dispose();
+        base.Dispose();
     }
 }
