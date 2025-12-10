@@ -223,19 +223,27 @@ public static class LinkSessionEndpoints
         if (!context.Request.Headers.TryGetValue("Authorization", out inputKey)
         || !context.Request.Headers.TryGetValue("ResourceId", out inputResourceId)
         || !context.Request.Headers.TryGetValue("Device", out inputDevice))
+        {
+            logger.LogWarning("Failed to TryGet input data");
             return Results.Unauthorized();
+        }
 
         string? key = inputKey;
-        string? resourceId = inputResourceId;
+        Guid resourceId;
         string? device = inputDevice;
 
-        if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(device) || string.IsNullOrEmpty(resourceId))
+        if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(device) || !Guid.TryParse(inputResourceId, out resourceId))
             return Results.Unauthorized();
 
         (byte[] Image, string FileType) resource;
         try
         {
-            // var updateKeys = store.GetUpdateKeys(resourceId, key, device);
+            var updateKey = await store.GetUpdatedKey(resourceId, key, device);
+            if (updateKey is not null)
+            {
+                logger.LogInformation($"Returning update key for resource id {resourceId.ToString()}");
+                return Results.Json(new { Key = updateKey }, statusCode: StatusCodes.Status202Accepted);
+            }
             resource = await store.GetResourceData(resourceId, key, device);
         }
         catch (ArgumentException e)
@@ -344,12 +352,12 @@ public static class LinkSessionEndpoints
             return Results.Unauthorized();
 
         string? key = inputKey;
-        string? resourceId = inputResourceId;
+        Guid resourceId;
         string? device = inputDevice;
 
         if (string.IsNullOrEmpty(key) ||
         string.IsNullOrEmpty(device) ||
-        string.IsNullOrEmpty(resourceId) ||
+        !Guid.TryParse(inputResourceId, out resourceId) ||
         !int.TryParse(inputHeight, out var height) ||
         !int.TryParse(inputWidth, out var width))
         {

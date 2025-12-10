@@ -6,6 +6,7 @@ using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Net.Http.Headers;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using System.Threading.Tasks;
 public class GlobalStore
 {
     private readonly ILogger<GlobalStore> _logger;
@@ -25,31 +26,10 @@ public class GlobalStore
         _hmacService = hmacService;
         _linkSessions = linkSessions;
     }
-    public Dictionary<string, string>? GetResourcePackage(LinkSession LinkSession)
-    {
-        string sessionCode = LinkSession.SessionCode;
-        string rokuId = LinkSession.RokuId;
-
-        var links = _resourceDb.Resources
-            .Where(img => img.SessionCode == sessionCode && img.RokuId == rokuId)
-            .ToDictionary(img => img.Id.ToString(), img => img.Key);
-        if (links is null)
-        {
-            return null;
-        }
-
-        string resourcePackage = "\n";
-        foreach (KeyValuePair<string, string> item in links)
-        {
-            resourcePackage += $"Key: {item.Key} Value: {item.Value}\n";
-        }
-
-        return links;
-    }
-    public async Task<(byte[] image, string fileType)> GetResourceData(string id, string key, string device)
+    public async Task<(byte[] image, string fileType)> GetResourceData(Guid id, string key, string device)
     {
         var item = _resourceDb.Resources
-        .Where(img => img.Id.ToString() == id && img.RokuId == device)
+        .Where(img => img.Id == id && img.RokuId == device)
         .Select(img => img).SingleOrDefault();
 
         if (item is null || !_hmacService.Verify(key, item.Key))
@@ -61,22 +41,46 @@ public class GlobalStore
 
         return (img, item.FileType);
     }
-    // public Dictionary<Guid, string> GetUpdateKeys(string id, string key, string device)
-    // {
-    //     var item = _resourceDb.Resources
-    //     .Where(img => img.Id.ToString() == id && img.RokuId == device)
-    //     .Select(img => img).SingleOrDefault();
+    public async Task<string?> GetUpdatedKey(Guid id, string key, string device)
+    {
+        _logger.LogInformation($"Checking if key for resource id {id.ToString()} requires update.");
+        var item = await _resourceDb.Resources
+        .SingleOrDefaultAsync(img => img.Id == id && img.RokuId == device);
 
-    //     if (item is null || !_hmacService.Verify(key, item.Key))
-    //     {
-    //         throw new AuthenticationException();
-    //     }
+        if (item is null || !_hmacService.Verify(key, item.Key))
+        {
+            throw new AuthenticationException();
+        }
 
-    //     if (DateTime.UtcNow > item.KeyCreated.AddDays(20))
+        var keyExpireDate = item.KeyCreated + TimeSpan.FromDays(30);
+        var remaining = keyExpireDate - DateTime.UtcNow;
 
-    //         return;
-    // }
-    public async Task<byte[]?> GetBackgroundData(string id, string key, string device, int height, int width)
+        if (remaining > TimeSpan.FromDays(7))
+        {
+            return null;
+        }
+        else if (remaining <= TimeSpan.Zero)
+        {
+            _logger.LogWarning("Client tried to retrieve update key for ImageShare with key older than rotation time.");
+            await _resourceSave.RemoveSingle(item);
+            _resourceDb.Remove(item);
+            await _resourceDb.SaveChangesAsync();
+            throw new AuthenticationException();
+        }
+
+        _logger.LogInformation($"Creating new key for resource id {id.ToString()}");
+        var bytes = new byte[32];
+        RandomNumberGenerator.Fill(bytes);
+        var newKey = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        var keyDerivation = _hmacService.Hash(newKey);
+
+        item.Key = keyDerivation;
+        item.KeyCreated = DateTime.UtcNow;
+        await _resourceDb.SaveChangesAsync();
+
+        return newKey;
+    }
+    public async Task<byte[]?> GetBackgroundData(Guid id, string key, string device, int height, int width)
     {
         (byte[] Image, string FileType) result;
         try

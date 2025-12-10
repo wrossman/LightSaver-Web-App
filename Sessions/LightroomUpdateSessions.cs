@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Security.Authentication;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Caching.Memory;
@@ -7,7 +6,6 @@ public class LightroomUpdateSessions
     private readonly ILogger<LightroomUpdateSessions> _logger;
     private readonly IMemoryCache _sessionCache;
     private readonly HmacHelper _hmacService;
-    public static ConcurrentQueue<string> SessionsReadyForTransfer { get; set; } = new();
     public LightroomUpdateSessions(ILogger<LightroomUpdateSessions> logger, IMemoryCache sessionCache, HmacHelper hmacService)
     {
         _logger = logger;

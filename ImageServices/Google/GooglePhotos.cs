@@ -37,7 +37,7 @@ public class GooglePhotosFlow
                     _logger.LogWarning("Failed to start polling services for Google Photos");
                     return;
                 }
-                GooglePhotosPoller poller = new(_config, _logger, store, linkSessions, _hmacService);
+                GooglePhotosPoller poller = new(_config, _logger, store, linkSessions);
                 await poller.PollPhotos(pickerSession, sessionId);
             }
         });
