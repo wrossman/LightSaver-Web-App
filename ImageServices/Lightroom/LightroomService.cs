@@ -6,18 +6,18 @@ public sealed class LightroomService
     private readonly GlobalStore _store;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly LightroomUpdateSessions _updateSessions;
-    private readonly LinkSessions _linkSessions;
+    private readonly IResourceSave _resourceSave;
     private readonly HmacHelper _hmacService;
     private readonly IConfiguration _config;
     private readonly GlobalImageStoreDbContext _resourceDb;
-    public LightroomService(ILogger<LightroomService> logger, GlobalImageStoreDbContext resourceDb, HmacHelper hmacService, IConfiguration config, GlobalStore store, IServiceScopeFactory scopeFactory, LightroomUpdateSessions updateSessions, LinkSessions linkSessions)
+    public LightroomService(IResourceSave resourceSave, ILogger<LightroomService> logger, GlobalImageStoreDbContext resourceDb, HmacHelper hmacService, IConfiguration config, GlobalStore store, IServiceScopeFactory scopeFactory, LightroomUpdateSessions updateSessions)
     {
         _logger = logger;
         _store = store;
+        _resourceSave = resourceSave;
         _scopeFactory = scopeFactory;
         _updateSessions = updateSessions;
         _config = config;
-        _linkSessions = linkSessions;
         _resourceDb = resourceDb;
         _hmacService = hmacService;
     }
@@ -417,7 +417,7 @@ public sealed class LightroomService
                 Key = keyDerivation,
                 KeyCreated = DateTime.UtcNow,
                 SessionCode = "",
-                ImageUri = _store.WritePhotosToLocal(shareId, data, null, resourceReq.MaxScreenSize),
+                ImageUri = await _resourceSave.SaveResource(shareId, data, null, resourceReq.MaxScreenSize),
                 CreatedOn = DateTime.UtcNow,
                 FileType = "",
                 RokuId = resourceReq.RokuId,

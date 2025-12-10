@@ -13,8 +13,12 @@ public class GlobalStore
     private readonly IConfiguration _config;
     private readonly HmacHelper _hmacService;
     private readonly LinkSessions _linkSessions;
-    public GlobalStore(LinkSessions linkSessions, GlobalImageStoreDbContext resourceDb, ILogger<GlobalStore> logger, IConfiguration config, HmacHelper hmacService)
+    private readonly IResourceSave _resourceSave;
+    private readonly ImageProcessors _imageProcessors;
+    public GlobalStore(ImageProcessors imageProcessors, IResourceSave resourceSave, LinkSessions linkSessions, GlobalImageStoreDbContext resourceDb, ILogger<GlobalStore> logger, IConfiguration config, HmacHelper hmacService)
     {
+        _imageProcessors = imageProcessors;
+        _resourceSave = resourceSave;
         _logger = logger;
         _resourceDb = resourceDb;
         _config = config;
@@ -53,15 +57,7 @@ public class GlobalStore
             throw new AuthenticationException();
         }
 
-        byte[] img;
-        try
-        {
-            img = await File.ReadAllBytesAsync(item.ImageUri);
-        }
-        catch
-        {
-            throw new IOException();
-        }
+        var img = await _resourceSave.GetResource(item);
 
         return (img, item.FileType);
     }
@@ -160,47 +156,12 @@ public class GlobalStore
             return false;
         }
 
-        RemoveListFromLocalStore(sessions.Select(x => x.ImageUri).ToList());
+        await _resourceSave.RemoveList(sessions);
 
         _resourceDb.Resources.RemoveRange(sessions);
         await _resourceDb.SaveChangesAsync();
 
         return true;
-    }
-    public void RemoveListFromLocalStore(List<string> uris)
-    {
-        foreach (var filePath in uris)
-        {
-            if (File.Exists(filePath))
-            {
-                File.Delete(filePath);
-            }
-        }
-    }
-    public void RemoveSingleFromLocalStore(string uri)
-    {
-        if (File.Exists(uri))
-        {
-            File.Delete(uri);
-        }
-    }
-    public string WritePhotosToLocal(Guid resourceId, byte[] img, string? fileType, int maxScreenSize)
-    {
-        var resizedImg = ResizeToMaxBox(img, maxScreenSize);
-
-        string folderPath = _config.GetValue<string>("LocalResourceStorePath")
-         ?? "C:\\Users\\billuswillus\\Documents\\GitHub\\LightSaver-Web-App\\LocalResourceStore\\";
-        var filePath = folderPath + resourceId;
-
-        if (fileType is not null)
-            filePath += "." + fileType;
-
-        using (FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
-        {
-            fs.Write(resizedImg, 0, resizedImg.Length);
-        }
-
-        return filePath;
     }
     public async Task<RevokeAccessPackage> RevokeResourcePackage(RevokeAccessPackage revokePackage)
     {
@@ -228,7 +189,7 @@ public class GlobalStore
                 continue;
             }
 
-            RemoveSingleFromLocalStore(session.ImageUri);
+            await _resourceSave.RemoveSingle(session);
 
             _resourceDb.Resources.Remove(session);
             await _resourceDb.SaveChangesAsync();
@@ -242,7 +203,7 @@ public class GlobalStore
         .Where(x => x.LightroomAlbum == albumUrl)
         .ToListAsync();
 
-        RemoveListFromLocalStore(items.Select(x => x.ImageUri).ToList());
+        await _resourceSave.RemoveList(items);
 
         _resourceDb.Resources.RemoveRange(items);
         await _resourceDb.SaveChangesAsync();
@@ -264,36 +225,12 @@ public class GlobalStore
         .Where(x => origins.Contains(x.Origin))
         .ToListAsync();
 
-        RemoveListFromLocalStore(itemsToRemove.Select(x => x.ImageUri).ToList());
+        await _resourceSave.RemoveList(itemsToRemove);
 
         _resourceDb.Resources.RemoveRange(itemsToRemove);
         await _resourceDb.SaveChangesAsync();
 
         _logger.LogInformation($"Removed {itemsToRemove.Count} lightroom resources from resource database");
-    }
-    public byte[] ResizeToMaxBox(byte[] input, int maxScreenSize)
-    {
-        using var image = Image.Load(input);
-
-        _logger.LogInformation($"Loaded image with height: {image.Height} and width {image.Width}");
-
-        if (image.Width > maxScreenSize || image.Height > maxScreenSize)
-        {
-            _logger.LogInformation($"Resizing image with dimensions Width: {image.Width} Height: {image.Height} to max screen size of {maxScreenSize}");
-            var options = new ResizeOptions
-            {
-                Mode = ResizeMode.Max, // maintain aspect ratio
-                Size = new Size(maxScreenSize, maxScreenSize)
-            };
-
-            image.Mutate(x => x.Resize(options));
-            _logger.LogInformation($"New dimensions: Width: {image.Width} Height: {image.Height}");
-        }
-
-        using var outputStream = new MemoryStream();
-        image.Save(outputStream, new JpegEncoder());
-
-        return outputStream.ToArray();
     }
     public async Task<Dictionary<Guid, string>> GetOldImgsForUpdatePackage(List<string>? imgsToKeep)
     {
@@ -332,7 +269,7 @@ public class GlobalStore
 
         return imgs;
     }
-    public async Task WriteSessionImages(Guid linkSessionId, ImageShareSource source, List<IFormFile>? images = null)
+    public async Task WriteSessionImages(Guid linkSessionId, ImageShareSource source, List<IFormFile>? images = null, string lightroomAlbum = "")
     {
         if (images is null)
         {
@@ -371,9 +308,10 @@ public class GlobalStore
                     Key = keyDerivation,
                     KeyCreated = DateTime.UtcNow,
                     SessionCode = linkSession.SessionCode,
-                    ImageUri = WritePhotosToLocal(shareId, data, item.Value, linkSession.MaxScreenSize),
+                    ImageUri = await _resourceSave.SaveResource(shareId, data, item.Value, linkSession.MaxScreenSize),
                     CreatedOn = DateTime.UtcNow,
                     FileType = item.Value ?? "",
+                    LightroomAlbum = lightroomAlbum,
                     RokuId = linkSession.RokuId,
                     Source = source,
                     Origin = GlobalHelpers.ComputeHashFromString(item.Key)
@@ -407,7 +345,7 @@ public class GlobalStore
                     imgBytes = ms.ToArray();
                 }
 
-                var finalImg = FixOrientation(imgBytes);
+                var finalImg = _imageProcessors.FixOrientation(imgBytes);
 
                 var bytes = new byte[32];
                 RandomNumberGenerator.Fill(bytes);
@@ -422,7 +360,7 @@ public class GlobalStore
                     Key = keyDerivation,
                     KeyCreated = DateTime.UtcNow,
                     SessionCode = linkSession.SessionCode,
-                    ImageUri = WritePhotosToLocal(shareId, finalImg, null, linkSession.MaxScreenSize),
+                    ImageUri = await _resourceSave.SaveResource(shareId, finalImg, null, linkSession.MaxScreenSize),
                     CreatedOn = DateTime.UtcNow,
                     FileType = "", // should i figure out how to get the filetype? it isn't really necessary for roku
                     RokuId = linkSession.RokuId,
@@ -436,47 +374,5 @@ public class GlobalStore
             updatedSession.ReadyForTransfer = true;
             _linkSessions.SetSession<LinkSession>(linkSessionId, updatedSession);
         }
-    }
-    public byte[] FixOrientation(byte[] imageBytes)
-    {
-        using var image = Image.Load(imageBytes);
-
-        if (image.Metadata?.ExifProfile != null)
-        {
-            IExifValue<ushort>? orientation;
-            if (image.Metadata.ExifProfile.TryGetValue(ExifTag.Orientation, out orientation))
-            {
-                object? orientationVal;
-                if (orientation is not null)
-                    orientationVal = orientation.GetValue();
-                else
-                    return imageBytes;
-
-                UInt16 orientationShort;
-                if (orientationVal is not null)
-                    orientationShort = (UInt16)orientationVal;
-                else
-                    return imageBytes;
-
-                switch (orientationShort)
-                {
-                    case 2: image.Mutate(x => x.Flip(FlipMode.Horizontal)); break;
-                    case 3: image.Mutate(x => x.Rotate(180)); break;
-                    case 4: image.Mutate(x => x.Flip(FlipMode.Vertical)); break;
-                    case 5: image.Mutate(x => { x.Rotate(90); x.Flip(FlipMode.Horizontal); }); break;
-                    case 6: image.Mutate(x => x.Rotate(90)); break;
-                    case 7: image.Mutate(x => { x.Rotate(-90); x.Flip(FlipMode.Horizontal); }); break;
-                    case 8: image.Mutate(x => x.Rotate(-90)); break;
-                }
-
-                // After fixing, remove orientation tag to avoid double-rotation later
-                image.Metadata.ExifProfile.RemoveValue(ExifTag.Orientation);
-            }
-
-        }
-
-        using var ms = new MemoryStream();
-        image.SaveAsJpeg(ms);
-        return ms.ToArray();
     }
 }

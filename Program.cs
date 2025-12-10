@@ -1,13 +1,17 @@
 using System.Threading.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http.Features;
+using Azure.Identity;
+using Azure.Storage.Blobs;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddAntiforgery();
-
+// LOGGING
 builder.Logging.AddAzureWebAppDiagnostics();
 
+// MIDDLEWARE
+builder.Services.AddAntiforgery();
+builder.Services.AddMemoryCache();
 builder.Services.AddOpenApi();
 builder.Services.AddRateLimiter(options =>
 {
@@ -25,31 +29,32 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
-//add database
+// DATABASE
 builder.Services.AddDbContext<GlobalImageStoreDbContext>(options =>
-options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
-// add cache for sessions
-builder.Services.AddMemoryCache();
+
+// SINGLETONS
 builder.Services.AddSingleton<LinkSessions>();
 builder.Services.AddSingleton<LightroomUpdateSessions>();
 builder.Services.AddSingleton<HmacHelper>();
+builder.Services.AddSingleton<ImageProcessors>();
 
-// register classes for DI
+// SCOPED
 builder.Services.AddScoped<GooglePhotosFlow>();
 builder.Services.AddScoped<LightroomService>();
 builder.Services.AddScoped<GlobalStore>();
 
-// hosted service for resource cleanup
+// HOSTED SERVICES and BACKGROUND TASKS
 builder.Services.AddHostedService<ResourceCleanup>();
 
-// start all services at the same time so they don't block each other
+// START ALL SERVICES CONCURRENTLY
 builder.Services.Configure<HostOptions>(options =>
 {
     options.ServicesStartConcurrently = true;
 });
 
-// configure kestrel and forms to allow big uploads from upload service
+// ALLOW KESTREL TO RECEIVE A LARGE AMOUNT OF DATA FOR IMAGE UPLOADING
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.Limits.MaxRequestBodySize = 600L * 1000 * 1000;
@@ -59,26 +64,50 @@ builder.Services.Configure<FormOptions>(options =>
     options.MultipartBodyLengthLimit = 600L * 1000 * 1000;
 });
 
+// SET RESOURCE SAVE METHOD
+if (builder.Configuration["SaveMethod"] == "cloud")
+{
+    System.Console.WriteLine("Program will be Saving resources to cloud...");
+    builder.Services.AddSingleton(x =>
+    {
+        var config = x.GetRequiredService<IConfiguration>();
+
+        string accountName = config["AzureStorage:AccountName"] ?? "lightsaver";
+        string containerName = config["AzureStorage:ContainerName"] ?? "resources";
+
+        // Use managed identity automatically
+        var credential = new DefaultAzureCredential();
+
+        var blobUri = new Uri($"https://{accountName}.blob.core.windows.net");
+        return new BlobServiceClient(blobUri, credential);
+    });
+    builder.Services.AddScoped<IResourceSave, CloudSave>();
+}
+else
+{
+    System.Console.WriteLine("Program will be Saving resources to local...");
+    builder.Services.AddScoped<IResourceSave, LocalSave>();
+}
+
 var app = builder.Build();
 
-app.UseRateLimiter();
-app.UseStaticFiles();
-app.UseAntiforgery();
-
+// MIGRATE RESOURCE DB
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     services.GetRequiredService<GlobalImageStoreDbContext>().Database.Migrate();
 }
 
-app.UseHttpsRedirection(); //enable this once im done with getting the app service up
+// USE MIDDLEWARE
+app.UseRateLimiter();
+app.UseStaticFiles();
+app.UseAntiforgery();
+app.UseHttpsRedirection();
 
-app.MapGooglePhotosEndpoints(); // Google Photos Feature Endpoints
-
-app.MapUploadPhotosEndpoints(); // Upload to web app feature endpoints
-
-app.MapLightroomEndpoints(); // Scrape public lightroom images
-
-app.MapLinkSessionEndpoints(); // user session management
+// MAP ENDPOINTS
+app.MapGooglePhotosEndpoints();
+app.MapUploadPhotosEndpoints();
+app.MapLightroomEndpoints();
+app.MapLinkSessionEndpoints();
 
 app.Run();

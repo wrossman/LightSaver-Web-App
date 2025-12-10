@@ -74,7 +74,7 @@ public static class LightroomEndpoints
         try
         {
             linkSessions.SetResourcePackage(sessionId, result.Item1);
-            await store.WriteSessionImages(sessionId, ImageShareSource.Lightroom);
+            await store.WriteSessionImages(sessionId, ImageShareSource.Lightroom, lightroomAlbum: lrCode);
         }
         catch
         {
