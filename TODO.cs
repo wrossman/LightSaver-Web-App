@@ -2,12 +2,10 @@
 -------------------
 FINAL ITEMS
 -------------------
-- Enable HTTPS redirection (after SSL is configured).
+- limit display time to higher number
 - Review and check for OWASP Top 10 vulnerabilities.
 - Update all Results.* responses to their appropriate HTTP responses.
 - Remove all sensitive data from logging.
-- Create Privacy Policy.
-- Create Terms and Conditions.
 - Check for uncaught exceptions.
 - How can a user report their Roku lost or stolen?
 - Verify that all images are being saved only at the maximum size the Roku device can handle.
@@ -21,6 +19,9 @@ NEW FEATURE IDEAS
 -------------------
 DESIGN ITEMS
 -------------------
+- add introduction page
+- Create Privacy Policy.
+- Create Terms and Conditions.
 - soft qr code edges
 - add images to start up screen
 - on get photos screen add a how to upload images "To upload images scan qr code or go to lightsaver.app, enter the code"
@@ -37,7 +38,6 @@ DESIGN ITEMS
 -------------------
 WEB APP TO-DO ITEMS
 -------------------
-- limit display time to higher number
 - Add orphaned resource cleanup
 - Turn key and derivation creation into a method
 - set to write the imageShares as a range instead of writing each one at once
@@ -63,6 +63,7 @@ ROKU TO-DO ITEMS
 -------------------
 DONE
 -------------------
+X Enable HTTPS redirection (after SSL is configured).
 X Fix wacky lightroom parsing of overflow
 X Before uploading, check to see if session is expired for each service.
 X Implement PBKDF2 for resource keys.
