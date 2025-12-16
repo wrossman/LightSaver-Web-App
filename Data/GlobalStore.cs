@@ -1,12 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
 using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Net.Http.Headers;
-using SixLabors.ImageSharp.Metadata.Profiles.Exif;
-using System.Threading.Tasks;
+using SixLabors.ImageSharp.Formats.Webp;
 public class GlobalStore
 {
     private readonly ILogger<GlobalStore> _logger;
@@ -26,7 +24,7 @@ public class GlobalStore
         _hmacService = hmacService;
         _linkSessions = linkSessions;
     }
-    public async Task<(byte[] image, string fileType)> GetResourceData(Guid id, string key, string device)
+    public async Task<byte[]> GetResourceData(Guid id, string key, string device)
     {
         var item = _resourceDb.Resources
         .Where(img => img.Id == id && img.RokuId == device)
@@ -39,7 +37,7 @@ public class GlobalStore
 
         var img = await _resourceSave.GetResource(item);
 
-        return (img, item.FileType);
+        return img;
     }
     public async Task<string?> GetUpdatedKey(Guid id, string key, string device)
     {
@@ -82,7 +80,7 @@ public class GlobalStore
     }
     public async Task<byte[]?> GetBackgroundData(Guid id, string key, string device, int height, int width)
     {
-        (byte[] Image, string FileType) result;
+        byte[] result;
         try
         {
             result = await GetResourceData(id, key, device);
@@ -100,7 +98,7 @@ public class GlobalStore
 
         try
         {
-            using var image = Image.Load(result.Image);
+            using var image = Image.Load(result);
             image.Mutate(x =>
                         {
                             x.Resize(width / 8, height / 8);
@@ -108,7 +106,7 @@ public class GlobalStore
                             x.Resize(width, height);
                         });
             using var outputStream = new MemoryStream();
-            image.Save(outputStream, new JpegEncoder());
+            image.Save(outputStream, new WebpEncoder());
             return outputStream.ToArray();
         }
         catch
@@ -312,9 +310,8 @@ public class GlobalStore
                     Key = keyDerivation,
                     KeyCreated = DateTime.UtcNow,
                     SessionCode = linkSession.SessionCode,
-                    ImageUri = await _resourceSave.SaveResource(shareId, data, item.Value, linkSession.MaxScreenSize),
+                    ImageUri = await _resourceSave.SaveResource(shareId, data, item.Value, linkSession.MaxScreenSize, source),
                     CreatedOn = DateTime.UtcNow,
-                    FileType = item.Value ?? "",
                     LightroomAlbum = lightroomAlbum,
                     RokuId = linkSession.RokuId,
                     Source = source,
@@ -349,8 +346,6 @@ public class GlobalStore
                     imgBytes = ms.ToArray();
                 }
 
-                var finalImg = _imageProcessors.FixOrientation(imgBytes);
-
                 var bytes = new byte[32];
                 RandomNumberGenerator.Fill(bytes);
                 var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
@@ -364,9 +359,8 @@ public class GlobalStore
                     Key = keyDerivation,
                     KeyCreated = DateTime.UtcNow,
                     SessionCode = linkSession.SessionCode,
-                    ImageUri = await _resourceSave.SaveResource(shareId, finalImg, null, linkSession.MaxScreenSize),
+                    ImageUri = await _resourceSave.SaveResource(shareId, imgBytes, null, linkSession.MaxScreenSize, source),
                     CreatedOn = DateTime.UtcNow,
-                    FileType = "", // should i figure out how to get the filetype? it isn't really necessary for roku
                     RokuId = linkSession.RokuId,
                     Source = source
                 };

@@ -1,7 +1,7 @@
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Formats.Webp;
 public class ImageProcessors
 {
     private readonly ILogger<ImageProcessors> _logger;
@@ -9,14 +9,26 @@ public class ImageProcessors
     {
         _logger = logger;
     }
-    public byte[] ResizeToMaxBox(byte[] input, int maxScreenSize)
+    public byte[] ProcessImage(byte[] input, int maxScreenSize, ImageShareSource source)
     {
         using var image = Image.Load(input);
 
-        _logger.LogInformation($"Loaded image with height: {image.Height} and width {image.Width}");
+        _logger.LogInformation($"Loaded image with format {image.Metadata.DecodedImageFormat?.Name ?? "Unknown"} height: {image.Height} and width {image.Width}");
 
+        FixOrientation(image);
+        ResizeToMaxBox(image, maxScreenSize);
+
+        using var outputStream = new MemoryStream();
+        image.Save(outputStream, new WebpEncoder());
+
+        return outputStream.ToArray();
+    }
+    public Image ResizeToMaxBox(Image image, int maxScreenSize)
+    {
         if (image.Width > maxScreenSize || image.Height > maxScreenSize)
         {
+            var format = image.Metadata.DecodedImageFormat;
+
             _logger.LogInformation($"Resizing image with dimensions Width: {image.Width} Height: {image.Height} to max screen size of {maxScreenSize}");
             var options = new ResizeOptions
             {
@@ -25,54 +37,49 @@ public class ImageProcessors
             };
 
             image.Mutate(x => x.Resize(options));
+
             _logger.LogInformation($"New dimensions: Width: {image.Width} Height: {image.Height}");
+
+            return image;
         }
-
-        using var outputStream = new MemoryStream();
-        image.Save(outputStream, new JpegEncoder());
-
-        return outputStream.ToArray();
-    }
-    public byte[] FixOrientation(byte[] imageBytes)
-    {
-        using var image = Image.Load(imageBytes);
-
-        if (image.Metadata?.ExifProfile != null)
+        else
         {
-            IExifValue<ushort>? orientation;
-            if (image.Metadata.ExifProfile.TryGetValue(ExifTag.Orientation, out orientation))
-            {
-                object? orientationVal;
-                if (orientation is not null)
-                    orientationVal = orientation.GetValue();
-                else
-                    return imageBytes;
-
-                UInt16 orientationShort;
-                if (orientationVal is not null)
-                    orientationShort = (UInt16)orientationVal;
-                else
-                    return imageBytes;
-
-                switch (orientationShort)
-                {
-                    case 2: image.Mutate(x => x.Flip(FlipMode.Horizontal)); break;
-                    case 3: image.Mutate(x => x.Rotate(180)); break;
-                    case 4: image.Mutate(x => x.Flip(FlipMode.Vertical)); break;
-                    case 5: image.Mutate(x => { x.Rotate(90); x.Flip(FlipMode.Horizontal); }); break;
-                    case 6: image.Mutate(x => x.Rotate(90)); break;
-                    case 7: image.Mutate(x => { x.Rotate(-90); x.Flip(FlipMode.Horizontal); }); break;
-                    case 8: image.Mutate(x => x.Rotate(-90)); break;
-                }
-
-                // After fixing, remove orientation tag to avoid double-rotation later
-                image.Metadata.ExifProfile.RemoveValue(ExifTag.Orientation);
-            }
-
+            return image;
+        }
+    }
+    public Image FixOrientation(Image image)
+    {
+        IExifValue<ushort>? orientation;
+        if (image.Metadata.ExifProfile == null || !image.Metadata.ExifProfile.TryGetValue(ExifTag.Orientation, out orientation))
+        {
+            return image;
         }
 
-        using var ms = new MemoryStream();
-        image.SaveAsJpeg(ms);
-        return ms.ToArray();
+        object? orientationVal;
+        if (orientation is not null)
+            orientationVal = orientation.GetValue();
+        else
+            return image;
+
+        UInt16 orientationShort;
+        if (orientationVal is not null)
+            orientationShort = (UInt16)orientationVal;
+        else
+            return image;
+
+        switch (orientationShort)
+        {
+            case 2: image.Mutate(x => x.Flip(FlipMode.Horizontal)); break;
+            case 3: image.Mutate(x => x.Rotate(180)); break;
+            case 4: image.Mutate(x => x.Flip(FlipMode.Vertical)); break;
+            case 5: image.Mutate(x => { x.Rotate(90); x.Flip(FlipMode.Horizontal); }); break;
+            case 6: image.Mutate(x => x.Rotate(90)); break;
+            case 7: image.Mutate(x => { x.Rotate(-90); x.Flip(FlipMode.Horizontal); }); break;
+            case 8: image.Mutate(x => x.Rotate(-90)); break;
+        }
+
+        // After fixing, remove orientation tag to avoid double-rotation later
+        image.Metadata.ExifProfile.RemoveValue(ExifTag.Orientation);
+        return image;
     }
 }

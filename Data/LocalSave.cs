@@ -9,13 +9,15 @@ public class LocalSave : IResourceSave
         _logger = logger;
         _imageProcessors = imageProcessors;
     }
-    public async Task<string> SaveResource(Guid resourceId, byte[] img, string? fileType, int maxScreenSize)
+    public async Task<string> SaveResource(Guid resourceId, byte[] img, string? fileType, int maxScreenSize, ImageShareSource source)
     {
         _logger.LogInformation("Writing resource to local directory.");
-        var resizedImg = _imageProcessors.ResizeToMaxBox(img, maxScreenSize);
+        var processedImg = _imageProcessors.ProcessImage(img, maxScreenSize, source);
 
-        string folderPath = _config.GetValue<string>("LocalResourceStorePath")
-         ?? "C:\\Users\\billuswillus\\Documents\\GitHub\\LightSaver-Web-App\\LocalResourceStore\\";
+        string? folderPath = _config.GetValue<string>("LocalResourceStorePath");
+        if (folderPath is null)
+            throw new ArgumentNullException("Local Write Path");
+
         var filePath = folderPath + resourceId;
 
         if (fileType is not null)
@@ -23,7 +25,7 @@ public class LocalSave : IResourceSave
 
         using (FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
         {
-            fs.Write(resizedImg, 0, resizedImg.Length);
+            await fs.WriteAsync(processedImg, 0, processedImg.Length);
         }
 
         return filePath;

@@ -235,7 +235,7 @@ public static class LinkSessionEndpoints
         if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(device) || !Guid.TryParse(inputResourceId, out resourceId))
             return Results.Unauthorized();
 
-        (byte[] Image, string FileType) resource;
+        byte[] resource;
         try
         {
             var updateKey = await store.GetUpdatedKey(resourceId, key, device);
@@ -262,7 +262,7 @@ public static class LinkSessionEndpoints
             return Results.Unauthorized();
         }
 
-        return Results.File(resource.Image, $"image/{resource.FileType}");
+        return Results.File(resource, $"image/webp");
     }
     public static async Task<IResult> InitialStartWallpaper(IConfiguration config, HttpContext context, GlobalStore store, LightroomService lightroom, ILogger<LinkSessions> logger)
     {
@@ -374,7 +374,7 @@ public static class LinkSessionEndpoints
         // For testing image output - this thing is dangerous, don't let it run for a long time because it writes to desktop unless you stop it
         // store.WritePhotosToLocal(image, fileType);
 
-        return Results.File(image, "image/jpeg");
+        return Results.File(image, "image/webp");
     }
     public static async Task<IResult> PollUpdateLightroom(HttpContext context, ILogger<LightroomUpdateSessions> logger, LightroomUpdateSessions updateSessions)
     {

@@ -6,7 +6,6 @@ public record ImageShare
     public string SessionCode { get; set; } = "";
     public string ImageUri { get; set; } = "";
     public DateTime CreatedOn { get; init; }
-    public string FileType { get; init; } = "";
     public string RokuId { get; set; } = "";
     public ImageShareSource Source { get; set; } = ImageShareSource.Unknown;
     public string Origin { get; set; } = "";
