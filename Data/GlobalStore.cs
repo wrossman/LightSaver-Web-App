@@ -291,14 +291,14 @@ public class GlobalStore
 
             List<ImageShare> sharesToAdd = new();
 
-            foreach (KeyValuePair<string, string?> item in linkSession.ImageServiceLinks)
+            foreach (var item in linkSession.ImageServiceLinks)
             {
                 var bytes = new byte[32];
                 RandomNumberGenerator.Fill(bytes);
                 var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
                 var keyDerivation = _hmacService.Hash(key);
 
-                byte[] data = await client.GetByteArrayAsync(item.Key);
+                byte[] data = await client.GetByteArrayAsync(item);
                 if (data.Length == 0)
                     continue;
 
@@ -310,12 +310,12 @@ public class GlobalStore
                     Key = keyDerivation,
                     KeyCreated = DateTime.UtcNow,
                     SessionCode = linkSession.SessionCode,
-                    ImageUri = await _resourceSave.SaveResource(shareId, data, item.Value, linkSession.MaxScreenSize, source),
+                    ImageUri = await _resourceSave.SaveResource(shareId, data, linkSession.MaxScreenSize, source),
                     CreatedOn = DateTime.UtcNow,
                     LightroomAlbum = lightroomAlbum,
                     RokuId = linkSession.RokuId,
                     Source = source,
-                    Origin = GlobalHelpers.ComputeHashFromString(item.Key)
+                    Origin = GlobalHelpers.ComputeHashFromString(item)
                 };
                 updatedSession.ResourcePackage.Add(share.Id, key);
                 sharesToAdd.Add(share);
@@ -359,7 +359,7 @@ public class GlobalStore
                     Key = keyDerivation,
                     KeyCreated = DateTime.UtcNow,
                     SessionCode = linkSession.SessionCode,
-                    ImageUri = await _resourceSave.SaveResource(shareId, imgBytes, null, linkSession.MaxScreenSize, source),
+                    ImageUri = await _resourceSave.SaveResource(shareId, imgBytes, linkSession.MaxScreenSize, source),
                     CreatedOn = DateTime.UtcNow,
                     RokuId = linkSession.RokuId,
                     Source = source

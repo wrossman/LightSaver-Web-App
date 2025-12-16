@@ -38,7 +38,7 @@ public class CloudSave : IResourceSave
         return await blob.DeleteIfExistsAsync();
     }
 
-    public async Task<string> SaveResource(Guid resourceId, byte[] img, string? fileType, int maxScreenSize, ImageShareSource source)
+    public async Task<string> SaveResource(Guid resourceId, byte[] img, int maxScreenSize, ImageShareSource source)
     {
         _logger.LogInformation("Writing resource to Azure resources container.");
         var processedImg = _imageProcessors.ProcessImage(img, maxScreenSize, source);

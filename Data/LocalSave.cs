@@ -9,7 +9,7 @@ public class LocalSave : IResourceSave
         _logger = logger;
         _imageProcessors = imageProcessors;
     }
-    public async Task<string> SaveResource(Guid resourceId, byte[] img, string? fileType, int maxScreenSize, ImageShareSource source)
+    public async Task<string> SaveResource(Guid resourceId, byte[] img, int maxScreenSize, ImageShareSource source)
     {
         _logger.LogInformation("Writing resource to local directory.");
         var processedImg = _imageProcessors.ProcessImage(img, maxScreenSize, source);
@@ -19,9 +19,6 @@ public class LocalSave : IResourceSave
             throw new ArgumentNullException("Local Write Path");
 
         var filePath = folderPath + resourceId;
-
-        if (fileType is not null)
-            filePath += "." + fileType;
 
         using (FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
         {

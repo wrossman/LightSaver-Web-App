@@ -53,7 +53,7 @@ public class LinkSessions
 
         return true;
     }
-    public bool SetResourcePackage(Guid id, Dictionary<string, string?> imageServiceLinks)
+    public bool SetResourcePackage(Guid id, List<string> imageServiceLinks)
     {
         var session = GetSession<LinkSession>(id);
         if (session is null)

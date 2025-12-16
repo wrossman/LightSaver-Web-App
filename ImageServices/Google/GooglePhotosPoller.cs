@@ -91,7 +91,7 @@ public class GooglePhotosPoller
             string.Equals(fileType, "gif", StringComparison.OrdinalIgnoreCase)))
             {
                 MediaFile tempFile = item.MediaFile;
-                linkSession.ImageServiceLinks.Add($"{tempFile.BaseUrl}={maxScreenSize}", fileType);
+                linkSession.ImageServiceLinks.Add($"{tempFile.BaseUrl}={maxScreenSize}");
             }
         }
         _linkSessions.SetSession<LinkSession>(linkSessionId, linkSession);

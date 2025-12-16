@@ -21,7 +21,7 @@ public sealed class LightroomService
         _resourceDb = resourceDb;
         _hmacService = hmacService;
     }
-    public async Task<(Dictionary<string, string?>?, string)> GetImageUrisFromShortCodeAsync(string shortCode, int maxScreenSize)
+    public async Task<(List<string>?, string)> GetImageUrisFromShortCodeAsync(string shortCode, int maxScreenSize)
     {
         // thanks chat for helping me translate from brs, even though you did a bad job
         const string lightroomShortPrefix = "https://adobe.ly/";
@@ -48,7 +48,7 @@ public sealed class LightroomService
         var location = response.Headers.Location?.ToString();
 
         if (string.IsNullOrWhiteSpace(location))
-            return (new Dictionary<string, string?>(), "No Location header found on redirect.");
+            return (new List<string>(), "No Location header found on redirect.");
 
         if (string.Equals(location, "http://www.adobe.com", StringComparison.OrdinalIgnoreCase))
             return (null, "Location was www.adobe.com (invalid album).");
@@ -167,7 +167,7 @@ public sealed class LightroomService
                     return (null, "Album data does not contain a resources array.");
                 }
 
-                Dictionary<string, string?> outputArr = new();
+                List<string> outputArr = new();
 
                 foreach (JsonElement item in resources.EnumerateArray())
                 {
@@ -225,7 +225,7 @@ public sealed class LightroomService
                     // Just prepend https://photos.adobe.io
                     string itemUrl = apiRoot + spaceLink + "/" + href;
 
-                    outputArr.Add(itemUrl, null);
+                    outputArr.Add(itemUrl);
                 }
 
                 if (outputArr.Count == 0)
@@ -326,7 +326,7 @@ public sealed class LightroomService
         var newImgsDic = new Dictionary<string, string>();
         foreach (var item in newImgs)
         {
-            newImgsDic.Add(GlobalHelpers.ComputeHashFromString(item.Key), item.Key);
+            newImgsDic.Add(GlobalHelpers.ComputeHashFromString(item), item);
         }
 
         var oldImgs = await _store.GetLightroomOriginByRokuId(resourceReq.RokuId);
@@ -417,7 +417,7 @@ public sealed class LightroomService
                 Key = keyDerivation,
                 KeyCreated = DateTime.UtcNow,
                 SessionCode = "",
-                ImageUri = await _resourceSave.SaveResource(shareId, data, null, resourceReq.MaxScreenSize, ImageShareSource.Lightroom),
+                ImageUri = await _resourceSave.SaveResource(shareId, data, resourceReq.MaxScreenSize, ImageShareSource.Lightroom),
                 CreatedOn = DateTime.UtcNow,
                 RokuId = resourceReq.RokuId,
                 Source = ImageShareSource.Lightroom,

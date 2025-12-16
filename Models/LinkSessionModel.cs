@@ -9,7 +9,7 @@ public record LinkSession
     public bool ReadyForTransfer { get; set; } = false;
     public bool Expired { get; init; } = false;
     public int MaxScreenSize { get; init; } = 1920;
-    public Dictionary<string, string?> ImageServiceLinks { get; set; } = new();
+    public List<string> ImageServiceLinks { get; set; } = new();
     public Dictionary<Guid, string> ResourcePackage { get; init; } = new();
 
 }
