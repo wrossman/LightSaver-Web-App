@@ -1,4 +1,3 @@
-/*
 -------------------
 FINAL ITEMS
 -------------------
@@ -126,6 +125,3 @@ X Refactor static classes to enable dependency injection.
 X Set up proper logging for each stage of the workflow.  
 X Add rate limiting to the endpoint that provides access to user photos.  
 X If browser cookies fail, fall back to query parameters. (OAuth requires cookies, so this is not applicable.)
-
-*/
-
