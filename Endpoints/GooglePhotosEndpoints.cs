@@ -1,4 +1,6 @@
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Primitives;
+using System.Security.Cryptography;
 public static class GooglePhotosEndpoints
 {
     public static void MapGooglePhotosEndpoints(this IEndpointRouteBuilder app)
@@ -9,24 +11,51 @@ public static class GooglePhotosEndpoints
         group.MapGet("/google-redirect", GoogleOAuthRedirect);
         group.MapGet("/auth/google-callback", HandleOAuthResponse);
     }
-    private static IResult GoogleOAuthRedirect(IConfiguration config)
+    private static IResult GoogleOAuthRedirect(ILogger<GooglePhotosFlow> logger, HttpContext context, IConfiguration config, IMemoryCache sessionCache)
     {
-        return Results.Redirect(GlobalHelpers.BuildGoogleOAuthUrl(config));
+        var bytes = new byte[32];
+        RandomNumberGenerator.Fill(bytes);
+        var stateKey = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+        context.Response.Cookies.Append("state", stateKey, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Lax,
+            Path = "/"
+        });
+        return Results.Redirect(GlobalHelpers.BuildGoogleOAuthUrl(config, stateKey));
     }
     private static async Task<IResult> HandleOAuthResponse(HttpContext context, LinkSessions linkSessions, GooglePhotosFlow googlePhotos, ILogger<GooglePhotosFlow> logger)
     {
-        var request = context.Request;
+
+        var returnedStateKey = context.Request.Query["state"];
+        if (StringValues.IsNullOrEmpty(returnedStateKey))
+            return GlobalHelpers.CreateErrorPage("There was a problem retrieving the google authorization code.");
+        string returnedStateKeyString = returnedStateKey.ToString();
+
+        string? storedStateKey;
+        if (!context.Request.Cookies.TryGetValue("state", out storedStateKey))
+        {
+            logger.LogWarning("Failed to get state from cookie at google handle oauth response endpoint");
+            return GlobalHelpers.CreateErrorPage("LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
+        }
+
+        logger.LogInformation($"Stored state key: {storedStateKey} returned state key: {returnedStateKeyString}");
+
+        if (storedStateKey != returnedStateKey)
+        {
+            logger.LogWarning("Cookie state key and return state key from google oauth did not match.");
+            return GlobalHelpers.CreateErrorPage("An error occurred when trying to link your account.", "Please ensure cookies are enabled and try again.");
+        }
 
         if (context.Request.Query.ContainsKey("error"))
             return GlobalHelpers.CreateErrorPage("There was a problem allowing <strong>Lightsaver</strong> to access your photos.");
 
-        var authCode = request.Query["code"];
-        if (authCode == StringValues.Empty)
+        var authCode = context.Request.Query["code"];
+        if (StringValues.IsNullOrEmpty(authCode))
             return GlobalHelpers.CreateErrorPage("There was a problem retrieving the google authorization code.");
-
         string authCodeString = authCode.ToString();
-        if (authCodeString == string.Empty)
-            return GlobalHelpers.CreateErrorPage("There was a problem retrieving the google authorization code.");
 
         string? linkSessionId;
         if (!context.Request.Cookies.TryGetValue("UserSID", out linkSessionId))

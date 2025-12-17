@@ -41,7 +41,6 @@ public class GlobalStore
     }
     public async Task<string?> GetUpdatedKey(Guid id, string key, string device)
     {
-        _logger.LogInformation($"Checking if key for resource id {id.ToString()} requires update.");
         var item = await _resourceDb.Resources
         .SingleOrDefaultAsync(img => img.Id == id && img.RokuId == device);
 

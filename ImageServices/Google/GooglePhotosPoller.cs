@@ -16,26 +16,38 @@ public class GooglePhotosPoller
     public async Task PollPhotos(PickerSession pickerSession, Guid linkSessionId)
     {
         var linkSession = _linkSessions.GetSession<LinkSession>(linkSessionId);
-        if (linkSession is null)
+        if (linkSession is null || linkSession.Expired)
         {
             _logger.LogWarning($"Failed to Poll Google Photos for session {linkSessionId}");
             return;
         }
 
         int interval;
-        decimal timeoutDecimal;
+        double timeoutDecimal;
         if (!Int32.TryParse(pickerSession.PollingConfig.PollInterval, out interval))
             interval = 5;
-        if (!Decimal.TryParse(pickerSession.PollingConfig.TimeoutIn, out timeoutDecimal))
+        if (!double.TryParse($"{pickerSession.PollingConfig.TimeoutIn.TrimEnd('s')}", out timeoutDecimal))
             timeoutDecimal = 1800;
 
-        int timeout = (int)timeoutDecimal;
+        _logger.LogInformation($"Start polling google photos session for {timeoutDecimal} seconds");
+
+        TimeSpan timeout = TimeSpan.FromSeconds(timeoutDecimal);
         DateTime sessionStartTime = DateTime.Now;
+        DateTime sessionExpiration = sessionStartTime + timeout;
+
         string sessionId = pickerSession.Id;
         using HttpClient pollClient = new();
 
         while (true)
         {
+            var session = _linkSessions.GetSession<LinkSession>(linkSessionId);
+            if (session is null || session.Expired)
+            {
+                _logger.LogInformation("Session has expired or images have been transferred.");
+                _logger.LogInformation("Stopping google photos polling for.");
+                break;
+            }
+
             await Task.Delay(interval * 1000);
             pollClient.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", linkSession.AccessToken);
@@ -45,6 +57,7 @@ public class GooglePhotosPoller
             if (responseJson is null)
             {
                 _logger.LogWarning("Failed to get PickingSession");
+                break;
             }
             else if (responseJson.MediaItemsSet == true)
             {
@@ -61,9 +74,10 @@ public class GooglePhotosPoller
             {
                 _logger.LogInformation("Waiting for user to select photos.");
             }
-            else if (DateTime.Now >= sessionStartTime.AddSeconds(timeout))
+            else if (DateTime.Now >= sessionExpiration)
             {
                 _logger.LogWarning("Timeout reached for photo selection.");
+                break;
             }
         }
     }

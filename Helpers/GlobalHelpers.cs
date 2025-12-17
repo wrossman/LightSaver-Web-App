@@ -63,14 +63,14 @@ public class GlobalHelpers
 
         return true;
     }
-    public static string BuildGoogleOAuthUrl(IConfiguration config)
+    public static string BuildGoogleOAuthUrl(IConfiguration config, string state)
     {
         string clientId = config["OAuth:ClientId"] ?? string.Empty;
         string redirect = config["OAuth:RedirectUri"] ?? string.Empty;
         string responseType = config["OAuth:ResponseType"] ?? string.Empty;
         string scope = config["OAuth:PickerScope"] ?? string.Empty;
         string googleAuthServer = config["OAuth:GoogleAuthServer"] ?? string.Empty;
-        string googleQuery = $"{googleAuthServer}?scope={scope}&response_type={responseType}&redirect_uri={redirect}&client_id={clientId}";
+        string googleQuery = $"{googleAuthServer}?scope={scope}&response_type={responseType}&state={state}&redirect_uri={redirect}&client_id={clientId}";
         return googleQuery;
     }
     public static async Task<string> ReadRokuPost(HttpContext context)
