@@ -25,7 +25,6 @@ public class HmacHelper
 
         return Convert.ToHexString(hash);
     }
-
     public bool Verify(string value, string stored)
     {
         var computed = Hash(value);

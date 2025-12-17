@@ -172,29 +172,43 @@ public class GlobalStore
         var failedRevoke = new RevokeAccessPackage();
         failedRevoke.RokuId = rokuId;
 
+        List<ImageShare> toRemove = new();
+
         foreach (var item in links)
         {
-            var session = await _resourceDb.Resources
+            var resource = await _resourceDb.Resources
             .FirstOrDefaultAsync(x => x.Id == item.Key && x.RokuId == rokuId);
 
-            if (session == null)
+            if (resource == null)
             {
                 failedRevoke.Links.Add(item.Key, item.Value);
                 continue;
             }
 
-            if (!_hmacService.Verify(item.Value, session.Key))
+            if (!_hmacService.Verify(item.Value, resource.Key))
             {
                 _logger.LogWarning("An incorrect key was passed in a revoke resource package.");
                 failedRevoke.Links.Add(item.Key, item.Value);
                 continue;
             }
 
-            await _resourceSave.RemoveSingle(session);
-
-            _resourceDb.Resources.Remove(session);
-            await _resourceDb.SaveChangesAsync();
+            toRemove.Add(resource);
         }
+
+        _logger.LogInformation("Removing the following resource IDs from the DB and storage.");
+        foreach (var item in toRemove)
+        {
+            System.Console.WriteLine(item.Id);
+        }
+        _logger.LogInformation("Failed to remove.");
+        foreach (var item in failedRevoke.Links)
+        {
+            System.Console.WriteLine(item);
+        }
+
+        await _resourceSave.RemoveList(toRemove);
+        _resourceDb.Resources.RemoveRange(toRemove);
+        await _resourceDb.SaveChangesAsync();
 
         return failedRevoke;
     }
@@ -240,6 +254,9 @@ public class GlobalStore
         if (imgsToKeep is null)
             return imgs;
 
+        List<ImageShare> toRemove = new();
+        List<ImageShare> toAdd = new();
+
         foreach (var item in imgsToKeep)
         {
             string hash = GlobalHelpers.ComputeHashFromString(item);
@@ -260,13 +277,26 @@ public class GlobalStore
                 Id = Guid.NewGuid()
             };
 
-            _resourceDb.Resources.Remove(resource);
-            await _resourceDb.Resources.AddAsync(newResource);
-
-            await _resourceDb.SaveChangesAsync();
+            toRemove.Add(resource);
+            toAdd.Add(newResource);
 
             imgs.Add(newResource.Id, newKey);
         }
+
+        _logger.LogInformation("updated the following resource IDs and their keys in db.");
+        foreach (var item in toAdd)
+        {
+            _logger.LogInformation(item.Id.ToString());
+        }
+        _logger.LogInformation("from old ids and their keys");
+        foreach (var item in toRemove)
+        {
+            _logger.LogInformation(item.Id.ToString());
+        }
+
+        _resourceDb.Resources.RemoveRange(toRemove);
+        await _resourceDb.Resources.AddRangeAsync(toAdd);
+        await _resourceDb.SaveChangesAsync();
 
         return imgs;
     }
