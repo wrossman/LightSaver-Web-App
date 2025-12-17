@@ -80,9 +80,9 @@ X Expire Lightroom update sessions.
 X Pass device image dimensions to web app so it can set the max image size for each device.  
 X Create a background for each image that is just the image but super blurred. Send the background with the image if Roku chooses the setting for a blurred image background.  
 X Remove user and Roku sessions after flow failure.  
-X Evaluate whether there’s a better approach to managing image resolution.  
+X Evaluate whether there's a better approach to managing image resolution.  
 X If the Lightroom album changes and there are a large number of images, the HTTP request will time out in the initial get.  
-    For Google and Lightroom, image resolution is chosen based on the Roku device’s preferred size.  
+    For Google and Lightroom, image resolution is chosen based on the Roku device's preferred size.  
     Upload image gets reformatted to the max size of the Roku device.  
 X Expire user credentials at flow failure.  
 X Set up antiforgery middleware.  
@@ -102,8 +102,8 @@ X Add site to select image source.
 X If a Roku tries to get Google Photos again, remove old photos before committing new ones.  
 X Figure out why Google still shows the wrong project name.  
 X Input validation for picture display time.  
-X Require Roku to send a hashed version of its serial number; store IDs as hashes so I'm not storing people’s serials.  
-X Check if Lightroom album doesn’t have any pictures before trying to display.  
+X Require Roku to send a hashed version of its serial number; store IDs as hashes so I'm not storing peoples serials.  
+X Check if Lightroom album doesn't have any pictures before trying to display.  
 X Fix picture display time causing slideshow issues if set too low.  
 X Create a load config task instead of keeping it all in main scene init.  
 X Add image display time to registry.  
