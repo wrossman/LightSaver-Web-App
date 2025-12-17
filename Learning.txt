@@ -7,6 +7,7 @@ i learned how to use appsettings.json in different environments,
 how to deploy to azure and set up managed identities for app service, azure sql, and azure blob storage.
 set up logging for azure
 how to set up a vpc to private routing
+i learned about csrf
 ---------------------------
 
 
