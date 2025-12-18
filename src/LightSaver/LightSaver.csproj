@@ -24,4 +24,8 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include=".platform/**" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
