@@ -96,4 +96,22 @@ public class GlobalHelpers
 
         return Encoding.UTF8.GetString(memoryStream.ToArray());
     }
+    public static string GetAwsConnectionString()
+    {
+        var host = Environment.GetEnvironmentVariable("RDS_HOSTNAME");
+        var port = Environment.GetEnvironmentVariable("RDS_PORT");
+        var db = Environment.GetEnvironmentVariable("RDS_DB_NAME");
+        var user = Environment.GetEnvironmentVariable("RDS_USERNAME");
+        var pass = Environment.GetEnvironmentVariable("RDS_PASSWORD");
+
+        var connString =
+        $"Server={host},{port};" +
+        $"Database={db};" +
+        $"User Id={user};" +
+        $"Password={pass};" +
+        $"Encrypt=True;" +
+        $"TrustServerCertificate=True;";
+
+        return connString;
+    }
 }

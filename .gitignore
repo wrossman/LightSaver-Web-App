@@ -5,6 +5,10 @@
 
 /certs
 /LocalResourceStore
+/.elasticbeanstalk
+/publish
+app.zip
+eb-deploy.ps1
 
 # User-specific files
 *.rsuser
@@ -419,3 +423,8 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml

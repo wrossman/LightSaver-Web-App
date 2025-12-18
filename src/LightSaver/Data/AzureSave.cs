@@ -1,11 +1,11 @@
 using Azure.Storage.Blobs;
-public class CloudSave : IResourceSave
+public class AzureSave : IResourceSave
 {
     private readonly BlobServiceClient _blobService;
     private readonly string _containerName;
     private readonly ImageProcessors _imageProcessors;
-    private readonly ILogger<CloudSave> _logger;
-    public CloudSave(BlobServiceClient blobService, ILogger<CloudSave> logger, IConfiguration config, ImageProcessors imageProcessors)
+    private readonly ILogger<AzureSave> _logger;
+    public AzureSave(BlobServiceClient blobService, ILogger<AzureSave> logger, IConfiguration config, ImageProcessors imageProcessors)
     {
         _imageProcessors = imageProcessors;
         _blobService = blobService;

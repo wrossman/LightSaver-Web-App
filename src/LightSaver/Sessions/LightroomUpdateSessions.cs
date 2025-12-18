@@ -29,7 +29,7 @@ public class LightroomUpdateSessions
     }
     public void RemoveSession<T>(Guid id)
     {
-        _sessionCache.Remove(id);
+        _sessionCache.Remove(Key<T>(id));
     }
     public (Guid, string) CreateUpdateSession(string rokuId)
     {

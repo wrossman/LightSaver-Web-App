@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http.Features;
 using Azure.Identity;
 using Azure.Storage.Blobs;
+using Amazon.S3;
+using Amazon;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,9 +31,21 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
+string? saveMethod = builder.Configuration["SaveMethod"];
+if (saveMethod is null)
+    throw new InvalidOperationException();
+
 // DATABASE
-builder.Services.AddDbContext<GlobalImageStoreDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+if (saveMethod == "aws")
+{
+    builder.Services.AddDbContext<GlobalImageStoreDbContext>(options =>
+            options.UseSqlServer(GlobalHelpers.GetAwsConnectionString()));
+}
+else // FOR AZURE OR LOCAL DB
+{
+    builder.Services.AddDbContext<GlobalImageStoreDbContext>(options =>
+        options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+}
 
 // SINGLETONS
 builder.Services.AddSingleton<LinkSessions>();
@@ -64,9 +78,9 @@ builder.Services.Configure<FormOptions>(options =>
 });
 
 // SET RESOURCE SAVE METHOD
-if (builder.Configuration["SaveMethod"] == "cloud")
+if (saveMethod == "azure")
 {
-    System.Console.WriteLine("Program will be Saving resources to cloud...");
+    System.Console.WriteLine("Program will be Saving resources to azure...");
     builder.Services.AddSingleton(x =>
     {
         var config = x.GetRequiredService<IConfiguration>();
@@ -80,7 +94,26 @@ if (builder.Configuration["SaveMethod"] == "cloud")
         var blobUri = new Uri($"https://{accountName}.blob.core.windows.net");
         return new BlobServiceClient(blobUri, credential);
     });
-    builder.Services.AddSingleton<IResourceSave, CloudSave>();
+    builder.Services.AddSingleton<IResourceSave, AzureSave>();
+}
+else if (saveMethod == "aws")
+{
+    System.Console.WriteLine("Program will be Saving resources to aws...");
+    builder.Services.AddSingleton<IAmazonS3>(x =>
+    {
+        var config = x.GetRequiredService<IConfiguration>();
+
+        string? awsS3Region = config["AwsS3Region"];
+
+        if (awsS3Region is null)
+        {
+            System.Console.WriteLine("No AWS region was specified for S3 storage.");
+            return new AmazonS3Client();
+        }
+
+        return new AmazonS3Client(RegionEndpoint.GetBySystemName(awsS3Region));
+    });
+    builder.Services.AddSingleton<IResourceSave, AwsSave>();
 }
 else
 {
@@ -101,7 +134,10 @@ using (var scope = app.Services.CreateScope())
 app.UseRateLimiter();
 app.UseStaticFiles();
 app.UseAntiforgery();
-app.UseHttpsRedirection();
+if (saveMethod != "aws")
+{
+    app.UseHttpsRedirection(); // AWS HAS ITS TRAFFIC SENT TO THE LOAD BALANCER WHICH HANDLES HTTPS
+}
 
 // MAP ENDPOINTS
 app.MapGooglePhotosEndpoints();

@@ -39,7 +39,7 @@ public class LinkSessions
     }
     public void RemoveSession<T>(Guid id)
     {
-        _sessionCache.Remove(id);
+        _sessionCache.Remove(Key<T>(id));
     }
     public bool LinkAccessToken(string accessToken, Guid id)
     {

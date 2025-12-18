@@ -2,7 +2,7 @@ using Xunit;
 
 namespace LightSaver.Tests.Data
 {
-    public class CloudSaveTests
+    public class AzureSaveTests
     {
         [Fact]
         public void Placeholder()

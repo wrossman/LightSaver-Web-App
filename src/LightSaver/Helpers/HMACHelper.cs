@@ -6,10 +6,12 @@ public class HmacHelper
     private readonly ILogger<HmacHelper> _logger;
     public HmacHelper(IConfiguration config, ILogger<HmacHelper> logger)
     {
-        var serverKey = config.GetValue<string>("Hmac");
+        var rawKey = config.GetValue<string>("Hmac");
 
-        if (serverKey is null)
-            throw new ArgumentNullException();
+        if (string.IsNullOrWhiteSpace(rawKey))
+            throw new InvalidOperationException();
+
+        string serverKey = rawKey.Trim();
 
         _serverKey = Convert.FromBase64String(serverKey);
         _logger = logger;
