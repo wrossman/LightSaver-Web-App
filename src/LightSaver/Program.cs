@@ -123,13 +123,6 @@ else
 
 var app = builder.Build();
 
-// MIGRATE RESOURCE DB
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    services.GetRequiredService<GlobalImageStoreDbContext>().Database.Migrate();
-}
-
 // USE MIDDLEWARE
 app.UseRateLimiter();
 app.UseStaticFiles();
