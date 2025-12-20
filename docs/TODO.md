@@ -52,6 +52,7 @@ WEB APP TO-DO ITEMS
 -------------------
 ROKU TO-DO ITEMS
 -------------------
+- if you try to start wallpapers while the lightroom update is happening the "images have expired" dialog appears. make it so you cant start wallpaper until lightroom update has finished. If the start menu wallpapers runs and the lightroom album needs updated just display the dialog that the lightroom album needs to be updated.
 - add menu wallpaper components
 - Add option for black background
 - Handle all response codes from HttpClients.
