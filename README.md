@@ -1,6 +1,6 @@
 # LightSaver
 
-LightSaver is a Roku companion web app that lets you send personal photos to your device. The ASP.NET Core service exposes endpoints for linking a Roku, choosing a source (Google Photos, Lightroom, or manual upload), processing the images, and returning ready-to-display packages back to the TV.
+LightSaver is a companion web application for Roku devices that allows users to upload and stream personal photos to their devices. The ASP.NET Core service exposes endpoints for linking a Roku device, selecting a photo source (Google Photos, Lightroom, or manual upload), processing images, and returning image IDs and access keys.
 
 ## Features
 - Session-based pairing so only your Roku can fetch the uploaded images.
