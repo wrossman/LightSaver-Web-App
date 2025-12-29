@@ -6,8 +6,3 @@ LightSaver is a Roku companion web app that lets you send personal photos to you
 - Session-based pairing so only your Roku can fetch the uploaded images.
 - Multiple ingestion options (Google Photos Picker, Lightroom short code, local uploads).
 - Image processing tailored to each Roku’s screen size, including blurred backgrounds.
-
-## Repository Layout
-- `src/LightSaver` – main web app (minimal APIs, services, EF Core context).
-- `tests` – xUnit test project mirroring the production structure.
-- `docs` – notes and TODO list.
