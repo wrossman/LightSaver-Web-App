@@ -23,6 +23,7 @@
 - Add counter and upload animation.
 
 ## Web App To-Do Items
+- EB NGNIX proxy times out on the loading screen when uploading a bunch of images.
 - Create unit tests.
 - Add orphaned resource cleanup.
 - Extract key and derivation creation into a method.
@@ -43,6 +44,8 @@
 - Limit the number of keys stored in the Roku registry.
 
 ## Done
+- [x] On FHD screen, the background image does not fully render before fade in every time.
+- [x] Fix FHD layouts
 - [x] Encrypt image files. (Azure and AWS handle encryption at rest automatically in S3 and Blob.)
 - [x] Write `imageShares` as a range instead of one at a time.
 - [x] Add a QR code that links to the code submission page.
