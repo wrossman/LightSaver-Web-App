@@ -58,7 +58,7 @@ jobs:
         with:
           app-name: 'LightSaver'
           slot-name: 'Production'
-          package: .
+          package: ./lightsaver-webapp
 
           
 
