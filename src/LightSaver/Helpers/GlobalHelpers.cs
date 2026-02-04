@@ -65,11 +65,21 @@ public class GlobalHelpers
     }
     public static string BuildGoogleOAuthUrl(IConfiguration config, string state)
     {
-        string clientId = config["OAuth:ClientId"] ?? string.Empty;
-        string redirect = config["OAuth:RedirectUri"] ?? string.Empty;
-        string responseType = config["OAuth:ResponseType"] ?? string.Empty;
-        string scope = config["OAuth:PickerScope"] ?? string.Empty;
-        string googleAuthServer = config["OAuth:GoogleAuthServer"] ?? string.Empty;
+        ArgumentNullException.ThrowIfNull(config);
+        ArgumentException.ThrowIfNullOrEmpty(state);
+
+        string? clientId = config["OAuth:ClientId"];
+        string? redirect = config["OAuth:RedirectUri"];
+        string? responseType = config["OAuth:ResponseType"];
+        string? scope = config["OAuth:PickerScope"];
+        string? googleAuthServer = config["OAuth:GoogleAuthServer"];
+
+        ArgumentNullException.ThrowIfNull(clientId);
+        ArgumentNullException.ThrowIfNull(redirect);
+        ArgumentNullException.ThrowIfNull(responseType);
+        ArgumentNullException.ThrowIfNull(scope);
+        ArgumentNullException.ThrowIfNull(googleAuthServer);
+
         string googleQuery = $"{googleAuthServer}?scope={scope}&response_type={responseType}&state={state}&redirect_uri={redirect}&client_id={clientId}";
         return googleQuery;
     }
@@ -104,7 +114,13 @@ public class GlobalHelpers
         var user = Environment.GetEnvironmentVariable("RDS_USERNAME");
         var pass = Environment.GetEnvironmentVariable("RDS_PASSWORD");
 
-        var connString =
+        ArgumentNullException.ThrowIfNull(host);
+        ArgumentNullException.ThrowIfNull(port);
+        ArgumentNullException.ThrowIfNull(db);
+        ArgumentNullException.ThrowIfNull(user);
+        ArgumentNullException.ThrowIfNull(pass);
+
+        string connString =
         $"Server={host},{port};" +
         $"Database={db};" +
         $"User Id={user};" +
