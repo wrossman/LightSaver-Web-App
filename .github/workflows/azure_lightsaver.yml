@@ -7,9 +7,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     permissions:
+      id-token: write #This is required for requesting the JWT
       contents: read #This is required for actions/checkout
 
     steps:
@@ -26,17 +27,22 @@ jobs:
       - name: dotnet publish
         run: dotnet publish src/LightSaver/LightSaver.csproj -c Release -o "${{env.DOTNET_ROOT}}/lightsaver-webapp"
 
-      - name: Login to Azure
-        uses: azure/login@v2
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v6
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_A979E06F280D44DABD9AE6332F9EE28D }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_2256A75774864974A10DBA4E3CB92520 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_BF5E54448F044A39B4CE60FB3088C8AF }}
+          name: lightsaver-webapp
+          path: ${{env.DOTNET_ROOT}}/lightsaver-webapp
 
-      - name: Deploy to Azure Web App
-        id: deploy-to-webapp
-        uses: azure/webapps-deploy@v3
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v7
         with:
-          app-name: 'LightSaver'
-          slot-name: 'Production'
-          package: ./lightsaver-webapp
+          name: lightsaver-webapp
+      
