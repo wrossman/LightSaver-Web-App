@@ -35,6 +35,7 @@
 - Reject invalid data uploads at endpoints.
 
 ## Roku To-Do Items
+- Add retry logic so the stream doesn't just stop out of nowhere if there is a hiccup
 - Prevent starting wallpapers while the Lightroom update is in progress. If the start menu runs while an update is needed, show a dialog indicating the album must be updated first.
 - Add menu wallpaper components.
 - Add option for a black background.
