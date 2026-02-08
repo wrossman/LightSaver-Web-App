@@ -20,6 +20,8 @@ public class LocalSave : IResourceSave
 
         var filePath = folderPath + resourceId;
 
+        _logger.LogInformation("Writing to " + filePath);
+
         using (FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
         {
             await fs.WriteAsync(processedImg, 0, processedImg.Length);
