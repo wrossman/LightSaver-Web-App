@@ -9,43 +9,77 @@ public class ImageProcessors
     {
         _logger = logger;
     }
-    public byte[] ProcessImage(byte[] input, int maxScreenSize, ImageShareSource source)
+    public byte[] ProcessImage(byte[] input, int screenWidth, int screenHeight)
     {
         using var image = Image.Load(input);
 
         _logger.LogInformation($"Loaded image with format {image.Metadata.DecodedImageFormat?.Name ?? "Unknown"} height: {image.Height} and width {image.Width}");
 
         FixOrientation(image);
-        ResizeToMaxBox(image, maxScreenSize);
+        ResizeToScreen(image, screenWidth, screenHeight);
 
         using var outputStream = new MemoryStream();
         image.Save(outputStream, new WebpEncoder());
 
         return outputStream.ToArray();
     }
-    public Image ResizeToMaxBox(Image image, int maxScreenSize)
+    public byte[]? ProcessBackground(byte[] input, int screenWidth, int screenHeight)
     {
-        if (image.Width > maxScreenSize || image.Height > maxScreenSize)
+        try
         {
-            var format = image.Metadata.DecodedImageFormat;
-
-            _logger.LogInformation($"Resizing image with dimensions Width: {image.Width} Height: {image.Height} to max screen size of {maxScreenSize}");
-            var options = new ResizeOptions
-            {
-                Mode = ResizeMode.Max, // maintain aspect ratio
-                Size = new Size(maxScreenSize, maxScreenSize)
-            };
-
-            image.Mutate(x => x.Resize(options));
-
-            _logger.LogInformation($"New dimensions: Width: {image.Width} Height: {image.Height}");
-
-            return image;
+            using var image = Image.Load(input);
+            image.Mutate(x =>
+                        {
+                            x.Resize(image.Width / 4, image.Height / 4);
+                            x.GaussianBlur(7);
+                            x.Resize(screenWidth, screenHeight);
+                        });
+            using var outputStream = new MemoryStream();
+            image.Save(outputStream, new WebpEncoder());
+            return outputStream.ToArray();
         }
-        else
+        catch
         {
-            return image;
+            _logger.LogWarning("Failed to create background image.");
+            return null;
         }
+    }
+    public Image ResizeToScreen(Image image, int screenWidth, int screenHeight)
+    {
+        // thanks chat
+        if (image == null)
+            throw new ArgumentNullException(nameof(image));
+
+        if (screenWidth <= 0 || screenHeight <= 0)
+            throw new ArgumentOutOfRangeException("Screen dimensions must be positive.");
+
+        // Only resize if it exceeds the target bounds.
+        if (image.Width <= screenWidth && image.Height <= screenHeight)
+            return image;
+
+        _logger.LogInformation(
+            "Resizing image from {Width}x{Height} to fit within {ScreenWidth}x{ScreenHeight}",
+            image.Width,
+            image.Height,
+            screenWidth,
+            screenHeight
+        );
+
+        var options = new ResizeOptions
+        {
+            Mode = ResizeMode.Max, // preserve aspect ratio, fit within bounds
+            Size = new Size(screenWidth, screenHeight)
+        };
+
+        image.Mutate(ctx => ctx.Resize(options));
+
+        _logger.LogInformation(
+            "Resized image dimensions: {Width}x{Height}",
+            image.Width,
+            image.Height
+        );
+
+        return image;
     }
     public Image FixOrientation(Image image)
     {

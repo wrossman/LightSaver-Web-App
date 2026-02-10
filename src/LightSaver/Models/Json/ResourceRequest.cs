@@ -3,12 +3,14 @@ public record ResourceRequest
     public Guid Id { get; init; } = Guid.Empty;
     public string Key { get; init; } = "";
     public string RokuId { get; init; } = "";
-    public int MaxScreenSize { get; set; }
-    public ResourceRequest(Guid id, string key, string rokuId, int maxScreenSize)
+    public int ScreenWidth { get; set; }
+    public int ScreenHeight { get; set; }
+    public ResourceRequest(Guid id, string key, string rokuId, int screenWidth, int screenHeight)
     {
         Id = id;
         Key = key;
         RokuId = rokuId;
-        MaxScreenSize = maxScreenSize;
+        ScreenWidth = screenWidth;
+        ScreenHeight = screenHeight;
     }
 }

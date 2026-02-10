@@ -30,13 +30,14 @@ public static class LinkSessionEndpoints
 
         var remoteIpAddress = context.Request.HttpContext.Connection.RemoteIpAddress ?? new IPAddress(new byte[4]);
 
-        if (string.IsNullOrWhiteSpace(body.RokuId) || body.MaxScreenSize <= 0)
+        if (string.IsNullOrWhiteSpace(body.RokuId) || body.ScreenWidth <= 0 || body.ScreenHeight <= 0)
             return Results.BadRequest("Invalid request body.");
 
         var rokuId = body.RokuId;
-        var maxScreenSize = body.MaxScreenSize;
+        var screenWidth = body.ScreenWidth;
+        var screenHeight = body.ScreenHeight;
 
-        var sessionId = linkSessions.CreateLinkSession(remoteIpAddress, rokuId, maxScreenSize);
+        var sessionId = linkSessions.CreateLinkSession(remoteIpAddress, rokuId, screenWidth, screenHeight);
         string sessionCode;
         try
         {
@@ -181,24 +182,27 @@ public static class LinkSessionEndpoints
         StringValues inputKey;
         StringValues inputResourceId;
         StringValues inputDevice;
-        StringValues inputMaxScreenSize;
+        StringValues inputScreenWidth;
+        StringValues inputScreenHeight;
         if (!context.Request.Headers.TryGetValue("Authorization", out inputKey)
         || !context.Request.Headers.TryGetValue("ResourceId", out inputResourceId)
         || !context.Request.Headers.TryGetValue("Device", out inputDevice)
-        || !context.Request.Headers.TryGetValue("MaxScreenSize", out inputMaxScreenSize))
+        || !context.Request.Headers.TryGetValue("MaxScreenSize", out inputScreenWidth)
+        || !context.Request.Headers.TryGetValue("MaxScreenSize", out inputScreenHeight))
             return Results.Unauthorized();
 
         string? key = inputKey;
         Guid resourceId;
         string? rokuId = inputDevice;
-        int maxScreenSize;
+        int screenWidth;
+        int screenHeight;
 
-        if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(rokuId) || !Guid.TryParse(inputResourceId, out resourceId) || !Int32.TryParse(inputMaxScreenSize, out maxScreenSize))
+        if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(rokuId) || !Guid.TryParse(inputResourceId, out resourceId) || !Int32.TryParse(inputScreenWidth, out screenWidth) || !Int32.TryParse(inputScreenHeight, out screenHeight))
             return Results.Unauthorized();
 
         logger.LogInformation($"Received Initial request from {context.Connection.RemoteIpAddress}");
 
-        var resourceReq = new ResourceRequest(resourceId, key, rokuId, maxScreenSize);
+        var resourceReq = new ResourceRequest(resourceId, key, rokuId, screenWidth, screenHeight);
 
         try
         {
@@ -254,13 +258,9 @@ public static class LinkSessionEndpoints
         StringValues inputKey;
         StringValues inputResourceId;
         StringValues inputDevice;
-        StringValues inputHeight;
-        StringValues inputWidth;
         if (!context.Request.Headers.TryGetValue("Authorization", out inputKey)
         || !context.Request.Headers.TryGetValue("ResourceId", out inputResourceId)
-        || !context.Request.Headers.TryGetValue("Device", out inputDevice)
-        || !context.Request.Headers.TryGetValue("Height", out inputHeight)
-        || !context.Request.Headers.TryGetValue("Width", out inputWidth))
+        || !context.Request.Headers.TryGetValue("Device", out inputDevice))
             return Results.Unauthorized();
 
         string? key = inputKey;
@@ -269,14 +269,12 @@ public static class LinkSessionEndpoints
 
         if (string.IsNullOrEmpty(key) ||
         string.IsNullOrEmpty(device) ||
-        !Guid.TryParse(inputResourceId, out resourceId) ||
-        !int.TryParse(inputHeight, out var height) ||
-        !int.TryParse(inputWidth, out var width))
+        !Guid.TryParse(inputResourceId, out resourceId))
         {
             return Results.Unauthorized();
         }
 
-        byte[]? image = await store.GetBackgroundData(resourceId, key, device, height, width);
+        byte[]? image = await store.GetResourceData(resourceId, key, device, true);
 
         if (image is null)
         {

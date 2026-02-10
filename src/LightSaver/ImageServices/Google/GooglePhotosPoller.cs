@@ -92,7 +92,7 @@ public class GooglePhotosPoller
 
         MediaItemsResponse photoListJson = JsonSerializer.Deserialize<MediaItemsResponse>(photoList) ?? new();
         List<MediaItem> mediaItems = photoListJson.MediaItems;
-        string maxScreenSize = $"w{linkSession.MaxScreenSize}-h{linkSession.MaxScreenSize}";
+        string maxScreenSize = $"w{linkSession.ScreenWidth}-h{linkSession.ScreenHeight}";
 
         foreach (MediaItem item in mediaItems)
         {

@@ -143,7 +143,7 @@ public class LinkSessions
         else
             return session.ResourcePackage;
     }
-    public Guid CreateLinkSession(IPAddress ipAddress, string rokuId, int maxScreenSize)
+    public Guid CreateLinkSession(IPAddress ipAddress, string rokuId, int screenWidth, int screenHeight)
     {
         Guid id = Guid.NewGuid();
         string sessionCode;
@@ -162,7 +162,8 @@ public class LinkSessions
             SessionCode = sessionCode,
             ReadyForTransfer = false,
             Expired = false,
-            MaxScreenSize = maxScreenSize
+            ScreenWidth = screenWidth,
+            ScreenHeight = screenHeight
         };
 
         SetSession<LinkSession>(id, session);

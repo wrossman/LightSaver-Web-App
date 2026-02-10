@@ -21,7 +21,7 @@ public sealed class LightroomService
         _resourceDb = resourceDb;
         _hmacService = hmacService;
     }
-    public async Task<(List<string>?, string)> GetImageUrisFromShortCodeAsync(string shortCode, int maxScreenSize)
+    public async Task<(List<string>?, string)> GetImageUrisFromShortCodeAsync(string shortCode, int screenWidth, int screenHeight)
     {
         // thanks chat for helping me translate from brs, even though you did a bad job
         const string lightroomShortPrefix = "https://adobe.ly/";
@@ -198,7 +198,7 @@ public sealed class LightroomService
                     JsonElement hrefElement = default;
 
                     int renditionStart = 0;
-                    if (maxScreenSize <= 1280)
+                    if (Math.Max(screenWidth, screenHeight) <= 1280)
                     {
                         renditionStart = 1;
                     }
@@ -300,7 +300,7 @@ public sealed class LightroomService
     public async Task<(Guid, string)?> UpdateRokuLinks(ResourceRequest resourceReq)
     {
         string albumUrl = _store.GetResourceLightroomAlbum(resourceReq);
-        var result = await GetImageUrisFromShortCodeAsync(albumUrl, resourceReq.MaxScreenSize);
+        var result = await GetImageUrisFromShortCodeAsync(albumUrl, resourceReq.ScreenWidth, resourceReq.ScreenHeight);
         var newImgs = result.Item1;
 
         if (result.Item2 == "Failed to retrieve any images from album.")
@@ -417,7 +417,7 @@ public sealed class LightroomService
                 Key = keyDerivation,
                 KeyCreated = DateTime.UtcNow,
                 SessionCode = "",
-                ImageUri = await _resourceSave.SaveResource(shareId, data, resourceReq.MaxScreenSize, ImageShareSource.Lightroom),
+                ImageUri = await _resourceSave.SaveResource(shareId, data, resourceReq.ScreenWidth, resourceReq.ScreenHeight, ImageShareSource.Lightroom),
                 CreatedOn = DateTime.UtcNow,
                 RokuId = resourceReq.RokuId,
                 Source = ImageShareSource.Lightroom,

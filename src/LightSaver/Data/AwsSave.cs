@@ -19,7 +19,7 @@ public class AwsSave : IResourceSave
         }
         _bucket = bucket;
     }
-    public async Task<byte[]> GetResource(ImageShare resource)
+    public async Task<byte[]> GetResource(ImageShare resource, bool background)
     {
         // Create a GetObject request
         var request = new GetObjectRequest
@@ -82,11 +82,11 @@ public class AwsSave : IResourceSave
         return true;
     }
 
-    public async Task<string> SaveResource(Guid resourceId, byte[] img, int maxScreenSize, ImageShareSource source)
+    public async Task<string> SaveResource(Guid resourceId, byte[] img, int screenWidth, int screenHeight, ImageShareSource source)
     {
         _logger.LogInformation($"Writing resource to {_bucket} in aws.");
 
-        var processedImg = _imageProcessors.ProcessImage(img, maxScreenSize, source);
+        var processedImg = _imageProcessors.ProcessImage(img, screenWidth, screenHeight);
 
         using var stream = new MemoryStream(processedImg);
 

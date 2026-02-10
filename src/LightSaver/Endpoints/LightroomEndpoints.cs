@@ -51,7 +51,7 @@ public static class LightroomEndpoints
             return GlobalHelpers.CreateErrorPage("Your session has expired.", "<a href=\"/link/session\">Please Try Again</a>");
         }
 
-        var result = await lightroom.GetImageUrisFromShortCodeAsync(lrCode, linkSession.MaxScreenSize);
+        var result = await lightroom.GetImageUrisFromShortCodeAsync(lrCode, linkSession.ScreenWidth, linkSession.ScreenHeight);
         var urlList = result.Item1;
         if (result.Item2 != "success" && urlList is null)
         {

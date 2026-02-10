@@ -24,7 +24,7 @@ public class GlobalStore
         _hmacService = hmacService;
         _linkSessions = linkSessions;
     }
-    public async Task<byte[]> GetResourceData(Guid id, string key, string device)
+    public async Task<byte[]> GetResourceData(Guid id, string key, string device, bool background = false)
     {
         var item = _resourceDb.Resources
         .Where(img => img.Id == id && img.RokuId == device)
@@ -35,7 +35,7 @@ public class GlobalStore
             throw new AuthenticationException();
         }
 
-        var img = await _resourceSave.GetResource(item);
+        var img = await _resourceSave.GetResource(item, background);
 
         return img;
     }
@@ -76,43 +76,6 @@ public class GlobalStore
         await _resourceDb.SaveChangesAsync();
 
         return newKey;
-    }
-    public async Task<byte[]?> GetBackgroundData(Guid id, string key, string device, int height, int width)
-    {
-        byte[] result;
-        try
-        {
-            result = await GetResourceData(id, key, device);
-        }
-        catch (AuthenticationException)
-        {
-            _logger.LogWarning("Incorrect keys were tried at the get background data method.");
-            return null;
-        }
-        catch (IOException)
-        {
-            _logger.LogWarning("Background data was attempted to be retrieved for file that does not exist.");
-            return null;
-        }
-
-        try
-        {
-            using var image = Image.Load(result);
-            image.Mutate(x =>
-                        {
-                            x.Resize(width / 8, height / 8);
-                            x.GaussianBlur(6);
-                            x.Resize(width, height);
-                        });
-            using var outputStream = new MemoryStream();
-            image.Save(outputStream, new WebpEncoder());
-            return outputStream.ToArray();
-        }
-        catch
-        {
-            _logger.LogWarning("Failed to create background image.");
-            return null;
-        }
     }
     public ImageShareSource GetResourceSource(ResourceRequest resourceReq)
     {
@@ -339,7 +302,7 @@ public class GlobalStore
                     Key = keyDerivation,
                     KeyCreated = DateTime.UtcNow,
                     SessionCode = linkSession.SessionCode,
-                    ImageUri = await _resourceSave.SaveResource(shareId, data, linkSession.MaxScreenSize, source),
+                    ImageUri = await _resourceSave.SaveResource(shareId, data, linkSession.ScreenWidth, linkSession.ScreenHeight, source),
                     CreatedOn = DateTime.UtcNow,
                     LightroomAlbum = lightroomAlbum,
                     RokuId = linkSession.RokuId,
@@ -388,7 +351,7 @@ public class GlobalStore
                     Key = keyDerivation,
                     KeyCreated = DateTime.UtcNow,
                     SessionCode = linkSession.SessionCode,
-                    ImageUri = await _resourceSave.SaveResource(shareId, imgBytes, linkSession.MaxScreenSize, source),
+                    ImageUri = await _resourceSave.SaveResource(shareId, imgBytes, linkSession.ScreenWidth, linkSession.ScreenHeight, source),
                     CreatedOn = DateTime.UtcNow,
                     RokuId = linkSession.RokuId,
                     Source = source

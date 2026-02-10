@@ -8,7 +8,8 @@ public record LinkSession
     public string SessionCode { get; init; } = "";
     public bool ReadyForTransfer { get; set; } = false;
     public bool Expired { get; init; } = false;
-    public int MaxScreenSize { get; init; } = 1920;
+    public int ScreenWidth { get; init; } = 1920;
+    public int ScreenHeight { get; init; } = 1920;
     public List<string> ImageServiceLinks { get; set; } = new();
     public Dictionary<Guid, string> ResourcePackage { get; init; } = new();
 
