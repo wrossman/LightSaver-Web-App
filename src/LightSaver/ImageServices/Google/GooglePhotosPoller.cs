@@ -66,7 +66,6 @@ public class GooglePhotosPoller
 
                 AddUrlsToSession(photoList, linkSession.Id);
                 await _store.WriteSessionImages(linkSessionId, ImageShareSource.Google);
-                _linkSessions.SetReadyToTransfer(linkSessionId);
 
                 break;
             }

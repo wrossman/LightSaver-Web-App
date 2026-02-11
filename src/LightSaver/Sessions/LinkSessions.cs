@@ -65,18 +65,6 @@ public class LinkSessions
 
         return true;
     }
-    public bool SetReadyToTransfer(Guid id)
-    {
-        var session = GetSession<LinkSession>(id);
-        if (session is null)
-            return false;
-
-        var updated = session with { ReadyForTransfer = true };
-
-        SetSession<LinkSession>(id, updated);
-
-        return true;
-    }
     public bool CheckReadyForTransfer(Guid id, string rokuId, string sessionCode)
     {
         var session = GetSession<LinkSession>(id);
