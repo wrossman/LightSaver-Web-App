@@ -72,13 +72,19 @@ public static class LinkSessionEndpoints
             return Results.BadRequest("Media is not ready to be transferred.");
         }
 
+        // i should probably just have a single method that verifies the id, deviceid and session code and early exits
+        // instead of doing it at each check method
+
+        logger.LogInformation(linkSessions.GetDownloadedResourceCount(sessionId).ToString());
+
+        // this will early exit and return expired to any failed session id / deviceid / and session code check
         if (linkSessions.CheckExpired(sessionId, rokuId, sessionCode))
             return Results.Content("Expired");
 
         if (linkSessions.CheckReadyForTransfer(sessionId, rokuId, sessionCode))
             return Results.Content("Ready");
-        else
-            return Results.BadRequest("Media is not ready to be transferred.");
+
+        return Results.Content(linkSessions.GetDownloadedResourceCount(sessionId).ToString());
     }
     private static async Task<IResult> ProvideResourcePackage([FromBody] RokuReceptionPostBody body, HttpContext context, LinkSessions linkSessions, GlobalStore store, ILogger<LinkSessions> logger)
     {

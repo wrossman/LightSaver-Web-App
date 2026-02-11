@@ -309,7 +309,11 @@ public class GlobalStore
                     Source = source,
                     Origin = GlobalHelpers.ComputeHashFromString(item)
                 };
+
+                updatedSession.ResourcesSaved++;
                 updatedSession.ResourcePackage.Add(share.Id, key);
+                _linkSessions.SetSession<LinkSession>(linkSessionId, updatedSession);
+
                 sharesToAdd.Add(share);
             }
             await _resourceDb.AddRangeAsync(sharesToAdd);

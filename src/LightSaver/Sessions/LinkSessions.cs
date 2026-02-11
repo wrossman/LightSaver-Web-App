@@ -95,6 +95,10 @@ public class LinkSessions
 
         return session.Expired;
     }
+    public int GetDownloadedResourceCount(Guid sessionId)
+    {
+        return GetSession<LinkSession>(sessionId).ResourcesSaved;
+    }
     public bool ExpireSession(Guid id)
     {
         var session = GetSession<LinkSession>(id);
