@@ -56,11 +56,8 @@ public static class LinkSessionEndpoints
     private static async Task<IResult> RokuReception([FromBody] RokuReceptionPostBody body, HttpContext context, LinkSessions linkSessions, ILogger<LinkSessions> logger)
     {
         // TODO: set endpoint post size limits
-
-        logger.LogInformation("Client reached reception.");
-
         if (string.IsNullOrWhiteSpace(body.RokuId) || string.IsNullOrEmpty(body.SessionCode) || body.SessionId == Guid.Empty)
-            return Results.BadRequest("Invalid request body.");
+            return Results.BadRequest();
 
         var sessionId = body.SessionId;
         var rokuId = body.RokuId;
@@ -69,7 +66,7 @@ public static class LinkSessionEndpoints
         if (sessionId == Guid.Empty || string.IsNullOrEmpty(rokuId) || string.IsNullOrEmpty(sessionCode))
         {
             logger.LogWarning("An invalid SessionCode was tried at roku reception endpoint");
-            return Results.BadRequest("Media is not ready to be transferred.");
+            return Results.BadRequest();
         }
 
         // i should probably just have a single method that verifies the id, deviceid and session code and early exits
