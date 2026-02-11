@@ -97,7 +97,12 @@ public class LinkSessions
     }
     public int GetDownloadedResourceCount(Guid sessionId)
     {
-        return GetSession<LinkSession>(sessionId).ResourcesSaved;
+        var session = GetSession<LinkSession>(sessionId);
+
+        if (session is null)
+            return 0;
+
+        return session.ResourcesSaved;
     }
     public bool ExpireSession(Guid id)
     {
