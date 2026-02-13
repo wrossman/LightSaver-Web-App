@@ -32,34 +32,34 @@ public static class UploadPhotosEndpoints
         if (!GlobalHelpers.VerifyImageUpload(images, config.GetValue<int>("MaxImages")))
         {
             logger.LogWarning("Failed to upload photos due to payload verification failure:");
-            return GlobalHelpers.CreateErrorPage("Failed to upload images.", "Please ensure that your images are under 10MB. Maximum file count is " + config.GetValue<int>("MaxImages").ToString());
+            return GlobalHelpers.CreateErrorPage(context, "Failed to upload images.", "Please ensure that your images are under 10MB. Maximum file count is " + config.GetValue<int>("MaxImages").ToString());
         }
 
         string? linkSessionId;
         if (!context.Request.Cookies.TryGetValue("UserSID", out linkSessionId))
         {
             logger.LogWarning("Failed to get userid at upload receive images endpoint");
-            return GlobalHelpers.CreateErrorPage("LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
+            return GlobalHelpers.CreateErrorPage(context, "LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
         }
 
         Guid sessionId;
         if (!Guid.TryParse(linkSessionId, out sessionId))
         {
             logger.LogWarning("Failed to get userid at google handle oauth response endpoint");
-            return GlobalHelpers.CreateErrorPage("LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
+            return GlobalHelpers.CreateErrorPage(context, "LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
         }
 
         LinkSession? linkSession = linkSessions.GetSession<LinkSession>(sessionId);
         if (linkSession is null)
         {
             logger.LogWarning("Failed to get LinkSession from user id at upload receive images endpoint");
-            return GlobalHelpers.CreateErrorPage("Failed to retrieve your user session.", "<a href=\"/upload/upload\">Please Try Again</a>");
+            return GlobalHelpers.CreateErrorPage(context, "Failed to retrieve your user session.", "<a href=\"/upload/upload\">Please Try Again</a>");
         }
 
         if (linkSession.Expired == true)
         {
             logger.LogWarning("User tried to upload photos with an expired session.");
-            return GlobalHelpers.CreateErrorPage("Your session has expired.", "<a href=\"/link/session\">Please Try Again</a>");
+            return GlobalHelpers.CreateErrorPage(context, "Your session has expired.", "<a href=\"/link/session\">Please Try Again</a>");
         }
         try
         {
@@ -69,7 +69,7 @@ public static class UploadPhotosEndpoints
         {
             logger.LogWarning("Failed to upload photos for user session.");
             linkSessions.ExpireSession(sessionId);
-            return GlobalHelpers.CreateErrorPage("Failed to upload images.");
+            return GlobalHelpers.CreateErrorPage(context, "Failed to upload images.");
         }
 
         return Results.Redirect("/UploadSuccess.html");

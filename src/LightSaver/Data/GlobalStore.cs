@@ -361,6 +361,8 @@ public class GlobalStore
                     Source = source
                 };
                 updatedSession.ResourcePackage.Add(share.Id, key);
+                updatedSession.ResourcesSaved++;
+                _linkSessions.SetSession<LinkSession>(linkSessionId, updatedSession);
                 sharesToAdd.Add(share);
             }
             await _resourceDb.AddRangeAsync(sharesToAdd);

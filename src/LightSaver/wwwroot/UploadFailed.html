@@ -3,22 +3,25 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>Upload Successful</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Upload Failed</title>
     <link rel="stylesheet" href="/css/lightsaver.css" />
 </head>
 
-<body class="page-lightroom-success">
+<body class="page-error">
     <div class="container">
         <div class="container-inner">
             <div class="brand-title-wrapper">
                 <div class="brand-title">LightSaver</div>
             </div>
             <div class="prompt-content">
-                <div class="checkmark"></div>
-                <h1>Success</h1>
-                <p>Your images have been uploaded successfully.</p>
-                <p>You may now return to your Roku device.</p>
+                <div class="error-icon">!</div>
+
+                <h1>Upload Failed</h1>
+
+                <p>We couldn’t finish uploading your images.</p>
+                <p>Please try again.</p>
+                <a class="btn" href="/link/session">Try Again</a>
             </div>
         </div>
     </div>

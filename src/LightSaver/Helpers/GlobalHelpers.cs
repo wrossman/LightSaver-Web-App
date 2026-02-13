@@ -3,8 +3,9 @@ using System.Text;
 using HtmlAgilityPack;
 public class GlobalHelpers
 {
-    public static IResult CreateErrorPage(string message, string action = "")
+    public static IResult CreateErrorPage(HttpContext context, string message, string action = "")
     {
+        DeleteCookie(context);
         var doc = new HtmlDocument();
         doc.LoadHtml(File.ReadAllText("./wwwroot/Error.html"));
 
@@ -17,6 +18,16 @@ public class GlobalHelpers
         }
         string errorPage = doc.DocumentNode.OuterHtml;
         return Results.Content(errorPage, "text/html");
+    }
+    public static void DeleteCookie(HttpContext context)
+    {
+        context.Response.Cookies.Delete("UserSID", new CookieOptions
+        {
+            Path = "/",
+            Secure = true,
+            HttpOnly = true,
+            SameSite = SameSiteMode.Lax
+        });
     }
     public static IResult CreateLightroomOverflowPage(string message, int maxFiles, string action = "")
     {

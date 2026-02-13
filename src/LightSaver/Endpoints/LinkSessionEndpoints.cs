@@ -20,6 +20,7 @@ public static class LinkSessionEndpoints
         group.MapPost("/update", PollUpdateLightroom);
         group.MapGet("/session", CodeSubmissionPageUpload);
         group.MapPost("/source", SelectSource);
+        group.MapGet("/upload-status", GetUploadStatus);
 
     }
     private static async Task<IResult> ProvideSessionCode([FromBody] RokuProvideSessionCodePostBody body, HttpContext context, LinkSessions linkSessions, ILogger<LinkSessions> logger)
@@ -336,7 +337,7 @@ public static class LinkSessionEndpoints
     {
         // try get test cookie
         if (!context.Request.Cookies.TryGetValue("AllowCookie", out _))
-            return GlobalHelpers.CreateErrorPage("Photo selection failed. LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
+            return GlobalHelpers.CreateErrorPage(context, "Photo selection failed. LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
 
         var rokuCodeForm = await context.Request.ReadFormAsync();
         if (rokuCodeForm is null)
@@ -349,7 +350,7 @@ public static class LinkSessionEndpoints
         Guid sessionId = linkSessions.GetSessionCodeSession(sessionCode);
         if (sessionId == Guid.Empty)
         {
-            return GlobalHelpers.CreateErrorPage("Unable to find session.", "<a href=\"/link/session\">Please Try Again</a>");
+            return GlobalHelpers.CreateErrorPage(context, "Unable to find session.", "<a href=\"/link/session\">Please Try Again</a>");
         }
 
         logger.LogInformation($"User submitted {sessionCode}");
@@ -363,5 +364,27 @@ public static class LinkSessionEndpoints
         });
 
         return Results.File(env.WebRootPath + "/SelectImgSource.html", "text/html");
+    }
+    private static async Task<IResult> GetUploadStatus(HttpContext context, LinkSessions linkSessions, ILogger<LinkSessions> logger)
+    {
+        string? linkSessionId;
+        if (!context.Request.Cookies.TryGetValue("UserSID", out linkSessionId))
+        {
+            logger.LogWarning("Failed to get userid at upload status endpoint");
+            return Results.BadRequest();
+        }
+        Guid sessionId;
+        if (!Guid.TryParse(linkSessionId, out sessionId))
+        {
+            logger.LogWarning("Failed to get userid at upload status endpoint");
+            return Results.BadRequest();
+        }
+
+        var uploadStatus = linkSessions.GetUploadStatus(sessionId);
+
+        if (uploadStatus is null)
+            return Results.BadRequest();
+
+        return Results.Json(uploadStatus);
     }
 }

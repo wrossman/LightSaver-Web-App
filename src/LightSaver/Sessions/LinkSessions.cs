@@ -29,6 +29,28 @@ public class LinkSessions
             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
         });
     }
+    public UploadStatusModel? GetUploadStatus(Guid sessionId)
+    {
+        var session = GetSession<LinkSession>(sessionId);
+
+        if (session is null)
+            return null;
+
+        var status = new UploadStatusModel(session.ResourcesSaved, session.ImageServiceLinks.Count, session.UploadStatus);
+
+        return status;
+    }
+    public void FailUpload(Guid sessionId)
+    {
+        var session = GetSession<LinkSession>(sessionId);
+
+        if (session is null)
+            return;
+
+        var updated = session with { UploadStatus = "failed" };
+
+        SetSession<LinkSession>(sessionId, updated);
+    }
     public Guid GetSessionCodeSession(string id)
     {
         return _sessionCache.Get<Guid>(id);

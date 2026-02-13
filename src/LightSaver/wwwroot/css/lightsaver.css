@@ -530,6 +530,67 @@ body.page-upload-success p {
     font-size: 1rem;
 }
 
+body.page-upload-status h1 {
+    margin-bottom: 12px;
+    color: #001f3f;
+    font-size: 28px;
+    font-weight: 600;
+}
+
+body.page-upload-status .status-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+body.page-upload-status .status-bar {
+    width: 100%;
+    height: 18px;
+    border-radius: 999px;
+    background: #e3e9f2;
+    border: 1px solid #c2cfdd;
+    overflow: hidden;
+    box-shadow: inset 0 2px 6px rgba(0, 31, 63, 0.15);
+}
+
+body.page-upload-status .status-bar-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #001f3f 0%, #004f9e 55%, #2b7bd6 100%);
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.35);
+    transition: width 0.45s ease;
+    position: relative;
+}
+
+body.page-upload-status .status-meta {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    color: #001f3f;
+}
+
+body.page-upload-status .status-percent {
+    font-size: 1.1rem;
+}
+
+body.page-upload-status .status-count {
+    font-size: 1rem;
+    color: #001f3f;
+    font-weight: 600;
+}
+
+body.page-upload-status .status-hint {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #6b6b6b;
+}
+
+
 body.page-lightroom-success .checkmark,
 body.page-upload-success .checkmark {
     width: 80px;

@@ -11,6 +11,7 @@ public record LinkSession
     public int ScreenWidth { get; init; } = 1920;
     public int ScreenHeight { get; init; } = 1920;
     public int ResourcesSaved { get; set; } = 0;
+    public string UploadStatus { get; set; } = string.Empty;
     public List<string> ImageServiceLinks { get; set; } = new();
     public Dictionary<Guid, string> ResourcePackage { get; init; } = new();
 

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Upload Status</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/lightsaver.css" />
+</head>
+
+<body class="page-upload-status">
+    <div class="container">
+        <div class="container-inner">
+            <div class="brand-title-wrapper">
+                <div class="brand-title">LightSaver</div>
+            </div>
+            <div class="prompt-content">
+                <h1>Uploading images</h1>
+                <div class="status-panel">
+                    <div class="status-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"
+                        aria-valuenow="0" aria-label="Upload progress">
+                        <div id="statusFill" class="status-bar-fill"></div>
+                    </div>
+                    <div class="status-meta">
+                        <span id="statusPercent" class="status-percent">0%</span>
+                        <span class="status-count">
+                            <span id="uploadedCount">0</span>
+                            <span id="uploadedLabel">/</span>
+                            <span id="totalCount">0</span>
+                            <span id="totalLabel">images</span>
+                        </span>
+                    </div>
+                    <p id="statusNumbers" class="status-hint" aria-live="polite">
+                        0 of 0 images uploaded
+                    </p>
+                    <p id="statusMessage" class="status-hint">Hang tight while we finish this up.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const countEl = document.getElementById('uploadedCount');
+        const labelEl = document.getElementById('uploadedLabel');
+        const totalEl = document.getElementById('totalCount');
+        const totalLabel = document.getElementById('totalLabel');
+        const statusPercent = document.getElementById('statusPercent');
+        const statusNumbers = document.getElementById('statusNumbers');
+        const statusFill = document.getElementById('statusFill');
+        const statusBar = document.querySelector('.status-bar');
+        const statusMessage = document.getElementById('statusMessage');
+        let lastValue = null;
+        let lastTotal = null;
+
+        function updateLabel(count, total) {
+            const imageLabel = total === 1 ? 'image' : 'images';
+            labelEl.textContent = '/';
+            totalLabel.textContent = imageLabel;
+            statusNumbers.textContent = `${count} of ${total} ${imageLabel} uploaded`;
+        }
+
+        function updatePercent(count, total) {
+            const validTotal = total > 0 ? total : 0;
+            const percent = validTotal > 0 ? Math.min(100, Math.round((count / validTotal) * 100)) : 0;
+            statusPercent.textContent = `${percent}%`;
+            statusFill.style.width = `${percent}%`;
+            if (statusBar) {
+                statusBar.setAttribute('aria-valuenow', percent.toString());
+            }
+        }
+
+        async function fetchStatus() {
+            try {
+                const response = await fetch('/link/upload-status', { cache: 'no-store' });
+                if (!response.ok) {
+                    throw new Error('Failed status fetch');
+                }
+
+                const data = await response.json();
+                const value = Number.parseInt(data.downloadedImages, 10);
+                const total = Number.parseInt(data.totalImages, 10);
+                const status = data.status ?? '';
+
+                if (Number.isNaN(value) || Number.isNaN(total)) {
+                    throw new Error('Invalid status value');
+                }
+
+                if (status === 'failed') {
+                    window.location.href = '/UploadFailed.html';
+                    return;
+                }
+
+                if (value !== lastValue || total !== lastTotal) {
+                    lastValue = value;
+                    lastTotal = total;
+                    countEl.textContent = value.toString();
+                    totalEl.textContent = total.toString();
+                    updateLabel(value, total);
+                    updatePercent(value, total);
+                }
+
+                if (total > 0 && value >= total) {
+                    window.location.href = '/UploadSuccess.html';
+                    return;
+                }
+
+                statusMessage.textContent = total > 0 ? 'Hang tight while we finish this up.' : 'Preparing your upload...';
+            } catch (error) {
+                statusMessage.textContent = 'Reconnecting to upload status...';
+            }
+        }
+
+        fetchStatus();
+        setInterval(fetchStatus, 1000);
+    </script>
+</body>
+
+</html>
