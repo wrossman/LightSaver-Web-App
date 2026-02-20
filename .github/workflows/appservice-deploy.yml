@@ -37,18 +37,18 @@ jobs:
       - name: Bicep Deploy
         uses: azure/bicep-deploy@v2
         with:
-        type: deployment
-        operation: create
-        name: Development
-        scope: resourceGroup
-        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID}}
-        resource-group-name: lightsaver-rg
-        template-file: ./iac/main.bicep
-        parameters: '{"deploymentName": "lightsaver-testing",
-          "sqlServerPassword": "${{ secrets.SQL_SERVER_PASSWORD}}",
-          "googleOAuthClientId": "${{ secrets.GOOGLE_CLIENT_ID}}",
-          "googleOAuthClientSecret": "${{ secrets.GOOGLE_CLIENT_SECRET}}",
-          "hmacServerKey": "${{ secrets.HMAC_SERVER_KEY}}"}'
+          type: deployment
+          operation: create
+          name: Development
+          scope: resourceGroup
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID}}
+          resource-group-name: lightsaver-rg
+          template-file: ./iac/main.bicep
+          parameters: '{"deploymentName": "lightsaver-testing",
+            "sqlServerPassword": "${{ secrets.SQL_SERVER_PASSWORD}}",
+            "googleOAuthClientId": "${{ secrets.GOOGLE_CLIENT_ID}}",
+            "googleOAuthClientSecret": "${{ secrets.GOOGLE_CLIENT_SECRET}}",
+            "hmacServerKey": "${{ secrets.HMAC_SERVER_KEY}}"}'
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
