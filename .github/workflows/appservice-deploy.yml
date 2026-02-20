@@ -44,7 +44,7 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID}}
           resource-group-name: lightsaver-rg
           template-file: ./iac/main.bicep
-          parameters: '{"deploymentName": "lightsaver-testing",
+          parameters: '{"deploymentName": "${{ vars.DEPLOYMENT_NAME }}",
             "sqlServerPassword": "${{ secrets.SQL_SERVER_PASSWORD}}",
             "googleOAuthClientId": "${{ secrets.GOOGLE_CLIENT_ID}}",
             "googleOAuthClientSecret": "${{ secrets.GOOGLE_CLIENT_SECRET}}",
@@ -54,6 +54,6 @@ jobs:
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'lightsaver-testing'
+          app-name: '${{ vars.DEPLOYMENT_NAME }}-webApp'
           slot-name: 'Production'
           package: ${{env.DOTNET_ROOT}}/lightsaver-webapp
