@@ -1,7 +1,7 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Build and Deploy to Azure
+name: Build-IAC-Deploy to Azure
 
 on:
   workflow_dispatch:
@@ -30,14 +30,30 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_A979E06F280D44DABD9AE6332F9EE28D }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_2256A75774864974A10DBA4E3CB92520 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_BF5E54448F044A39B4CE60FB3088C8AF }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID}}
+
+      - name: Bicep Deploy
+        uses: azure/bicep-deploy@v2
+        with:
+        type: deployment
+        operation: create
+        name: Development
+        scope: resourceGroup
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID}}
+        resource-group-name: lightsaver-rg
+        template-file: ./iac/main.bicep
+        parameters: '{"deploymentName": "lightsaver-testing",
+          "sqlServerPassword": "${{ secrets.SQL_SERVER_PASSWORD}}",
+          "googleOAuthClientId": "${{ secrets.GOOGLE_CLIENT_ID}}",
+          "googleOAuthClientSecret": "${{ secrets.GOOGLE_CLIENT_SECRET}}",
+          "hmacServerKey": "${{ secrets.HMAC_SERVER_KEY}}"}'
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'LightSaver'
+          app-name: 'lightsaver-testing'
           slot-name: 'Production'
           package: ${{env.DOTNET_ROOT}}/lightsaver-webapp
