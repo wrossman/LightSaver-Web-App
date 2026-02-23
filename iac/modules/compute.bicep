@@ -56,6 +56,7 @@ resource siteConfig 'Microsoft.Web/sites/config@2025-03-01' = {
   parent: webApp
   name: 'web'
   properties: {
+    keyVaultReferenceIdentity: webAppUamiId
     ftpsState: 'FtpsOnly'
     minTlsVersion: '1.2'
     scmMinTlsVersion: '1.2'
