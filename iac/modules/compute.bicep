@@ -2,6 +2,7 @@ param webAppName string
 param appServicePlanName string
 param location string
 param webAppUamiId string
+param webAppUamiClientId string
 param oauthClientIdUri string
 param oauthClientSecretUri string
 param hmacUri string
@@ -34,6 +35,10 @@ resource webApp 'Microsoft.Web/sites@2025-03-01' = {
         {
           name: 'ASPNETCORE_ENVIRONMENT'
           value: 'AzureDev'
+        }
+        {
+          name: 'AZURE_CLIENT_ID'
+          value: webAppUamiClientId
         }
         {
           name: 'OAuth__ClientId'

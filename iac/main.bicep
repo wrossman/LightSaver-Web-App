@@ -29,6 +29,7 @@ module compute 'modules/compute.bicep' = {
   name: 'compute_deployment'
   params: {
     webAppName: webAppName
+    webAppUamiClientId: identity.outputs.webAppUamiClientId
     appServicePlanName: appServicePlanName
     webAppUamiId: identity.outputs.webAppUamiId
     location: location
