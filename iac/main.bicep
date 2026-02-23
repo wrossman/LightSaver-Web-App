@@ -28,6 +28,8 @@ module identity 'modules/identity.bicep' = {
 module compute 'modules/compute.bicep' = {
   name: 'compute_deployment'
   params: {
+    storageAccountName: storageAccountName
+    sqlServerName: sqlServerName
     webAppName: webAppName
     webAppUamiClientId: identity.outputs.webAppUamiClientId
     appServicePlanName: appServicePlanName

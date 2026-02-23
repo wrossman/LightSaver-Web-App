@@ -6,6 +6,8 @@ param webAppUamiClientId string
 param oauthClientIdUri string
 param oauthClientSecretUri string
 param hmacUri string
+param sqlServerName string
+param storageAccountName string
 
 resource appServicePlan 'Microsoft.Web/serverfarms@2025-03-01' = {
   name: appServicePlanName
@@ -51,6 +53,18 @@ resource webApp 'Microsoft.Web/sites@2025-03-01' = {
         {
           name: 'Hmac'
           value: '@Microsoft.KeyVault(SecretUri=${hmacUri})'
+        }
+        {
+          name: 'ConnectionStrings__Default'
+          value: 'Server=tcp:${sqlServerName}.${environment().suffixes.sqlServerHostname},1433;Initial Catalog=lightsaver-db;Authentication=Active Directory Managed Identity;User Id=${webAppUamiClientId}'
+        }
+        {
+          name: 'AzureStorage__AccountName'
+          value: storageAccountName
+        }
+        {
+          name: 'AzureStorage__ContainerName'
+          value: 'user-resources'
         }
       ]
     }
