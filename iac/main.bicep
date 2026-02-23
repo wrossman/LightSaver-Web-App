@@ -32,6 +32,9 @@ module compute 'modules/compute.bicep' = {
     appServicePlanName: appServicePlanName
     webAppUamiId: identity.outputs.webAppUamiId
     location: location
+    oauthClientIdUri: security.outputs.oauthClientIdUri
+    oauthClientSecretUri: security.outputs.oauthClientSecretUri
+    hmacUri: security.outputs.hmacUri
   }
 }
 

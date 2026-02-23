@@ -60,3 +60,6 @@ resource hmacKey 'Microsoft.KeyVault/vaults/secrets@2025-05-01' = {
 }
 
 output keyVaultName string = keyVault.name
+output oauthClientIdUri string = googleClientId.properties.secretUri
+output oauthClientSecretUri string = googleClientSecret.properties.secretUri
+output hmacUri string = hmacKey.properties.secretUri

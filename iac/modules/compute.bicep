@@ -2,6 +2,9 @@ param webAppName string
 param appServicePlanName string
 param location string
 param webAppUamiId string
+param oauthClientIdUri string
+param oauthClientSecretUri string
+param hmacUri string
 
 resource appServicePlan 'Microsoft.Web/serverfarms@2025-03-01' = {
   name: appServicePlanName
@@ -31,6 +34,18 @@ resource webApp 'Microsoft.Web/sites@2025-03-01' = {
         {
           name: 'ASPNETCORE_ENVIRONMENT'
           value: 'AzureDev'
+        }
+        {
+          name: 'OAuth__ClientId'
+          value: '@Microsoft.KeyVault(SecretUri=${oauthClientIdUri})'
+        }
+        {
+          name: 'OAuth__ClientSecret'
+          value: '@Microsoft.KeyVault(SecretUri=${oauthClientSecretUri})'
+        }
+        {
+          name: 'Hmac'
+          value: '@Microsoft.KeyVault(SecretUri=${hmacUri})'
         }
       ]
     }
