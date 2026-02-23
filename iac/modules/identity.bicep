@@ -7,3 +7,4 @@ resource webAppUserManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdenti
 
 output webAppUamiPrincipalId string = webAppUserManagedIdentity.properties.principalId
 output webAppUamiId string = webAppUserManagedIdentity.id
+output webAppUamiClientId string = webAppUserManagedIdentity.properties.clientId
