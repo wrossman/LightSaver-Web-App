@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace LightSaver.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialSqlServer : Migration
+    public partial class InitialMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -19,11 +19,10 @@ namespace LightSaver.Migrations
                     Key = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     KeyCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
                     SessionCode = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ImageStream = table.Column<byte[]>(type: "varbinary(max)", nullable: false),
+                    ImageUri = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    FileType = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     RokuId = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Source = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Source = table.Column<int>(type: "int", nullable: false),
                     Origin = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     LightroomAlbum = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },

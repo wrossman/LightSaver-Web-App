@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LightSaver.Migrations
 {
     [DbContext(typeof(GlobalImageStoreDbContext))]
-    [Migration("20251209180920_UpdateImageSourceToEnum")]
-    partial class UpdateImageSourceToEnum
+    [Migration("20260223150610_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -33,13 +33,9 @@ namespace LightSaver.Migrations
                     b.Property<DateTime>("CreatedOn")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("FileType")
+                    b.Property<string>("ImageUri")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<byte[]>("ImageStream")
-                        .IsRequired()
-                        .HasColumnType("varbinary(max)");
 
                     b.Property<string>("Key")
                         .IsRequired()
