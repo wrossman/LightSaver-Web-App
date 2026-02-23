@@ -50,6 +50,35 @@ jobs:
             "googleOAuthClientSecret": "${{ secrets.GOOGLE_CLIENT_SECRET}}",
             "hmacServerKey": "${{ secrets.HMAC_SERVER_KEY}}"}'
 
+      - name: Force User Managed Identity for WebApp KeyVault access
+        uses: Azure/cli@v2.2.0
+        env:
+          RESOURCE_GROUP: lightsaver-rg
+          DEPLOYMENT_NAME: ${{ vars.DEPLOYMENT_NAME }}
+          IDENTITY_NAME: lightsaver-webapp-identity
+        with:
+          azcliversion: latest
+          inlineScript: |
+            set -euo pipefail
+
+            WEBAPP_NAME="${DEPLOYMENT_NAME}-webapp"
+
+            identityResourceId="$(az identity show \
+              --resource-group "$RESOURCE_GROUP" \
+              --name "$IDENTITY_NAME" \
+              --query id -o tsv)"
+
+            az webapp update \
+              --resource-group "$RESOURCE_GROUP" \
+              --name "$WEBAPP_NAME" \
+              --set keyVaultReferenceIdentity="$identityResourceId"
+
+      - name: Create Web App database user from managed identity
+        uses: azure/sql-action@v2.3
+        with:
+          connection-string: 'Server=tcp:${{ vars.DEPLOYMENT_NAME }}-sqlserver.database.windows.net,1433;Initial Catalog=lightsaver-db;Authentication=Active Directory Default;'
+          path: './iac/sql/create-webapp-user.sql'
+
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3

@@ -18,6 +18,17 @@ resource sqlServer 'Microsoft.Sql/servers@2023-08-01' = {
   }
 }
 
+resource sqlAadAdmin 'Microsoft.Sql/servers/administrators@2023-08-01' = {
+  name: 'ActiveDirectory'
+  parent: sqlServer
+  properties: {
+    administratorType: 'ActiveDirectory'
+    login: 'lightsaver-github-actions'
+    sid: '5922bf53-fe40-40f1-8f6c-80e1991267c0'
+    tenantId: tenant().tenantId
+  }
+}
+
 // Firewall: allow Azure services toggle
 resource fwAllowAzure 'Microsoft.Sql/servers/firewallRules@2023-08-01' = {
   parent: sqlServer
