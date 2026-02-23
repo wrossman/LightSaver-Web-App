@@ -26,6 +26,14 @@ resource webApp 'Microsoft.Web/sites@2025-03-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     httpsOnly: true
+    siteConfig: {
+      appSettings: [
+        {
+          name: 'ASPNETCORE_ENVIRONMENT'
+          value: 'AzureDev'
+        }
+      ]
+    }
   }
 }
 
