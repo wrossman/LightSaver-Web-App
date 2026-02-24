@@ -3,12 +3,17 @@ name: Initial Deployment to Azure Step 1
 on:
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   build-test:
-    uses: wrossman/LightSaver-Web-App/.github/workflows/build-test.yaml@main
+    uses: ./.github/workflows/build-test.yaml
 
   iac-deploy:
-    uses: wrossman/LightSaver-Web-App/.github/workflows/iac-deploy.yaml@main
+    needs: build-test
+    uses: ./.github/workflows/iac-deploy.yaml
     secrets: inherit
     with:
       deployment_name: ${{ vars.DEPLOYMENT_NAME }}

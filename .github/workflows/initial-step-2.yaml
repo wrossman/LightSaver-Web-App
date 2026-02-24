@@ -3,15 +3,20 @@ name: Initial Deployment to Azure Step 2
 on:
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   create-db-webapp-user:
-    uses: wrossman/LightSaver-Web-App/.github/workflows/create-db-webapp-user.yaml@main
+    uses: ./.github/workflows/create-db-webapp-user.yaml
     secrets: inherit
     with:
       deployment_name: ${{ vars.DEPLOYMENT_NAME }}
 
   deploy-app-service:
-    uses: wrossman/LightSaver-Web-App/.github/workflows/deploy-app-service.yaml@main
+    needs: create-db-webapp-user
+    uses: ./.github/workflows/deploy-app-service.yaml@main
     secrets: inherit
     with:
       deployment_name: ${{ vars.DEPLOYMENT_NAME }}
