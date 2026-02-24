@@ -3,6 +3,7 @@ name: Initial Deployment to Azure Step 2
 on:
   workflow_dispatch:
 
+jobs:
   create-db-webapp-user:
     uses: ./.github/workflows/modules/create-db-webapp-user.yaml
     secrets: inherit
