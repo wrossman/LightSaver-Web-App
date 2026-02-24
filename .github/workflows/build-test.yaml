@@ -4,6 +4,7 @@
 name: Build and Test
 
 on:
+  workflow_call:
   workflow_dispatch:
 
 jobs:

@@ -4,7 +4,7 @@
 name: Create DB WebApp User
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       deployment_name:
         required: true

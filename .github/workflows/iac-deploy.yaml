@@ -4,7 +4,7 @@
 name: Deploy IAC
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       deployment_name:
         required: true
