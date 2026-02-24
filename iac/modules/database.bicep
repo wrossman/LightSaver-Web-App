@@ -9,6 +9,9 @@ var databaseName string = 'lightsaver-db'
 resource sqlServer 'Microsoft.Sql/servers@2023-08-01' = {
   name: sqlServerName
   location: location
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     administratorLogin: 'sqladmin'
     administratorLoginPassword: sqlServerPassword

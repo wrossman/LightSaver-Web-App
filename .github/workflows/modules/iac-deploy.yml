@@ -5,6 +5,10 @@ name: Build-IAC-Deploy to Azure
 
 on:
   workflow_dispatch:
+    inputs:
+      deployment_name:
+        required: true
+        type: string
 
 jobs:
   build-and-deploy:
@@ -15,17 +19,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-
-      - name: Set up .NET Core
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: '10.x'
-
-      - name: Build with dotnet
-        run: dotnet build --configuration Release
-
-      - name: dotnet publish
-        run: dotnet publish src/LightSaver/LightSaver.csproj -c Release -o "${{env.DOTNET_ROOT}}/lightsaver-webapp"
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -44,7 +37,7 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID}}
           resource-group-name: lightsaver-rg
           template-file: ./iac/main.bicep
-          parameters: '{"deploymentName": "${{ vars.DEPLOYMENT_NAME }}",
+          parameters: '{"deploymentName": "${{ inputs.deployment_name }}",
             "sqlServerPassword": "${{ secrets.SQL_SERVER_PASSWORD}}",
             "googleOAuthClientId": "${{ secrets.GOOGLE_CLIENT_ID}}",
             "googleOAuthClientSecret": "${{ secrets.GOOGLE_CLIENT_SECRET}}",
@@ -54,7 +47,7 @@ jobs:
         uses: Azure/cli@v2.2.0
         env:
           RESOURCE_GROUP: lightsaver-rg
-          DEPLOYMENT_NAME: ${{ vars.DEPLOYMENT_NAME }}
+          DEPLOYMENT_NAME: ${{ inputs.deployment_name }}
           IDENTITY_NAME: lightsaver-webapp-identity
         with:
           azcliversion: latest
@@ -72,17 +65,3 @@ jobs:
               --resource-group "$RESOURCE_GROUP" \
               --name "$WEBAPP_NAME" \
               --set keyVaultReferenceIdentity="$identityResourceId"
-
-      - name: Create Web App database user from managed identity
-        uses: azure/sql-action@v2.3
-        with:
-          connection-string: 'Server=tcp:${{ vars.DEPLOYMENT_NAME }}-sqlserver.database.windows.net,1433;Initial Catalog=lightsaver-db;Authentication=Active Directory Default;'
-          path: './iac/sql/create-webapp-user.sql'
-
-      - name: Deploy to Azure Web App
-        id: deploy-to-webapp
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: '${{ vars.DEPLOYMENT_NAME }}-webApp'
-          slot-name: 'Production'
-          package: ${{env.DOTNET_ROOT}}/lightsaver-webapp

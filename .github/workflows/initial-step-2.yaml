@@ -1,0 +1,16 @@
+name: Initial Deployment to Azure Step 2
+
+on:
+  workflow_dispatch:
+
+  create-db-webapp-user:
+    uses: ./.github/workflows/modules/create-db-webapp-user.yaml
+    secrets: inherit
+    with:
+      deployment_name: ${{ vars.DEPLOYMENT_NAME }}
+
+  deploy-app-service:
+    uses: ./.github/workflows/modules/deploy-app-service.yaml
+    secrets: inherit
+    with:
+      deployment_name: ${{ vars.DEPLOYMENT_NAME }}
