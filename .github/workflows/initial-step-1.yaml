@@ -5,10 +5,10 @@ on:
 
 jobs:
   build-test:
-    uses: ./.github/workflows/modules/build-test.yaml
+    uses: ./.github/workflows/build-test.yaml
 
   iac-deploy:
-    uses: ./.github/workflows/modules/iac-deploy.yaml
+    uses: ./.github/workflows/iac-deploy.yaml
     secrets: inherit
     with:
       deployment_name: ${{ vars.DEPLOYMENT_NAME }}

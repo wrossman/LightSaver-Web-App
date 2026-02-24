@@ -5,13 +5,13 @@ on:
 
 jobs:
   create-db-webapp-user:
-    uses: ./.github/workflows/modules/create-db-webapp-user.yaml
+    uses: ./.github/workflows/create-db-webapp-user.yaml
     secrets: inherit
     with:
       deployment_name: ${{ vars.DEPLOYMENT_NAME }}
 
   deploy-app-service:
-    uses: ./.github/workflows/modules/deploy-app-service.yaml
+    uses: ./.github/workflows/deploy-app-service.yaml
     secrets: inherit
     with:
       deployment_name: ${{ vars.DEPLOYMENT_NAME }}
