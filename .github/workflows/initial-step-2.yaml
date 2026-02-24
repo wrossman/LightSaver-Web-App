@@ -16,7 +16,7 @@ jobs:
 
   deploy-app-service:
     needs: create-db-webapp-user
-    uses: ./.github/workflows/deploy-app-service.yaml@main
+    uses: ./.github/workflows/deploy-app-service.yaml
     secrets: inherit
     with:
       deployment_name: ${{ vars.DEPLOYMENT_NAME }}
