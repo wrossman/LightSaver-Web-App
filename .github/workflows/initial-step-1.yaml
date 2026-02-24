@@ -5,10 +5,10 @@ on:
 
 jobs:
   build-test:
-    uses: wrossman/LightSaver-Web-App/.github/workflows/build-test.yaml
+    uses: wrossman/LightSaver-Web-App/.github/workflows/build-test.yaml@main
 
   iac-deploy:
-    uses: wrossman/LightSaver-Web-App/.github/workflows/iac-deploy.yaml
+    uses: wrossman/LightSaver-Web-App/.github/workflows/iac-deploy.yaml@main
     secrets: inherit
     with:
       deployment_name: ${{ vars.DEPLOYMENT_NAME }}
