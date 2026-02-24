@@ -56,7 +56,7 @@ resource webApp 'Microsoft.Web/sites@2025-03-01' = {
         }
         {
           name: 'ConnectionStrings__Default'
-          value: 'Server=tcp:${sqlServerName}.${environment().suffixes.sqlServerHostname},1433;Initial Catalog=lightsaver-db;Authentication=Active Directory Managed Identity;User Id=${webAppUamiClientId}'
+          value: 'Server=tcp:${sqlServerName}${environment().suffixes.sqlServerHostname},1433;Initial Catalog=lightsaver-db;Authentication=Active Directory Managed Identity;User Id=${webAppUamiClientId}'
         }
         {
           name: 'AzureStorage__AccountName'
