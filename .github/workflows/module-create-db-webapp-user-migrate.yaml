@@ -1,7 +1,4 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Module - Create DB WebApp User
+name: Module - Create DB WebApp User and Migrate Database
 
 on:
   workflow_call:
@@ -32,3 +29,6 @@ jobs:
         with:
           connection-string: 'Server=tcp:${{ inputs.deployment_name }}-sqlserver.database.windows.net,1433;Initial Catalog=lightsaver-db;Authentication=Active Directory Default;'
           path: './iac/sql/create-webapp-user.sql'
+
+      - name: Apply Initial Database Migration
+        run: dotnet ef database update --project .\src\LightSaver\ --connection "Server=tcp:${{ inputs.deployment_name }}-sqlserver.database.windows.net,1433;Initial Catalog=lightsaver-db;Authentication=Active Directory Default;"

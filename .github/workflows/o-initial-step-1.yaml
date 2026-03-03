@@ -1,4 +1,4 @@
-name: Initial Deployment to Azure Step 1
+name: Orchestration - Initial Deployment to Azure Step 1
 
 on:
   workflow_dispatch:
