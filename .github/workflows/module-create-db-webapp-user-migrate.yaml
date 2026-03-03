@@ -40,4 +40,4 @@ jobs:
         run: dotnet tool install --global dotnet-ef
 
       - name: Apply Initial Database Migration
-        run: dotnet ef database update --project ./src/LightSaver/ --connection "Server=tcp:${{ inputs.deployment_name }}-sqlserver.database.windows.net,1433;Initial Catalog=lightsaver-db;Authentication=Active Directory Default;"
+        run: dotnet ef database update --verbose --project ./src/LightSaver/ --connection "Server=tcp:${{ inputs.deployment_name }}-sqlserver.database.windows.net,1433;Initial Catalog=lightsaver-db;Authentication=Active Directory Default;"
