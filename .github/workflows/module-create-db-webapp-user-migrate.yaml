@@ -34,7 +34,7 @@ jobs:
         run: dotnet restore ./src/LightSaver/LightSaver.csproj
 
       - name: Build project
-        run: dotnet build ./src/LightSaver/LightSaver.csproj -c Release --no-restore
+        run: dotnet build ./src/LightSaver/LightSaver.csproj --no-restore
 
       - name: Install dotnet-ef
         run: dotnet tool install --global dotnet-ef
