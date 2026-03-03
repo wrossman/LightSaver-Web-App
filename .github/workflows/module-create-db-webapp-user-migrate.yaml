@@ -33,8 +33,11 @@ jobs:
       - name: Restore
         run: dotnet restore ./src/LightSaver/LightSaver.csproj
 
+      - name: Build project
+        run: dotnet build ./src/LightSaver/LightSaver.csproj -c Release --no-restore
+
       - name: Install dotnet-ef
         run: dotnet tool install --global dotnet-ef
 
       - name: Apply Initial Database Migration
-        run: dotnet ef database update --verbose --project ./src/LightSaver/LightSaver.csproj --connection "Server=tcp:${{ inputs.deployment_name }}-sqlserver.database.windows.net,1433;Initial Catalog=lightsaver-db;Authentication=Active Directory Default;"
+        run: dotnet ef database update --no-build --verbose --project ./src/LightSaver/LightSaver.csproj --connection "Server=tcp:${{ inputs.deployment_name }}-sqlserver.database.windows.net,1433;Initial Catalog=lightsaver-db;Authentication=Active Directory Default;"
