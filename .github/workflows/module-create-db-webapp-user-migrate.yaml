@@ -30,9 +30,11 @@ jobs:
           connection-string: 'Server=tcp:${{ inputs.deployment_name }}-sqlserver.database.windows.net,1433;Initial Catalog=lightsaver-db;Authentication=Active Directory Default;'
           path: './iac/sql/create-webapp-user.sql'
 
+      - name: Restore
+        run: dotnet restore ./src/LightSaver/LightSaver.csproj
+
       - name: Install dotnet-ef
         run: dotnet tool install --global dotnet-ef
-
 
       - name: Apply Initial Database Migration
         run: dotnet ef database update --project ./src/LightSaver/ --connection "Server=tcp:${{ inputs.deployment_name }}-sqlserver.database.windows.net,1433;Initial Catalog=lightsaver-db;Authentication=Active Directory Default;"
