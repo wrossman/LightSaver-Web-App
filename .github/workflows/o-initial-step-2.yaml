@@ -9,14 +9,14 @@ permissions:
 
 jobs:
   create-db-webapp-user:
-    uses: ./.github/workflows/create-db-webapp-user.yaml
+    uses: ./.github/workflows/module-create-db-webapp-user.yaml
     secrets: inherit
     with:
       deployment_name: ${{ vars.DEPLOYMENT_NAME }}
 
   deploy-app-service:
     needs: create-db-webapp-user
-    uses: ./.github/workflows/deploy-app-service.yaml
+    uses: ./.github/workflows/module-deploy-app-service.yaml
     secrets: inherit
     with:
       deployment_name: ${{ vars.DEPLOYMENT_NAME }}

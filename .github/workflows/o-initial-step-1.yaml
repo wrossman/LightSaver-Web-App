@@ -9,11 +9,11 @@ permissions:
 
 jobs:
   build-test:
-    uses: ./.github/workflows/build-test.yaml
+    uses: ./.github/workflows/module-build-test.yaml
 
   iac-deploy:
     needs: build-test
-    uses: ./.github/workflows/iac-deploy.yaml
+    uses: ./.github/workflows/module-iac-deploy.yaml
     secrets: inherit
     with:
       deployment_name: ${{ vars.DEPLOYMENT_NAME }}
