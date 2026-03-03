@@ -59,7 +59,8 @@ builder.Services.AddScoped<LightroomService>();
 builder.Services.AddScoped<GlobalStore>();
 
 // HOSTED SERVICES and BACKGROUND TASKS
-builder.Services.AddHostedService<ResourceCleanup>();
+builder.Services.AddHostedService<ResourceDbCleanup>();
+builder.Services.AddHostedService<ResourceStorageCleanup>();
 
 // START ALL SERVICES CONCURRENTLY
 builder.Services.Configure<HostOptions>(options =>

@@ -1,7 +1,9 @@
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 public class AzureSave : IResourceSave
 {
     private readonly BlobServiceClient _blobService;
+    private readonly BlobContainerClient _containerClient;
     private readonly string _containerName;
     private readonly ImageProcessors _imageProcessors;
     private readonly ILogger<AzureSave> _logger;
@@ -10,29 +12,42 @@ public class AzureSave : IResourceSave
         _imageProcessors = imageProcessors;
         _blobService = blobService;
         _containerName = config["AzureStorage:ContainerName"] ?? "resources";
+        _containerClient = _blobService.GetBlobContainerClient(_containerName);
         _logger = logger;
     }
     public async Task<byte[]> GetResource(ImageShare resource, bool background)
     {
-        var container = _blobService.GetBlobContainerClient(_containerName);
-
         BlobClient blob;
         if (background)
-            blob = container.GetBlobClient(resource.Id.ToString() + "_bg");
+            blob = _containerClient.GetBlobClient(resource.Id.ToString() + "_bg");
         else
-            blob = container.GetBlobClient(resource.Id.ToString());
+            blob = _containerClient.GetBlobClient(resource.Id.ToString());
 
         var content = await blob.DownloadContentAsync();
         byte[] img = content.Value.Content.ToArray();
         return img;
     }
+
+    public async Task<List<string?>> GetResources()
+    {
+        var results = new List<string?>();
+
+        await foreach (BlobItem blobItem in _containerClient.GetBlobsAsync(
+            traits: BlobTraits.None,
+            states: BlobStates.None))
+        {
+            results.Add(blobItem.Name);
+        }
+
+        return results;
+    }
+
     public async Task<bool> RemoveList(List<ImageShare> resources)
     {
         foreach (var resource in resources)
         {
-            var container = _blobService.GetBlobContainerClient(_containerName);
-            var blob = container.GetBlobClient(resource.Id.ToString());
-            var backgroundBlob = container.GetBlobClient(resource.Id.ToString() + "_bg");
+            var blob = _containerClient.GetBlobClient(resource.Id.ToString());
+            var backgroundBlob = _containerClient.GetBlobClient(resource.Id.ToString() + "_bg");
             await blob.DeleteIfExistsAsync();
             await backgroundBlob.DeleteIfExistsAsync();
         }
@@ -41,9 +56,8 @@ public class AzureSave : IResourceSave
 
     public async Task<bool> RemoveSingle(ImageShare resource)
     {
-        var container = _blobService.GetBlobContainerClient(_containerName);
-        var blob = container.GetBlobClient(resource.Id.ToString());
-        var backgroundBlob = container.GetBlobClient(resource.Id.ToString() + "_bg");
+        var blob = _containerClient.GetBlobClient(resource.Id.ToString());
+        var backgroundBlob = _containerClient.GetBlobClient(resource.Id.ToString() + "_bg");
         return await blob.DeleteIfExistsAsync() && await backgroundBlob.DeleteIfExistsAsync();
     }
 
@@ -63,14 +77,13 @@ public class AzureSave : IResourceSave
         {
             using var imageStream = new MemoryStream(processedImg);
 
-            var container = _blobService.GetBlobContainerClient(_containerName);
-            blob = container.GetBlobClient(resourceId.ToString());
+            blob = _containerClient.GetBlobClient(resourceId.ToString());
             await blob.UploadAsync(imageStream);
 
             if (processedBackground is not null)
             {
                 using var backgroundStream = new MemoryStream(processedBackground);
-                backgroundBlob = container.GetBlobClient(resourceId.ToString() + "_bg");
+                backgroundBlob = _containerClient.GetBlobClient(resourceId.ToString() + "_bg");
                 await backgroundBlob.UploadAsync(backgroundStream);
             }
             else

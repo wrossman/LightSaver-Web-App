@@ -47,23 +47,27 @@ public class LocalSave : IResourceSave
     }
     public async Task<bool> RemoveSingle(ImageShare resource)
     {
-        if (File.Exists(resource.ImageUri))
-            File.Delete(resource.ImageUri);
+        if (File.Exists(resource.Id.ToString()))
+            File.Delete(resource.Id.ToString());
 
-        if (File.Exists(resource.ImageUri + "_bg"))
-            File.Delete(resource.ImageUri + "_bg");
+        if (File.Exists(resource.Id + "_bg"))
+            File.Delete(resource.Id + "_bg");
 
         return true;
     }
     public async Task<bool> RemoveList(List<ImageShare> resources)
     {
+        string? folderPath = _config.GetValue<string>("LocalResourceStorePath");
+        if (folderPath is null)
+            throw new ArgumentNullException("Local Write Path");
+
         foreach (var resource in resources)
         {
-            if (File.Exists(resource.ImageUri))
-                File.Delete(resource.ImageUri);
+            if (File.Exists(folderPath + resource.Id.ToString()))
+                File.Delete(folderPath + resource.Id.ToString());
 
-            if (File.Exists(resource.ImageUri + "_bg"))
-                File.Delete(resource.ImageUri + "_bg");
+            if (File.Exists(folderPath + resource.Id + "_bg"))
+                File.Delete(folderPath + resource.Id + "_bg");
 
         }
         return true;
@@ -79,5 +83,17 @@ public class LocalSave : IResourceSave
             img = await File.ReadAllBytesAsync(image.ImageUri);
 
         return img;
+    }
+
+    public async Task<List<string?>> GetResources()
+    {
+        string? folderPath = _config.GetValue<string>("LocalResourceStorePath");
+        if (folderPath is null)
+            throw new ArgumentNullException("Local Write Path");
+
+        return Directory
+            .EnumerateFiles(folderPath)
+            .Select(Path.GetFileName)
+            .ToList();
     }
 }

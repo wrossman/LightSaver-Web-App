@@ -1,13 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 
-public class ResourceCleanup : BackgroundService
+public class ResourceDbCleanup : BackgroundService
 {
-    private readonly ILogger<ResourceCleanup> _logger;
+    private readonly ILogger<ResourceDbCleanup> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IResourceSave _resourceSave;
     private readonly PeriodicTimer _timer = new(TimeSpan.FromDays(1));
 
-    public ResourceCleanup(ILogger<ResourceCleanup> logger, IServiceScopeFactory scopeFactory, IResourceSave resourceSave)
+    public ResourceDbCleanup(ILogger<ResourceDbCleanup> logger, IServiceScopeFactory scopeFactory, IResourceSave resourceSave)
     {
         _logger = logger;
         _scopeFactory = scopeFactory;
@@ -25,7 +25,7 @@ public class ResourceCleanup : BackgroundService
     {
         try
         {
-            _logger.LogInformation("Running resource cleanup.");
+            _logger.LogInformation("Running resource database cleanup.");
             using var scope = _scopeFactory.CreateScope();
             using GlobalImageStoreDbContext resourceDb = scope.ServiceProvider.GetRequiredService<GlobalImageStoreDbContext>();
 

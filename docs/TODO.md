@@ -18,12 +18,9 @@
 - Create terms and conditions.
 - Add images to the startup screen.
 - Create app logo.
-- Create an uploading animation.
 - Create a web app home page with information.
-- Add counter and upload animation.
 
 ## Web App To-Do Items
-- EB NGNIX proxy times out on the loading screen when uploading a bunch of images.
 - Create unit tests.
 - Add orphaned resource cleanup.
 - Extract key and derivation creation into a method.
@@ -31,7 +28,6 @@
 - Add a message that pictures expire after a set time following upload.
 - Warn when uploading unusually sized images.
 - Verify how many items a Roku ID has in the resource database before uploading.
-- Rotate resource keys on a schedule; consider access-based rotation using a per-image access counter.
 - Reject invalid data uploads at endpoints.
 
 ## Roku To-Do Items
@@ -45,6 +41,8 @@
 - Limit the number of keys stored in the Roku registry.
 
 ## Done
+- [x] Rotate resource keys on a schedule; consider access-based rotation using a per-image access counter.
+- [x] Add counter and upload animation.
 - [x] On FHD screen, the background image does not fully render before fade in every time.
 - [x] Fix FHD layouts
 - [x] Encrypt image files. (Azure and AWS handle encryption at rest automatically in S3 and Blob.)

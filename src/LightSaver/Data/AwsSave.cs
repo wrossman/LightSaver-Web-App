@@ -38,6 +38,11 @@ public class AwsSave : IResourceSave
         return ms.ToArray();
     }
 
+    public Task<List<string?>> GetResources()
+    {
+        throw new NotImplementedException();
+    }
+
     public async Task<bool> RemoveList(List<ImageShare> uris)
     {
         IEnumerable<string> imagePaths = uris.Select(x => x.ImageUri);
