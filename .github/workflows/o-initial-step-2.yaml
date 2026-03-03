@@ -15,7 +15,7 @@ jobs:
       deployment_name: ${{ vars.DEPLOYMENT_NAME }}
 
   deploy-app-service:
-    needs: create-db-webapp-user
+    needs: create-db-webapp-user-migrate
     uses: ./.github/workflows/module-deploy-app-service.yaml
     secrets: inherit
     with:
