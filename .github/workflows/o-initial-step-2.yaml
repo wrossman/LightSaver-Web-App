@@ -8,8 +8,8 @@ permissions:
   contents: read
 
 jobs:
-  create-db-webapp-user:
-    uses: ./.github/workflows/module-create-db-webapp-user.yaml
+  create-db-webapp-user-migrate:
+    uses: ./.github/workflows/module-create-db-webapp-user-migrate.yaml
     secrets: inherit
     with:
       deployment_name: ${{ vars.DEPLOYMENT_NAME }}
