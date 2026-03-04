@@ -58,6 +58,10 @@
         const loadingOverlay = document.getElementById('loadingOverlay');
         const MAX_FILES = MaxImages;
         const MAX_FILE_SIZE = 10 * 1000 * 1000;
+        const CLIENT_SCREEN_WIDTH = MaxWidth;
+        const CLIENT_SCREEN_HEIGHT = MaxHeight;
+        const FALLBACK_SCREEN_WIDTH = 1920;
+        const FALLBACK_SCREEN_HEIGHT = 1080;
 
         const fileCount = document.getElementById('fileCount');
         const fileInputLabel = document.getElementById('fileInputLabel');
@@ -93,6 +97,62 @@
                 return false;
             }
             return true;
+        }
+
+        async function resizeImageForScreen(file) {
+            if (!file.type.startsWith('image/')) {
+                return file;
+            }
+
+            // Keep animated GIFs as-is
+            if (file.type === 'image/gif') {
+                return file;
+            }
+
+            const imageBitmap = await createImageBitmap(file);
+            const maxWidth = typeof CLIENT_SCREEN_WIDTH === 'number' && CLIENT_SCREEN_WIDTH > 0
+                ? CLIENT_SCREEN_WIDTH
+                : FALLBACK_SCREEN_WIDTH;
+            const maxHeight = typeof CLIENT_SCREEN_HEIGHT === 'number' && CLIENT_SCREEN_HEIGHT > 0
+                ? CLIENT_SCREEN_HEIGHT
+                : FALLBACK_SCREEN_HEIGHT;
+
+            const scale = Math.min(1, maxWidth / imageBitmap.width, maxHeight / imageBitmap.height);
+
+            if (scale >= 1) {
+                imageBitmap.close();
+                return file;
+            }
+
+            const targetWidth = Math.max(1, Math.round(imageBitmap.width * scale));
+            const targetHeight = Math.max(1, Math.round(imageBitmap.height * scale));
+
+            const canvas = document.createElement('canvas');
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                imageBitmap.close();
+                return file;
+            }
+
+            ctx.drawImage(imageBitmap, 0, 0, targetWidth, targetHeight);
+            imageBitmap.close();
+
+            const outputType = (file.type === 'image/png' || file.type === 'image/jpeg' || file.type === 'image/webp')
+                ? file.type
+                : 'image/jpeg';
+
+            const blob = await new Promise((resolve) => {
+                canvas.toBlob((result) => resolve(result), outputType, 0.9);
+            });
+
+            if (!blob) {
+                return file;
+            }
+
+            const resizedName = file.name.replace(/\.(\w+)$/, '') + '.jpg';
+            return new File([blob], resizedName, { type: outputType });
         }
 
         function animateContainerToFit() {
@@ -302,7 +362,12 @@
             try {
                 const fileArray = Array.from(files);
                 for (let i = 0; i < fileArray.length; i++) {
-                    const file = fileArray[i];
+                    const file = await resizeImageForScreen(fileArray[i]);
+
+                    if (!validateFileSize(file)) {
+                        return;
+                    }
+
                     const formData = new FormData();
                     formData.append('image', file);
 
@@ -315,8 +380,7 @@
                     });
 
                     if (!response.ok) {
-                        const text = await response.text();
-                        alert('Upload failed: ' + text);
+                        window.location.href = "/UploadFailed.html";   // redirect page
                         return;
                     }
 

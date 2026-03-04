@@ -10,15 +10,38 @@ public static class UploadPhotosEndpoints
         group.MapPost("/post-images", ReceiveImage);
         group.MapPost("/finish-upload", FinishUpload);
     }
-    public static IResult UploadPage(IWebHostEnvironment env, IAntiforgery af, IConfiguration config, HttpContext context)
+    public static IResult UploadPage(IWebHostEnvironment env, IAntiforgery af, IConfiguration config, HttpContext context, ILogger<LinkSessions> logger, LinkSessions linkSessions)
     {
         var tokens = af.GetAndStoreTokens(context);
+
+        string? linkSessionId;
+        if (!context.Request.Cookies.TryGetValue("UserSID", out linkSessionId))
+        {
+            logger.LogWarning("Failed to get userid at upload receive images endpoint");
+            return GlobalHelpers.CreateErrorPage(context, "LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
+        }
+
+        Guid sessionId;
+        if (!Guid.TryParse(linkSessionId, out sessionId))
+        {
+            logger.LogWarning("Failed to get userid at google handle oauth response endpoint");
+            return GlobalHelpers.CreateErrorPage(context, "LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
+        }
+
+        LinkSession? linkSession = linkSessions.GetSession<LinkSession>(sessionId);
+        if (linkSession is null)
+        {
+            logger.LogWarning("Failed to get LinkSession from user id at upload receive images endpoint");
+            return GlobalHelpers.CreateErrorPage(context, "Failed to retrieve your user session.", "<a href=\"/upload/upload\">Please Try Again</a>");
+        }
 
         var path = Path.Combine(env.WebRootPath, "UploadImages.html");
         var html = File.ReadAllText(path);
 
         html = html.Replace("{{CSRF_TOKEN}}", tokens.RequestToken);
         html = html.Replace("MaxImages", config.GetValue<int>("MaxImages").ToString());
+        html = html.Replace("MaxWidth", linkSession.ScreenWidth.ToString());
+        html = html.Replace("MaxHeight", linkSession.ScreenHeight.ToString());
 
         return Results.Text(html, "text/html");
     }
