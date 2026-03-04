@@ -2,12 +2,12 @@ using Microsoft.EntityFrameworkCore;
 
 public class ResourceStorageCleanup : BackgroundService
 {
-    private readonly ILogger<ResourceDbCleanup> _logger;
+    private readonly ILogger<ResourceStorageCleanup> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IResourceSave _resourceSave;
     private readonly PeriodicTimer _timer = new(TimeSpan.FromDays(1));
 
-    public ResourceStorageCleanup(ILogger<ResourceDbCleanup> logger, IServiceScopeFactory scopeFactory, IResourceSave resourceSave)
+    public ResourceStorageCleanup(ILogger<ResourceStorageCleanup> logger, IServiceScopeFactory scopeFactory, IResourceSave resourceSave)
     {
         _logger = logger;
         _scopeFactory = scopeFactory;

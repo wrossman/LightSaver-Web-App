@@ -55,7 +55,7 @@ public class GlobalHelpers
     }
     public static bool VerifyImageUpload(List<IFormFile> images, int maxFiles)
     {
-        long maxFileSize = 10L * 1000 * 1000; // 5 MB
+        long maxFileSize = 10L * 1000 * 1000; // 10 MB
 
         if (images == null || images.Count == 0)
             return false;
