@@ -1,8 +1,8 @@
 using Xunit;
 
-namespace LightSaver.Tests.Models
+namespace LightSaver.Tests.Services
 {
-    public class GooglePickerResponseTests
+    public class ResourceStorageCleanupTests
     {
         [Fact]
         public void Placeholder()

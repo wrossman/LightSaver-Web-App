@@ -1,8 +1,8 @@
 using Xunit;
 
-namespace LightSaver.Tests.Models
+namespace LightSaver.Tests.Migrations
 {
-    public class ImageShareTests
+    public class Test20260223150610_InitialMigrationDesignerTests
     {
         [Fact]
         public void Placeholder()

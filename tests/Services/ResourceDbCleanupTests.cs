@@ -1,8 +1,8 @@
 using Xunit;
 
-namespace LightSaver.Tests.Migrations
+namespace LightSaver.Tests.Services
 {
-    public class Test20251208231416_InitialAzureTests
+    public class ResourceDbCleanupTests
     {
         [Fact]
         public void Placeholder()
