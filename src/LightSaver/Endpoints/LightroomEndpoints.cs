@@ -42,7 +42,7 @@ public static class LightroomEndpoints
         if (linkSession is null)
         {
             logger.LogWarning("Failed to get session from userid at upload receive images endpoint");
-            return GlobalHelpers.CreateErrorPage(context, "Unable to retrieve your user session.", "<a href\"/link/session\">Please Try Again</a>");
+            return GlobalHelpers.CreateErrorPage(context, "Unable to retrieve your user session.", "<a href=\"/link/session\">Please Try Again</a>");
         }
 
         if (linkSession.Expired == true)
