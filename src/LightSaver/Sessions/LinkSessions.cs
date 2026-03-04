@@ -36,7 +36,7 @@ public class LinkSessions
         if (session is null)
             return null;
 
-        var status = new UploadStatusModel(session.ResourcesSaved, session.ImageServiceLinks.Count, session.UploadStatus);
+        var status = new UploadStatusModel(session.ResourcesSaved, session.ResourceCount, session.UploadStatus);
 
         return status;
     }
@@ -75,6 +75,7 @@ public class LinkSessions
 
         return true;
     }
+
     public bool SetResourcePackage(Guid id, List<string> imageServiceLinks)
     {
         var session = GetSession<LinkSession>(id);

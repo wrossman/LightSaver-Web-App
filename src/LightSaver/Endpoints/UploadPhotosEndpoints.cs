@@ -21,7 +21,7 @@ public static class UploadPhotosEndpoints
 
         return Results.Text(html, "text/html");
     }
-    public static async Task<IResult> ReceiveImages(IConfiguration config, LinkSessions linkSessions, IFormFileCollection imageCollection, HttpContext context, ILogger<LinkSession> logger, IAntiforgery af, GlobalStore store)
+    public static async Task<IResult> ReceiveImages(IServiceScopeFactory _scopeFactory, IConfiguration config, LinkSessions linkSessions, IFormFileCollection imageCollection, HttpContext context, ILogger<LinkSession> logger, IAntiforgery af, GlobalStore store)
     {
         await af.ValidateRequestAsync(context);
 
@@ -61,17 +61,35 @@ public static class UploadPhotosEndpoints
             logger.LogWarning("User tried to upload photos with an expired session.");
             return GlobalHelpers.CreateErrorPage(context, "Your session has expired.", "<a href=\"/link/session\">Please Try Again</a>");
         }
-        try
+
+        var tempPaths = new List<string>(images.Count);
+
+        foreach (var file in images)
         {
-            await store.WriteSessionImages(sessionId, ImageShareSource.Upload, images);
-        }
-        catch
-        {
-            logger.LogWarning("Failed to upload photos for user session.");
-            linkSessions.ExpireSession(sessionId);
-            return GlobalHelpers.CreateErrorPage(context, "Failed to upload images.");
+            var tempPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}_{Path.GetFileName(file.FileName)}");
+            await using var fs = File.Create(tempPath);
+            await file.CopyToAsync(fs, context.RequestAborted);
+            tempPaths.Add(tempPath);
         }
 
-        return Results.Redirect("/UploadSuccess.html");
+        _ = Task.Run(async () =>
+        {
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var backgroundScopeStore = scope.ServiceProvider.GetRequiredService<GlobalStore>();
+                try
+                {
+                    await backgroundScopeStore.WriteSessionImages(sessionId, ImageShareSource.Upload, tempPaths);
+                }
+                catch
+                {
+                    logger.LogWarning("Failed to upload photos for user session.");
+                    linkSessions.FailUpload(sessionId);
+                    linkSessions.ExpireSession(sessionId);
+                }
+            }
+        });
+
+        return Results.Redirect("/UploadStatus.html");
     }
 }

@@ -257,13 +257,16 @@ public class GlobalStore
 
         return imgs;
     }
-    public async Task WriteSessionImages(Guid linkSessionId, ImageShareSource source, List<IFormFile>? images = null, string lightroomAlbum = "")
+    public async Task WriteSessionImages(Guid linkSessionId, ImageShareSource source, List<string>? imageTempPath = null, string lightroomAlbum = "")
     {
-        if (images is null)
+        if (imageTempPath is null)
         {
             var linkSession = _linkSessions.GetSession<LinkSession>(linkSessionId);
             if (linkSession is null)
                 throw new ArgumentNullException();
+
+            linkSession.ResourceCount = linkSession.ImageServiceLinks.Count;
+            _linkSessions.SetSession<LinkSession>(linkSessionId, linkSession);
 
             var updatedSession = linkSession with { };
 
@@ -321,20 +324,17 @@ public class GlobalStore
             if (linkSession is null)
                 throw new ArgumentNullException();
 
+            linkSession.ResourceCount = imageTempPath.Count;
+            _linkSessions.SetSession<LinkSession>(linkSessionId, linkSession);
+
             var updatedSession = linkSession with { };
 
             List<ImageShare> sharesToAdd = new();
 
-            foreach (var item in images)
+            foreach (var item in imageTempPath)
             {
-                if (item.Length <= 0) continue;
-
-                byte[] imgBytes;
-                using (var ms = new MemoryStream())
-                {
-                    await item.CopyToAsync(ms);
-                    imgBytes = ms.ToArray();
-                }
+                byte[] imgBytes = await File.ReadAllBytesAsync(item);
+                File.Delete(item);
 
                 var bytes = new byte[32];
                 RandomNumberGenerator.Fill(bytes);

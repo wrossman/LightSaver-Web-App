@@ -320,8 +320,8 @@
                 }
 
                 if (response.redirected) {
-                    // No need to hide overlay, page is changing
-                    window.location.href = response.url;
+                    // Upload completed; move to status page to track processing
+                    window.location.href = '/UploadStatus.html';
                     return;
                 }
 
