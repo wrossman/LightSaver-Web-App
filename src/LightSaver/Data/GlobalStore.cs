@@ -1,26 +1,20 @@
 using Microsoft.EntityFrameworkCore;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Processing;
 using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Net.Http.Headers;
-using SixLabors.ImageSharp.Formats.Webp;
 public class GlobalStore
 {
     private readonly ILogger<GlobalStore> _logger;
     private readonly GlobalImageStoreDbContext _resourceDb;
-    private readonly IConfiguration _config;
     private readonly HmacHelper _hmacService;
     private readonly LinkSessions _linkSessions;
     private readonly IResourceSave _resourceSave;
-    private readonly ImageProcessors _imageProcessors;
-    public GlobalStore(ImageProcessors imageProcessors, IResourceSave resourceSave, LinkSessions linkSessions, GlobalImageStoreDbContext resourceDb, ILogger<GlobalStore> logger, IConfiguration config, HmacHelper hmacService)
+    public GlobalStore(IResourceSave resourceSave, LinkSessions linkSessions, GlobalImageStoreDbContext resourceDb, ILogger<GlobalStore> logger, HmacHelper hmacService)
     {
-        _imageProcessors = imageProcessors;
         _resourceSave = resourceSave;
         _logger = logger;
         _resourceDb = resourceDb;
-        _config = config;
         _hmacService = hmacService;
         _linkSessions = linkSessions;
     }

@@ -3,13 +3,11 @@ using System.Text.Json;
 public class GooglePhotosPoller
 {
     private readonly ILogger<GooglePhotosFlow> _logger;
-    private readonly IConfiguration _config;
     private readonly GlobalStore _store;
     private readonly LinkSessions _linkSessions;
-    public GooglePhotosPoller(IConfiguration config, ILogger<GooglePhotosFlow> logger, GlobalStore store, LinkSessions linkSessions)
+    public GooglePhotosPoller(ILogger<GooglePhotosFlow> logger, GlobalStore store, LinkSessions linkSessions)
     {
         _logger = logger;
-        _config = config;
         _store = store;
         _linkSessions = linkSessions;
     }
