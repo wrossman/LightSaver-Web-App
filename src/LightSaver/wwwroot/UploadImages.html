@@ -295,51 +295,54 @@
                 return;
             }
 
-            const formData = new FormData();
-            Array.from(files).forEach(file => {
-                formData.append('images', file);
-            });
-
             // Show loading and disable button
             loadingOverlay.hidden = false;
             uploadBtn.disabled = true;
 
             try {
-                const response = await fetch('/upload/post-images', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        "RequestVerificationToken": "{{CSRF_TOKEN}}"
+                const fileArray = Array.from(files);
+                for (let i = 0; i < fileArray.length; i++) {
+                    const file = fileArray[i];
+                    const formData = new FormData();
+                    formData.append('image', file);
+
+                    const response = await fetch('/upload/post-images', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            "RequestVerificationToken": "{{CSRF_TOKEN}}"
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const text = await response.text();
+                        alert('Upload failed: ' + text);
+                        return;
                     }
+
+                    const progressText = `Uploading image ${i + 1} of ${fileArray.length}...`;
+                    const loadingText = document.querySelector('.loading-text');
+                    if (loadingText) {
+                        loadingText.textContent = progressText;
+                    }
+                }
+
+                const finishResponse = await fetch('/upload/finish-upload', {
+                    method: 'POST'
                 });
 
-                if (!response.ok && !response.redirected) {
-                    const text = await response.text();
-                    alert('Upload failed: ' + text);
+                if (finishResponse.redirected) {
+                    window.location.href = finishResponse.url;
                     return;
                 }
 
-                if (response.redirected) {
-                    // Upload completed; move to status page to track processing
-                    window.location.href = '/UploadStatus.html';
+                if (finishResponse.ok) {
+                    window.location.href = '/UploadSuccess.html';
                     return;
                 }
 
-                const html = await response.text();
-
-                if (html.length > 0) {
-                    document.open();
-                    document.write(html);
-                    document.close();
-                }
-                else {
-                    window.location.href = '/Error.html';
-                }
-
-
-
-                // Fallback success case if no redirect
-                // alert('Upload successful.');
+                const finishText = await finishResponse.text();
+                alert('Upload failed: ' + finishText);
             } catch (err) {
                 console.error(err);
                 alert('Error uploading images.');

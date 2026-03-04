@@ -53,24 +53,15 @@ public class GlobalHelpers
 
         return Convert.ToHexString(hashBytes);
     }
-    public static bool VerifyImageUpload(List<IFormFile> images, int maxFiles)
+    public static bool VerifyImageUpload(IFormFile image, int maxFiles)
     {
         long maxFileSize = 10L * 1000 * 1000; // 10 MB
 
-        if (images == null || images.Count == 0)
+        if (image.Length <= 0)
             return false;
 
-        if (images.Count > maxFiles)
+        if (image.Length > maxFileSize)
             return false;
-
-        foreach (var file in images)
-        {
-            if (file.Length <= 0)
-                return false;
-
-            if (file.Length > maxFileSize)
-                return false;
-        }
 
         return true;
     }

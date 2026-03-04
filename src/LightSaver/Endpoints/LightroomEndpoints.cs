@@ -87,7 +87,7 @@ public static class LightroomEndpoints
                     }
                     try
                     {
-                        await store.WriteSessionImages(sessionId, ImageShareSource.Lightroom, lightroomAlbum: lrCode);
+                        await store.WriteSessionImagesFromService(sessionId, ImageShareSource.Lightroom, lightroomAlbum: lrCode);
                     }
                     catch
                     {

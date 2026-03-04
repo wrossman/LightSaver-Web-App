@@ -63,7 +63,7 @@ public class GooglePhotosPoller
                 string photoList = await GooglePhotosFlow.GetPhotoList(pickerSession, linkSession.AccessToken);
 
                 AddUrlsToSession(photoList, linkSession.Id);
-                await _store.WriteSessionImages(linkSessionId, ImageShareSource.Google);
+                await _store.WriteSessionImagesFromService(linkSessionId, ImageShareSource.Google);
 
                 break;
             }

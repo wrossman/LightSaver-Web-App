@@ -7,11 +7,13 @@ public class GlobalStore
 {
     private readonly ILogger<GlobalStore> _logger;
     private readonly GlobalImageStoreDbContext _resourceDb;
+    private readonly IConfiguration _config;
     private readonly HmacHelper _hmacService;
     private readonly LinkSessions _linkSessions;
     private readonly IResourceSave _resourceSave;
-    public GlobalStore(IResourceSave resourceSave, LinkSessions linkSessions, GlobalImageStoreDbContext resourceDb, ILogger<GlobalStore> logger, HmacHelper hmacService)
+    public GlobalStore(IConfiguration configuration, IResourceSave resourceSave, LinkSessions linkSessions, GlobalImageStoreDbContext resourceDb, ILogger<GlobalStore> logger, HmacHelper hmacService)
     {
+        _config = configuration;
         _resourceSave = resourceSave;
         _logger = logger;
         _resourceDb = resourceDb;
@@ -257,112 +259,107 @@ public class GlobalStore
 
         return imgs;
     }
-    public async Task WriteSessionImages(Guid linkSessionId, ImageShareSource source, List<string>? imageTempPath = null, string lightroomAlbum = "")
+    public async Task WriteSessionImagesFromService(Guid linkSessionId, ImageShareSource source, string lightroomAlbum = "")
     {
-        if (imageTempPath is null)
+        var linkSession = _linkSessions.GetSession<LinkSession>(linkSessionId);
+        if (linkSession is null)
+            throw new ArgumentNullException();
+
+        linkSession.ResourceCount = linkSession.ImageServiceLinks.Count;
+        _linkSessions.SetSession<LinkSession>(linkSessionId, linkSession);
+
+        var updatedSession = linkSession with { };
+
+        using HttpClient client = new();
+
+        if (!string.IsNullOrEmpty(linkSession.AccessToken))
         {
-            var linkSession = _linkSessions.GetSession<LinkSession>(linkSessionId);
-            if (linkSession is null)
-                throw new ArgumentNullException();
-
-            linkSession.ResourceCount = linkSession.ImageServiceLinks.Count;
-            _linkSessions.SetSession<LinkSession>(linkSessionId, linkSession);
-
-            var updatedSession = linkSession with { };
-
-            using HttpClient client = new();
-
-            if (!string.IsNullOrEmpty(linkSession.AccessToken))
-            {
-                client.DefaultRequestHeaders.Authorization =
-                    new AuthenticationHeaderValue("Bearer", linkSession.AccessToken);
-            }
-
-            List<ImageShare> sharesToAdd = new();
-
-            foreach (var item in linkSession.ImageServiceLinks)
-            {
-                var bytes = new byte[32];
-                RandomNumberGenerator.Fill(bytes);
-                var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-                var keyDerivation = _hmacService.Hash(key);
-
-                byte[] data = await client.GetByteArrayAsync(item);
-                if (data.Length == 0)
-                    continue;
-
-                Guid shareId = Guid.NewGuid();
-
-                ImageShare share = new()
-                {
-                    Id = shareId,
-                    Key = keyDerivation,
-                    KeyCreated = DateTime.UtcNow,
-                    SessionCode = linkSession.SessionCode,
-                    ImageUri = await _resourceSave.SaveResource(shareId, data, linkSession.ScreenWidth, linkSession.ScreenHeight, source),
-                    CreatedOn = DateTime.UtcNow,
-                    LightroomAlbum = lightroomAlbum,
-                    RokuId = linkSession.RokuId,
-                    Source = source,
-                    Origin = GlobalHelpers.ComputeHashFromString(item)
-                };
-
-                updatedSession.ResourcesSaved++;
-                updatedSession.ResourcePackage.Add(share.Id, key);
-                _linkSessions.SetSession<LinkSession>(linkSessionId, updatedSession);
-
-                sharesToAdd.Add(share);
-            }
-            await _resourceDb.AddRangeAsync(sharesToAdd);
-            await _resourceDb.SaveChangesAsync();
-            updatedSession.ReadyForTransfer = true;
-            _linkSessions.SetSession<LinkSession>(linkSessionId, updatedSession);
+            client.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", linkSession.AccessToken);
         }
-        else
+
+        List<ImageShare> sharesToAdd = new();
+
+        foreach (var item in linkSession.ImageServiceLinks)
         {
-            var linkSession = _linkSessions.GetSession<LinkSession>(linkSessionId);
-            if (linkSession is null)
-                throw new ArgumentNullException();
+            var bytes = new byte[32];
+            RandomNumberGenerator.Fill(bytes);
+            var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+            var keyDerivation = _hmacService.Hash(key);
 
-            linkSession.ResourceCount = imageTempPath.Count;
-            _linkSessions.SetSession<LinkSession>(linkSessionId, linkSession);
+            byte[] data = await client.GetByteArrayAsync(item);
+            if (data.Length == 0)
+                continue;
 
-            var updatedSession = linkSession with { };
+            Guid shareId = Guid.NewGuid();
 
-            List<ImageShare> sharesToAdd = new();
-
-            foreach (var item in imageTempPath)
+            ImageShare share = new()
             {
-                byte[] imgBytes = await File.ReadAllBytesAsync(item);
-                File.Delete(item);
+                Id = shareId,
+                Key = keyDerivation,
+                KeyCreated = DateTime.UtcNow,
+                SessionCode = linkSession.SessionCode,
+                ImageUri = await _resourceSave.SaveResource(shareId, data, linkSession.ScreenWidth, linkSession.ScreenHeight, source),
+                CreatedOn = DateTime.UtcNow,
+                LightroomAlbum = lightroomAlbum,
+                RokuId = linkSession.RokuId,
+                Source = source,
+                Origin = GlobalHelpers.ComputeHashFromString(item)
+            };
 
-                var bytes = new byte[32];
-                RandomNumberGenerator.Fill(bytes);
-                var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-                var keyDerivation = _hmacService.Hash(key);
-
-                Guid shareId = Guid.NewGuid();
-
-                ImageShare share = new()
-                {
-                    Id = shareId,
-                    Key = keyDerivation,
-                    KeyCreated = DateTime.UtcNow,
-                    SessionCode = linkSession.SessionCode,
-                    ImageUri = await _resourceSave.SaveResource(shareId, imgBytes, linkSession.ScreenWidth, linkSession.ScreenHeight, source),
-                    CreatedOn = DateTime.UtcNow,
-                    RokuId = linkSession.RokuId,
-                    Source = source
-                };
-                updatedSession.ResourcePackage.Add(share.Id, key);
-                updatedSession.ResourcesSaved++;
-                _linkSessions.SetSession<LinkSession>(linkSessionId, updatedSession);
-                sharesToAdd.Add(share);
-            }
-            await _resourceDb.AddRangeAsync(sharesToAdd);
-            await _resourceDb.SaveChangesAsync();
-            updatedSession.ReadyForTransfer = true;
+            updatedSession.ResourcesSaved++;
+            updatedSession.ResourcePackage.Add(share.Id, key);
             _linkSessions.SetSession<LinkSession>(linkSessionId, updatedSession);
+
+            sharesToAdd.Add(share);
         }
+        await _resourceDb.AddRangeAsync(sharesToAdd);
+        await _resourceDb.SaveChangesAsync();
+        updatedSession.ReadyForTransfer = true;
+        _linkSessions.SetSession<LinkSession>(linkSessionId, updatedSession);
+    }
+    public async Task WriteSessionImageFromUpload(Guid linkSessionId, IFormFile image)
+    {
+        var linkSession = _linkSessions.GetSession<LinkSession>(linkSessionId);
+        if (linkSession is null)
+            throw new ArgumentNullException();
+
+        if (linkSession.ResourceCount >= _config.GetValue<int>("MaxImages"))
+            throw new ArgumentOutOfRangeException();
+
+        linkSession.ResourceCount++;
+        _linkSessions.SetSession<LinkSession>(linkSessionId, linkSession);
+
+        var updatedSession = linkSession with { };
+
+        await using var ms = new MemoryStream();
+        await image.CopyToAsync(ms);
+        byte[] imgBytes = ms.ToArray();
+
+        var bytes = new byte[32];
+        RandomNumberGenerator.Fill(bytes);
+        var key = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        var keyDerivation = _hmacService.Hash(key);
+
+        Guid shareId = Guid.NewGuid();
+
+        ImageShare share = new()
+        {
+            Id = shareId,
+            Key = keyDerivation,
+            KeyCreated = DateTime.UtcNow,
+            SessionCode = linkSession.SessionCode,
+            ImageUri = await _resourceSave.SaveResource(shareId, imgBytes, linkSession.ScreenWidth, linkSession.ScreenHeight, ImageShareSource.Upload),
+            CreatedOn = DateTime.UtcNow,
+            RokuId = linkSession.RokuId,
+            Source = ImageShareSource.Upload
+        };
+
+        updatedSession.ResourcePackage.Add(share.Id, key);
+        updatedSession.ResourcesSaved++;
+        _linkSessions.SetSession<LinkSession>(linkSessionId, updatedSession);
+
+        await _resourceDb.AddAsync(share);
+        await _resourceDb.SaveChangesAsync();
     }
 }
