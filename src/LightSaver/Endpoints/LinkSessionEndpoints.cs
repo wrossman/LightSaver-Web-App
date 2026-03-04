@@ -189,8 +189,8 @@ public static class LinkSessionEndpoints
         if (!context.Request.Headers.TryGetValue("Authorization", out inputKey)
         || !context.Request.Headers.TryGetValue("ResourceId", out inputResourceId)
         || !context.Request.Headers.TryGetValue("Device", out inputDevice)
-        || !context.Request.Headers.TryGetValue("MaxScreenSize", out inputScreenWidth)
-        || !context.Request.Headers.TryGetValue("MaxScreenSize", out inputScreenHeight))
+        || !context.Request.Headers.TryGetValue("ScreenWidth", out inputScreenWidth)
+        || !context.Request.Headers.TryGetValue("ScreenHeight", out inputScreenHeight))
             return Results.Unauthorized();
 
         string? key = inputKey;

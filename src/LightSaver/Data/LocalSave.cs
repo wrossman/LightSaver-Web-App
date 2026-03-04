@@ -47,28 +47,23 @@ public class LocalSave : IResourceSave
     }
     public async Task<bool> RemoveSingle(ImageShare resource)
     {
-        if (File.Exists(resource.Id.ToString()))
-            File.Delete(resource.Id.ToString());
+        string? folderPath = _config.GetValue<string>("LocalResourceStorePath");
+        if (folderPath is null)
+            throw new ArgumentNullException("Local Write Path");
 
-        if (File.Exists(resource.Id + "_bg"))
-            File.Delete(resource.Id + "_bg");
+        if (File.Exists(folderPath + resource.Id.ToString()))
+            File.Delete(folderPath + resource.Id.ToString());
+
+        if (File.Exists(folderPath + resource.Id + "_bg"))
+            File.Delete(folderPath + resource.Id + "_bg");
 
         return true;
     }
     public async Task<bool> RemoveList(List<ImageShare> resources)
     {
-        string? folderPath = _config.GetValue<string>("LocalResourceStorePath");
-        if (folderPath is null)
-            throw new ArgumentNullException("Local Write Path");
-
         foreach (var resource in resources)
         {
-            if (File.Exists(folderPath + resource.Id.ToString()))
-                File.Delete(folderPath + resource.Id.ToString());
-
-            if (File.Exists(folderPath + resource.Id + "_bg"))
-                File.Delete(folderPath + resource.Id + "_bg");
-
+            await RemoveSingle(resource);
         }
         return true;
     }

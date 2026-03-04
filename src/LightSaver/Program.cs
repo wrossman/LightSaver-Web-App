@@ -36,16 +36,8 @@ if (saveMethod is null)
     throw new InvalidOperationException();
 
 // DATABASE
-if (saveMethod == "aws")
-{
-    builder.Services.AddDbContext<GlobalImageStoreDbContext>(options =>
-            options.UseSqlServer(GlobalHelpers.GetAwsConnectionString()));
-}
-else // FOR AZURE OR LOCAL DB
-{
-    builder.Services.AddDbContext<GlobalImageStoreDbContext>(options =>
-        options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
-}
+builder.Services.AddDbContext<GlobalImageStoreDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
 // SINGLETONS
 builder.Services.AddSingleton<LinkSessions>();
@@ -97,25 +89,6 @@ if (saveMethod == "azure")
     });
     builder.Services.AddSingleton<IResourceSave, AzureSave>();
 }
-else if (saveMethod == "aws")
-{
-    System.Console.WriteLine("Program will be Saving resources to aws...");
-    builder.Services.AddSingleton<IAmazonS3>(x =>
-    {
-        var config = x.GetRequiredService<IConfiguration>();
-
-        string? awsS3Region = config["AwsS3Region"];
-
-        if (awsS3Region is null)
-        {
-            System.Console.WriteLine("No AWS region was specified for S3 storage.");
-            return new AmazonS3Client();
-        }
-
-        return new AmazonS3Client(RegionEndpoint.GetBySystemName(awsS3Region));
-    });
-    builder.Services.AddSingleton<IResourceSave, AwsSave>();
-}
 else
 {
     System.Console.WriteLine("Program will be Saving resources to local...");
@@ -128,10 +101,7 @@ var app = builder.Build();
 app.UseRateLimiter();
 app.UseStaticFiles();
 app.UseAntiforgery();
-if (saveMethod != "aws")
-{
-    app.UseHttpsRedirection(); // AWS HAS ITS TRAFFIC SENT TO THE LOAD BALANCER WHICH HANDLES HTTPS
-}
+app.UseHttpsRedirection();
 
 // MAP ENDPOINTS
 app.MapGooglePhotosEndpoints();
