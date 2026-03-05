@@ -8,7 +8,7 @@
 /LocalResourceStore
 /.elasticbeanstalk
 /publish
-/src/LightSaver/.platform
+/src/api/.platform
 app.zip
 eb-deploy.ps1
 

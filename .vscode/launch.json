@@ -6,9 +6,9 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/src/LightSaver/bin/Debug/net10.0/LightSaver.dll",
+            "program": "${workspaceFolder}/src/api/bin/Debug/net10.0/LightSaver.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/src/LightSaver",
+            "cwd": "${workspaceFolder}/src/api",
             "stopAtEntry": false,
             "serverReadyAction": {
                 "action": "openExternally",
@@ -32,7 +32,7 @@
             "request": "launch",
             "preLaunchTask": "docker-run: debug",
             "netCore": {
-                "appProject": "${workspaceFolder}/src/LightSaver/LightSaver.csproj"
+                "appProject": "${workspaceFolder}/src/api/LightSaver.csproj"
             }
         }
     ]

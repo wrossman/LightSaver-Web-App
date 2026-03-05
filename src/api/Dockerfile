@@ -6,10 +6,10 @@ USER app
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG configuration=Release
 WORKDIR /src
-COPY ["src/LightSaver/LightSaver.csproj", "src/LightSaver/"]
-RUN dotnet restore "src/LightSaver/LightSaver.csproj"
+COPY ["src/api/LightSaver.csproj", "src/api/"]
+RUN dotnet restore "src/api/LightSaver.csproj"
 COPY . .
-WORKDIR "/src/src/LightSaver"
+WORKDIR "/src/src/api"
 RUN dotnet build "LightSaver.csproj" -c $configuration -o /app/build
 
 FROM build AS publish

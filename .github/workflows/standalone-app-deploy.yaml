@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  deploy-to-app-service:
     runs-on: ubuntu-latest
     permissions:
       id-token: write #This is required for requesting the JWT
@@ -19,7 +19,7 @@ jobs:
           dotnet-version: '10.x'
 
       - name: dotnet publish
-        run: dotnet publish src/LightSaver/LightSaver.csproj -c Release -o "${{env.DOTNET_ROOT}}/lightsaver-webapp"
+        run: dotnet publish src/api/LightSaver.csproj -c Release -o "${{env.DOTNET_ROOT}}/lightsaver-webapp"
 
       - name: Login to Azure
         uses: azure/login@v2

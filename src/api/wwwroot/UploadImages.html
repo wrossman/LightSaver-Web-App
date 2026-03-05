@@ -358,6 +358,7 @@
             // Show loading and disable button
             loadingOverlay.hidden = false;
             uploadBtn.disabled = true;
+            let navigationStarted = false;
 
             try {
                 const fileArray = Array.from(files);
@@ -380,14 +381,9 @@
                     });
 
                     if (!response.ok) {
+                        navigationStarted = true;
                         window.location.href = "/UploadFailed.html";   // redirect page
                         return;
-                    }
-
-                    const progressText = `Uploading image ${i + 1} of ${fileArray.length}...`;
-                    const loadingText = document.querySelector('.loading-text');
-                    if (loadingText) {
-                        loadingText.textContent = progressText;
                     }
                 }
 
@@ -396,11 +392,13 @@
                 });
 
                 if (finishResponse.redirected) {
+                    navigationStarted = true;
                     window.location.href = finishResponse.url;
                     return;
                 }
 
                 if (finishResponse.ok) {
+                    navigationStarted = true;
                     window.location.href = '/UploadSuccess.html';
                     return;
                 }
@@ -409,11 +407,14 @@
                 alert('Upload failed: ' + finishText);
             } catch (err) {
                 console.error(err);
-                alert('Error uploading images.');
+                window.location.href = "/UploadFailed.html";   // redirect page
+                return;
             } finally {
-                // Hide loading and re-enable button if we are still on this page
-                loadingOverlay.hidden = true;
-                uploadBtn.disabled = false;
+                // Hide loading and re-enable button only if we are still on this page
+                if (!navigationStarted) {
+                    loadingOverlay.hidden = true;
+                    uploadBtn.disabled = false;
+                }
             }
         });
     </script>

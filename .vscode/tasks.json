@@ -46,12 +46,12 @@
             "dockerBuild": {
                 "tag": "lightsaverwebapp:dev",
                 "target": "base",
-                "dockerfile": "${workspaceFolder}/src/LightSaver/Dockerfile",
+                "dockerfile": "${workspaceFolder}/src/api/Dockerfile",
                 "context": "${workspaceFolder}",
                 "pull": true
             },
             "netCore": {
-                "appProject": "${workspaceFolder}/src/LightSaver/LightSaver.csproj"
+                "appProject": "${workspaceFolder}/src/api/LightSaver.csproj"
             }
         },
         {
@@ -62,7 +62,7 @@
             ],
             "dockerBuild": {
                 "tag": "lightsaverwebapp:latest",
-                "dockerfile": "${workspaceFolder}/src/LightSaver/Dockerfile",
+                "dockerfile": "${workspaceFolder}/src/api/Dockerfile",
                 "context": "${workspaceFolder}",
                 "platform": {
                     "os": "linux",
@@ -71,7 +71,7 @@
                 "pull": true
             },
             "netCore": {
-                "appProject": "${workspaceFolder}/src/LightSaver/LightSaver.csproj"
+                "appProject": "${workspaceFolder}/src/api/LightSaver.csproj"
             }
         },
         {
@@ -82,7 +82,7 @@
             ],
             "dockerRun": {},
             "netCore": {
-                "appProject": "${workspaceFolder}/src/LightSaver/LightSaver.csproj",
+                "appProject": "${workspaceFolder}/src/api/LightSaver.csproj",
                 "enableDebugging": true
             }
         },
@@ -94,7 +94,7 @@
             ],
             "dockerRun": {},
             "netCore": {
-                "appProject": "${workspaceFolder}/src/LightSaver/LightSaver.csproj"
+                "appProject": "${workspaceFolder}/src/api/LightSaver.csproj"
             }
         }
     ]

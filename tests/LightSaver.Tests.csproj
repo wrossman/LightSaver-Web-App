@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\LightSaver\LightSaver.csproj" />
+    <ProjectReference Include="..\src\api\LightSaver.csproj" />
   </ItemGroup>
 
   <ItemGroup>
