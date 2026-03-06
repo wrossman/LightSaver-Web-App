@@ -4,7 +4,7 @@ public static class LightroomEndpoints
 {
     public static void MapLightroomEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/lightroom")
+        var group = app.MapGroup("/api/lightroom")
             .RequireRateLimiting("by-ip-policy");
 
         group.MapGet("/select-album", SelectAlbum);
@@ -42,13 +42,13 @@ public static class LightroomEndpoints
         if (linkSession is null)
         {
             logger.LogWarning("Failed to get session from userid at upload receive images endpoint");
-            return GlobalHelpers.CreateErrorPage(context, "Unable to retrieve your user session.", "<a href=\"/link/session\">Please Try Again</a>");
+            return GlobalHelpers.CreateErrorPage(context, "Unable to retrieve your user session.", "<a href=\"/api/link/session\">Please Try Again</a>");
         }
 
         if (linkSession.Expired == true)
         {
             logger.LogWarning("User tried to upload photos with an expired session.");
-            return GlobalHelpers.CreateErrorPage(context, "Your session has expired.", "<a href=\"/link/session\">Please Try Again</a>");
+            return GlobalHelpers.CreateErrorPage(context, "Your session has expired.", "<a href=\"/api/link/session\">Please Try Again</a>");
         }
 
         var result = await lightroom.GetImageUrisFromShortCodeAsync(lrCode, linkSession.ScreenWidth, linkSession.ScreenHeight);
@@ -62,13 +62,13 @@ public static class LightroomEndpoints
         }
         else if (result.Item2 == "overflow")
         {
-            return GlobalHelpers.CreateLightroomOverflowPage("Your album is too large.", config.GetValue<int>("MaxImages"), "Please edit your Lightroom album so it has less than MAXFILES images and <a href=\"/lightroom/select-album\">try again</a>");
+            return GlobalHelpers.CreateLightroomOverflowPage("Your album is too large.", config.GetValue<int>("MaxImages"), "Please edit your Lightroom album so it has less than MAXFILES images and <a href=\"/api/lightroom/select-album\">try again</a>");
         }
         else if (result.Item1 is null || result.Item1.Count <= 0)
         {
             logger.LogWarning("Failed to retrieve images from Lightroom album. Album had no images.");
             linkSessions.ExpireSession(sessionId);
-            return GlobalHelpers.CreateErrorPage(context, "Your Lightroom album has no images to load.", "Please update your album and <a href=\"/lightroom/select-album\">try again</a>");
+            return GlobalHelpers.CreateErrorPage(context, "Your Lightroom album has no images to load.", "Please update your album and <a href=\"/api/lightroom/select-album\">try again</a>");
         }
 
         try

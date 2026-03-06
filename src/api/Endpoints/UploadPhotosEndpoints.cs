@@ -3,7 +3,7 @@ public static class UploadPhotosEndpoints
 {
     public static void MapUploadPhotosEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/upload")
+        var group = app.MapGroup("/api/upload")
             .RequireRateLimiting("by-ip-policy");
 
         group.MapGet("/upload", UploadPage);
@@ -32,7 +32,7 @@ public static class UploadPhotosEndpoints
         if (linkSession is null)
         {
             logger.LogWarning("Failed to get LinkSession from user id at upload receive images endpoint");
-            return GlobalHelpers.CreateErrorPage(context, "Failed to retrieve your user session.", "<a href=\"/upload/upload\">Please Try Again</a>");
+            return GlobalHelpers.CreateErrorPage(context, "Failed to retrieve your user session.", "<a href=\"/api/upload/upload\">Please Try Again</a>");
         }
 
         var path = Path.Combine(env.WebRootPath, "UploadImages.html");
@@ -75,13 +75,13 @@ public static class UploadPhotosEndpoints
         if (linkSession is null)
         {
             logger.LogWarning("Failed to get LinkSession from user id at upload receive images endpoint");
-            return GlobalHelpers.CreateErrorPage(context, "Failed to retrieve your user session.", "<a href=\"/upload/upload\">Please Try Again</a>");
+            return GlobalHelpers.CreateErrorPage(context, "Failed to retrieve your user session.", "<a href=\"/api/upload/upload\">Please Try Again</a>");
         }
 
         if (linkSession.Expired == true)
         {
             logger.LogWarning("User tried to upload photos with an expired session.");
-            return GlobalHelpers.CreateErrorPage(context, "Your session has expired.", "<a href=\"/link/session\">Please Try Again</a>");
+            return GlobalHelpers.CreateErrorPage(context, "Your session has expired.", "<a href=\"/api/link/session\">Please Try Again</a>");
         }
 
         try
@@ -125,7 +125,7 @@ public static class UploadPhotosEndpoints
         if (linkSession is null)
         {
             logger.LogWarning("Failed to get LinkSession from user id at upload receive images endpoint");
-            return GlobalHelpers.CreateErrorPage(context, "Failed to retrieve your user session.", "<a href=\"/upload/upload\">Please Try Again</a>");
+            return GlobalHelpers.CreateErrorPage(context, "Failed to retrieve your user session.", "<a href=\"/api/upload/upload\">Please Try Again</a>");
         }
 
         linkSession.ReadyForTransfer = true;

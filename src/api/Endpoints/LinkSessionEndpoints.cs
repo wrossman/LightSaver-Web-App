@@ -7,7 +7,7 @@ public static class LinkSessionEndpoints
 {
     public static void MapLinkSessionEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/link")
+        var group = app.MapGroup("/api/link")
             .RequireRateLimiting("by-ip-policy");
 
         group.MapPost("/code", ProvideSessionCode);
@@ -350,7 +350,7 @@ public static class LinkSessionEndpoints
         Guid sessionId = linkSessions.GetSessionCodeSession(sessionCode);
         if (sessionId == Guid.Empty)
         {
-            return GlobalHelpers.CreateErrorPage(context, "Unable to find session.", "<a href=\"/link/session\">Please Try Again</a>");
+            return GlobalHelpers.CreateErrorPage(context, "Unable to find session.", "<a href=\"/api/link/session\">Please Try Again</a>");
         }
 
         logger.LogInformation($"User submitted {sessionCode}");

@@ -109,9 +109,4 @@ app.MapUploadPhotosEndpoints();
 app.MapLightroomEndpoints();
 app.MapLinkSessionEndpoints();
 
-app.MapGet("/", () =>
-{
-    return Results.Redirect("/link/session");
-});
-
 app.Run();

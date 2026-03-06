@@ -17,8 +17,8 @@
             <div class="prompt-content">
                 <h1>Uploading images</h1>
                 <div class="status-panel">
-                    <div class="status-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"
-                        aria-valuenow="0" aria-label="Upload progress">
+                    <div class="status-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
+                        aria-label="Upload progress">
                         <div id="statusFill" class="status-bar-fill"></div>
                     </div>
                     <div class="status-meta">
@@ -71,7 +71,7 @@
 
         async function fetchStatus() {
             try {
-                const response = await fetch('/link/upload-status', { cache: 'no-store' });
+                const response = await fetch('/api/link/upload-status', { cache: 'no-store' });
                 if (!response.ok) {
                     throw new Error('Failed status fetch');
                 }

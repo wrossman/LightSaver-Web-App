@@ -5,7 +5,7 @@ public static class GooglePhotosEndpoints
 {
     public static void MapGooglePhotosEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/google")
+        var group = app.MapGroup("/api/google")
             .RequireRateLimiting("by-ip-policy");
 
         group.MapGet("/google-redirect", GoogleOAuthRedirect);
@@ -81,7 +81,7 @@ public static class GooglePhotosEndpoints
         if (linkSession.Expired == true)
         {
             logger.LogWarning("User tried to upload photos with an expired session.");
-            return GlobalHelpers.CreateErrorPage(context, "Your session has expired.", "<a href=\"/link/session\">Please Try Again</a>");
+            return GlobalHelpers.CreateErrorPage(context, "Your session has expired.", "<a href=\"/api/link/session\">Please Try Again</a>");
         }
 
         GoogleTokenResponse? accessTokenJson = await googlePhotos.GetAccessToken(authCodeString);

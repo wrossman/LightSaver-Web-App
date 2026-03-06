@@ -15,29 +15,29 @@
                 <div class="brand-title">LightSaver</div>
             </div>
             <div class="prompt-content">
-            <h1>Link Your Lightroom Album</h1>
-            <p class="hint">
-                Enter only the code at the end of your public Lightroom URL.
-            </p>
+                <h1>Link Your Lightroom Album</h1>
+                <p class="hint">
+                    Enter only the code at the end of your public Lightroom URL.
+                </p>
 
-            <form id="lrForm" action="/lightroom/post-album" method="post" novalidate>
-                <input type="hidden" name="__RequestVerificationToken" value="{{CSRF_TOKEN}}">
-                <label for="lrCode">Lightroom album code</label>
+                <form id="lrForm" action="/api/lightroom/post-album" method="post" novalidate>
+                    <input type="hidden" name="__RequestVerificationToken" value="{{CSRF_TOKEN}}">
+                    <label for="lrCode">Lightroom album code</label>
 
-                <div class="input-row">
-                    <span class="prefix">https://adobe.ly/</span>
-                    <input id="lrCode" name="lrCode" type="text" maxlength="16" placeholder="XXXXXXX"
-                        pattern="^[A-Za-z0-9]{4,16}$" required />
-                </div>
+                    <div class="input-row">
+                        <span class="prefix">https://adobe.ly/</span>
+                        <input id="lrCode" name="lrCode" type="text" maxlength="16" placeholder="XXXXXXX"
+                            pattern="^[A-Za-z0-9]{4,16}$" required />
+                    </div>
 
-                <div class="small-hint">
-                    Example full URL:
-                    <strong>https://adobe.ly/<u>XXXXXXX</u></strong><br />
-                    Only enter the underlined part.
-                </div>
+                    <div class="small-hint">
+                        Example full URL:
+                        <strong>https://adobe.ly/<u>XXXXXXX</u></strong><br />
+                        Only enter the underlined part.
+                    </div>
 
-                <button id="submitBtn" type="submit">Continue</button>
-            </form>
+                    <button id="submitBtn" type="submit">Continue</button>
+                </form>
             </div>
         </div>
     </div>
