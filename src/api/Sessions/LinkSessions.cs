@@ -29,14 +29,14 @@ public class LinkSessions
             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
         });
     }
-    public UploadStatusModel? GetUploadStatus(Guid sessionId)
+    public UploadStatusResponse? GetUploadStatus(Guid sessionId)
     {
         var session = GetSession<LinkSession>(sessionId);
 
         if (session is null)
             return null;
 
-        var status = new UploadStatusModel(session.ResourcesSaved, session.ResourceCount, session.UploadStatus);
+        var status = new UploadStatusResponse(session.ResourcesSaved, session.ResourceCount, session.UploadStatus);
 
         return status;
     }

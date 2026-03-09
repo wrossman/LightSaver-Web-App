@@ -18,7 +18,7 @@ public static class LinkSessionEndpoints
         group.MapPost("/revoke", RevokeAccess);
         group.MapGet("/background", ProvideBackground);
         group.MapPost("/update", PollUpdateLightroom);
-        group.MapGet("/session", CodeSubmissionPageUpload);
+        // group.MapGet("/session", CodeSubmissionPageUpload);
         group.MapPost("/source", SelectSource);
         group.MapGet("/upload-status", GetUploadStatus);
 
@@ -321,24 +321,8 @@ public static class LinkSessionEndpoints
             return Results.Unauthorized();
         }
     }
-    private static IResult CodeSubmissionPageUpload(IWebHostEnvironment env, HttpContext context)
-    {
-        // append test cookie to response, read it at code submission page and redirect if cookies aren't allowed
-        context.Response.Cookies.Append("AllowCookie", "LightSaver", new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Lax,
-            Path = "/"
-        });
-        return Results.File(env.WebRootPath + "/EnterSessionCode.html", "text/html");
-    }
     private async static Task<IResult> SelectSource([FromBody] SubmitSessionCodeRequest body, IWebHostEnvironment env, LinkSessions linkSessions, HttpContext context, ILogger<LinkSessions> logger)
     {
-        // try get test cookie
-        if (!context.Request.Cookies.TryGetValue("AllowCookie", out _))
-            return Results.BadRequest();
-
         if (string.IsNullOrEmpty(body.SessionCode))
         {
             logger.LogWarning("Empty session code received at SelectSource endpoint");
@@ -360,7 +344,7 @@ public static class LinkSessionEndpoints
         {
             HttpOnly = true,
             Secure = true,
-            SameSite = SameSiteMode.Lax,
+            SameSite = SameSiteMode.None,
             Path = "/"
         });
 
@@ -381,7 +365,7 @@ public static class LinkSessionEndpoints
             return Results.BadRequest();
         }
 
-        var uploadStatus = linkSessions.GetUploadStatus(sessionId);
+        UploadStatusResponse? uploadStatus = linkSessions.GetUploadStatus(sessionId);
 
         if (uploadStatus is null)
             return Results.BadRequest();

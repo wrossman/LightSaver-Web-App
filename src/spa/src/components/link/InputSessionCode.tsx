@@ -29,6 +29,7 @@ function InputSessionCode() {
                 headers: {
                     "Content-Type": "application/json"
                 },
+                credentials: "include",
                 body: JSON.stringify({ sessionCode: sessionCode })
             }
         );

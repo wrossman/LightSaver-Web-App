@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Antiforgery;
 public static class UploadPhotosEndpoints
 {
     public static void MapUploadPhotosEndpoints(this IEndpointRouteBuilder app)
@@ -10,10 +9,8 @@ public static class UploadPhotosEndpoints
         group.MapPost("/post-images", ReceiveImage);
         group.MapPost("/finish-upload", FinishUpload);
     }
-    public static IResult UploadPage(IWebHostEnvironment env, IAntiforgery af, IConfiguration config, HttpContext context, ILogger<LinkSessions> logger, LinkSessions linkSessions)
+    public static IResult UploadPage(IWebHostEnvironment env, IConfiguration config, HttpContext context, ILogger<LinkSessions> logger, LinkSessions linkSessions)
     {
-        var tokens = af.GetAndStoreTokens(context);
-
         string? linkSessionId;
         if (!context.Request.Cookies.TryGetValue("UserSID", out linkSessionId))
         {
@@ -38,17 +35,14 @@ public static class UploadPhotosEndpoints
         var path = Path.Combine(env.WebRootPath, "UploadImages.html");
         var html = File.ReadAllText(path);
 
-        html = html.Replace("{{CSRF_TOKEN}}", tokens.RequestToken);
         html = html.Replace("MaxImages", config.GetValue<int>("MaxImages").ToString());
         html = html.Replace("MaxWidth", linkSession.ScreenWidth.ToString());
         html = html.Replace("MaxHeight", linkSession.ScreenHeight.ToString());
 
         return Results.Text(html, "text/html");
     }
-    public static async Task<IResult> ReceiveImage(IConfiguration config, LinkSessions linkSessions, IFormFile image, HttpContext context, ILogger<LinkSession> logger, IAntiforgery af, GlobalStore store)
+    public static async Task<IResult> ReceiveImage(IConfiguration config, LinkSessions linkSessions, IFormFile image, HttpContext context, ILogger<LinkSession> logger, GlobalStore store)
     {
-        await af.ValidateRequestAsync(context);
-
         logger.LogInformation("Client posted to upload endpoint");
 
         if (!GlobalHelpers.VerifyImageUpload(image, config.GetValue<int>("MaxImages")))

@@ -10,7 +10,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Logging.AddAzureWebAppDiagnostics();
 
 // MIDDLEWARE
-builder.Services.AddAntiforgery();
 builder.Services.AddMemoryCache();
 builder.Services.AddOpenApi();
 builder.Services.AddRateLimiter(options =>
@@ -100,9 +99,10 @@ if (saveMethod != "azure")
     {
         options.AddPolicy("DevFrontEnd", policy =>
         {
-            policy.WithOrigins("http://localhost:5173")
+            policy.WithOrigins("https://localhost:5173")
                 .AllowAnyHeader()
-                .AllowAnyMethod();
+                .AllowAnyMethod()
+                .AllowCredentials();
         });
     });
 }
@@ -112,7 +112,6 @@ var app = builder.Build();
 // USE MIDDLEWARE
 app.UseRateLimiter();
 app.UseStaticFiles();
-app.UseAntiforgery();
 app.UseHttpsRedirection();
 
 // LOCAL FRONTEND DEV CORS ALLOW
