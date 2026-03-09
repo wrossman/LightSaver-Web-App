@@ -24,7 +24,13 @@ public static class GooglePhotosEndpoints
             SameSite = SameSiteMode.Lax,
             Path = "/"
         });
-        return Results.Redirect(GlobalHelpers.BuildGoogleOAuthUrl(config, stateKey));
+
+        GoogleOAuthRedirectResponse redirectUrl = new()
+        {
+            Url = GlobalHelpers.BuildGoogleOAuthUrl(config, stateKey)
+        };
+
+        return Results.Json(redirectUrl);
     }
     private static async Task<IResult> HandleOAuthResponse(HttpContext context, LinkSessions linkSessions, GooglePhotosFlow googlePhotos, ILogger<GooglePhotosFlow> logger)
     {

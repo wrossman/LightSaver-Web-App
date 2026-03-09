@@ -3,8 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http.Features;
 using Azure.Identity;
 using Azure.Storage.Blobs;
-using Amazon.S3;
-using Amazon;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -95,6 +93,20 @@ else
     builder.Services.AddSingleton<IResourceSave, LocalSave>();
 }
 
+// LOCAL DEV FRONTEND CORS ALLOW
+if (saveMethod != "azure")
+{
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("DevFrontEnd", policy =>
+        {
+            policy.WithOrigins("http://localhost:5173")
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        });
+    });
+}
+
 var app = builder.Build();
 
 // USE MIDDLEWARE
@@ -102,6 +114,10 @@ app.UseRateLimiter();
 app.UseStaticFiles();
 app.UseAntiforgery();
 app.UseHttpsRedirection();
+
+// LOCAL FRONTEND DEV CORS ALLOW
+if (saveMethod != "azure")
+    app.UseCors("DevFrontEnd");
 
 // MAP ENDPOINTS
 app.MapGooglePhotosEndpoints();

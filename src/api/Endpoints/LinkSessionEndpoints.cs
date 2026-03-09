@@ -333,24 +333,25 @@ public static class LinkSessionEndpoints
         });
         return Results.File(env.WebRootPath + "/EnterSessionCode.html", "text/html");
     }
-    private async static Task<IResult> SelectSource(IWebHostEnvironment env, LinkSessions linkSessions, HttpContext context, ILogger<LinkSessions> logger)
+    private async static Task<IResult> SelectSource([FromBody] SubmitSessionCodeRequest body, IWebHostEnvironment env, LinkSessions linkSessions, HttpContext context, ILogger<LinkSessions> logger)
     {
         // try get test cookie
         if (!context.Request.Cookies.TryGetValue("AllowCookie", out _))
-            return GlobalHelpers.CreateErrorPage(context, "Photo selection failed. LightSaver requires cookies to be enabled to link your devices.", "Please enable Cookies and try again.");
-
-        var rokuCodeForm = await context.Request.ReadFormAsync();
-        if (rokuCodeForm is null)
             return Results.BadRequest();
 
-        string? sessionCode = rokuCodeForm["code"];
-        if (sessionCode is null)
+        if (string.IsNullOrEmpty(body.SessionCode))
+        {
+            logger.LogWarning("Empty session code received at SelectSource endpoint");
             return Results.BadRequest();
+        }
+
+        var sessionCode = body.SessionCode;
 
         Guid sessionId = linkSessions.GetSessionCodeSession(sessionCode);
         if (sessionId == Guid.Empty)
         {
-            return GlobalHelpers.CreateErrorPage(context, "Unable to find session.", "<a href=\"/api/link/session\">Please Try Again</a>");
+            logger.LogWarning("Failed to find session for session code.");
+            return Results.BadRequest();
         }
 
         logger.LogInformation($"User submitted {sessionCode}");
@@ -363,7 +364,7 @@ public static class LinkSessionEndpoints
             Path = "/"
         });
 
-        return Results.File(env.WebRootPath + "/SelectImgSource.html", "text/html");
+        return Results.Ok();
     }
     private static async Task<IResult> GetUploadStatus(HttpContext context, LinkSessions linkSessions, ILogger<LinkSessions> logger)
     {
