@@ -1,5 +1,5 @@
 import { useSearchParams } from "react-router-dom";
-import { cookiesEnabled } from "../../shared/verifyCookiesEnabled";
+import { verifyCookiesEnabled } from "../../utils/verifyCookiesEnabled";
 import SelectSource from "../../features/link-roku/components/SelectSource";
 import InputLightroomAlbum from "../../features/lightroom-upload/components/InputLightroomAlbum";
 import InputSessionCode from "../../features/link-roku/components/InputSessionCode";
@@ -11,7 +11,7 @@ export default function LinkPage() {
     const [searchParams] = useSearchParams();
     const step = searchParams.get("step") ?? "input-session-code";
 
-    if (!cookiesEnabled())
+    if (!verifyCookiesEnabled())
         return <CookiesDisabled />
 
     return (

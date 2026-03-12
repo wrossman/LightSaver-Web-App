@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getCsrfToken } from "../../../shared/csrf";
+import { getCsrfToken } from "../../../shared/api/getCsrfToken";
 
 function DeviceUpload() {
 

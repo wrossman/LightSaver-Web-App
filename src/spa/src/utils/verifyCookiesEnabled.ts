@@ -1,4 +1,4 @@
-export function cookiesEnabled(): boolean {
+export function verifyCookiesEnabled(): boolean {
     const name = `cookie_test_${Date.now()}`;
 
     document.cookie = `${name}=1; path=/`;
