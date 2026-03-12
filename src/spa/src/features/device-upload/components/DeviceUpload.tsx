@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { getCsrfToken } from "../../../shared/csrf";
 
 function DeviceUpload() {
