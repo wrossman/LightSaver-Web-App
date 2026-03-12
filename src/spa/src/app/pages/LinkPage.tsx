@@ -1,9 +1,9 @@
 import { useSearchParams } from "react-router-dom";
-import SelectSource from "../components/link/SelectSource";
-import InputLightroomAlbum from "../components/link/InputLightroomAlbum";
-import InputSessionCode from "../components/link/InputSessionCode";
-import UploadStatus from "../components/link/UploadStatus";
-import DeviceUpload from "../components/link/DeviceUpload";
+import SelectSource from "../../features/link-roku/components/SelectSource";
+import InputLightroomAlbum from "../../features/lightroom-upload/components/InputLightroomAlbum";
+import InputSessionCode from "../../features/link-roku/components/InputSessionCode";
+import UploadStatus from "../../features/upload-status/components/UploadStatus";
+import DeviceUpload from "../../features/device-upload/components/DeviceUpload";
 
 export default function LinkPage() {
     const [searchParams] = useSearchParams();
