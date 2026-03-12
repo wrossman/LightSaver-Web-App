@@ -12,9 +12,9 @@ function InputSessionCode() {
     async function handleSubmit(event: React.SubmitEvent) {
         event.preventDefault()
 
-        const postResult = await postSessionCode(sessionCode);
+        const accepted = await postSessionCode(sessionCode);
 
-        if (postResult) {
+        if (accepted) {
             nav(`?step=select-source`);
         }
         else {
@@ -44,7 +44,5 @@ function InputSessionCode() {
         </form>
     );
 }
-
-
 
 export default InputSessionCode;
