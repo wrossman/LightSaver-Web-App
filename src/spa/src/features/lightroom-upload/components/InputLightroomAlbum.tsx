@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { postLightroomAlbum } from "../api/PostLightroomAlbum";
 
 function InputLightroomAlbum() {
 
@@ -8,30 +9,18 @@ function InputLightroomAlbum() {
 
     const nav = useNavigate();
 
-    const SITE_BASE = import.meta.env.VITE_SITE_BASE_URL;
-
     async function handleSubmit(event: React.SubmitEvent) {
         event.preventDefault()
 
+        const success = await postLightroomAlbum(albumLink);
 
-
-        const response = await fetch(`${SITE_BASE}/api/lightroom/post-album`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                credentials: "include",
-                body: JSON.stringify({ albumLink })
-            }
-        );
-
-        if (!response.ok) {
-            setError("Failed to link album.");
-            return;
+        if (success) {
+            nav(`?step=upload-status`);
+        }
+        else {
+            setError("Failed to link Lightroom album...");
         }
 
-        nav(`?step=upload-status`);
     }
 
     return (
