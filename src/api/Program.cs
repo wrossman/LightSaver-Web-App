@@ -6,6 +6,10 @@ using Azure.Storage.Blobs;
 
 var builder = WebApplication.CreateBuilder(args);
 
+string? saveMethod = builder.Configuration["SaveMethod"];
+if (saveMethod is null)
+    throw new InvalidOperationException();
+
 // LOGGING
 builder.Logging.AddAzureWebAppDiagnostics();
 
@@ -27,10 +31,15 @@ builder.Services.AddRateLimiter(options =>
         });
     });
 });
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-CSRF-TOKEN";
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 
-string? saveMethod = builder.Configuration["SaveMethod"];
-if (saveMethod is null)
-    throw new InvalidOperationException();
+    // allow cross site requests with af cookie only for dev
+    if (saveMethod == "local")
+    { options.Cookie.SameSite = SameSiteMode.None; }
+});
 
 // DATABASE
 builder.Services.AddDbContext<GlobalImageStoreDbContext>(options =>
@@ -86,14 +95,14 @@ if (saveMethod == "azure")
     });
     builder.Services.AddSingleton<IResourceSave, AzureSave>();
 }
-else
+else if (saveMethod == "local")
 {
     System.Console.WriteLine("Program will be Saving resources to local...");
     builder.Services.AddSingleton<IResourceSave, LocalSave>();
 }
 
 // LOCAL DEV FRONTEND CORS ALLOW
-if (saveMethod != "azure")
+if (saveMethod == "local")
 {
     builder.Services.AddCors(options =>
     {
@@ -113,9 +122,10 @@ var app = builder.Build();
 app.UseRateLimiter();
 app.UseStaticFiles();
 app.UseHttpsRedirection();
+app.UseAntiforgery();
 
 // LOCAL FRONTEND DEV CORS ALLOW
-if (saveMethod != "azure")
+if (saveMethod == "local")
     app.UseCors("DevFrontEnd");
 
 // MAP ENDPOINTS
@@ -123,5 +133,6 @@ app.MapGooglePhotosEndpoints();
 app.MapUploadPhotosEndpoints();
 app.MapLightroomEndpoints();
 app.MapLinkSessionEndpoints();
+app.MapSecurityEndpoints();
 
 app.Run();

@@ -45,7 +45,7 @@ public static class UploadPhotosEndpoints
     {
         logger.LogInformation("Client posted to upload endpoint");
 
-        if (!GlobalHelpers.VerifyImageUpload(image, config.GetValue<int>("MaxImages")))
+        if (!GlobalHelpers.VerifyImageUpload(image))
         {
             logger.LogWarning("Failed to upload photos due to payload verification failure:");
             return GlobalHelpers.CreateErrorPage(context, "Failed to upload images.", "Please ensure that your images are under 10MB. Maximum file count is " + config.GetValue<int>("MaxImages").ToString());
@@ -125,6 +125,6 @@ public static class UploadPhotosEndpoints
         linkSession.ReadyForTransfer = true;
         linkSessions.SetSession<LinkSession>(sessionId, linkSession);
 
-        return Results.Redirect("/UploadSuccess.html");
+        return Results.Ok();
     }
 }

@@ -12,7 +12,12 @@ function SelectSource() {
 
     async function googleRedirect() {
 
-        const response = await fetch(`${SITE_BASE}/api/google/google-redirect`)
+        const response = await fetch(`${SITE_BASE}/api/google/google-redirect`,
+            {
+                method: "GET",
+                credentials: "include"
+            }
+        )
 
         const DATA: GoogleRedirectUrl = await response.json();
 

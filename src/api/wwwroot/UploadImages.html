@@ -375,9 +375,6 @@
                     const response = await fetch('/api/upload/post-images', {
                         method: 'POST',
                         body: formData,
-                        headers: {
-                            "RequestVerificationToken": "{{CSRF_TOKEN}}"
-                        }
                     });
 
                     if (!response.ok) {

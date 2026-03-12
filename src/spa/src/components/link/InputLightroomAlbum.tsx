@@ -13,6 +13,8 @@ function InputLightroomAlbum() {
     async function handleSubmit(event: React.SubmitEvent) {
         event.preventDefault()
 
+
+
         const response = await fetch(`${SITE_BASE}/api/lightroom/post-album`,
             {
                 method: "POST",
