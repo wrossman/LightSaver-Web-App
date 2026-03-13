@@ -135,4 +135,6 @@ app.MapLightroomEndpoints();
 app.MapLinkSessionEndpoints();
 app.MapSecurityEndpoints();
 
+app.MapFallbackToFile("index.html");
+
 app.Run();

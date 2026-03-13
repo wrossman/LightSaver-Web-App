@@ -8,6 +8,7 @@ function App() {
             <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/link" element={<LinkPage />} />
+                <Route path="*" element={<HomePage />} />
             </Routes>
         </BrowserRouter>
     );
