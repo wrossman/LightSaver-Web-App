@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import LinkPage from "./pages/LinkPage";
+import UploadSuccess from "./pages/UploadSuccess";
 
 function App() {
     return (
@@ -8,6 +9,7 @@ function App() {
             <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/link" element={<LinkPage />} />
+                <Route path="/UploadSuccess" element={<UploadSuccess />} />
                 <Route path="*" element={<HomePage />} />
             </Routes>
         </BrowserRouter>

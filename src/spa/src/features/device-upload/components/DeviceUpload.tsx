@@ -1,10 +1,13 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useDeviceUploadStatus } from "../hooks/useDeviceUploadStatus";
 
 function DeviceUpload() {
 
     const [filesToUpload, setFilesToUpload] = useState<File[]>([]);
     const { uploadStatus, startDeviceUpload } = useDeviceUploadStatus();
+
+    const nav = useNavigate();
 
     function handleFileDrop(event: React.ChangeEvent<HTMLInputElement>) {
         const files = event.target.files
@@ -20,6 +23,10 @@ function DeviceUpload() {
 
         startDeviceUpload(filesToUpload);
 
+    }
+
+    if (uploadStatus.totalImages === uploadStatus.currentUploaded && uploadStatus.totalImages > 0) {
+        nav("/UploadSuccess")
     }
 
     return (
