@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { getCsrfToken } from "../../../shared/api/getCsrfToken";
+import { useDeviceUploadStatus } from "../hooks/useDeviceUploadStatus";
 
 function DeviceUpload() {
 
     const [filesToUpload, setFilesToUpload] = useState<File[]>([]);
-    const SITE_BASE = import.meta.env.VITE_SITE_BASE_URL;
-    const [result, setResult] = useState("");
+    const { uploadStatus, startDeviceUpload } = useDeviceUploadStatus();
 
     function handleFileDrop(event: React.ChangeEvent<HTMLInputElement>) {
         const files = event.target.files
@@ -17,40 +16,9 @@ function DeviceUpload() {
 
     async function handleSubmit(event: React.SubmitEvent) {
         event.preventDefault()
+        if (filesToUpload.length === 0) return;
 
-        const csrfToken = await getCsrfToken();
-
-        for (const item of filesToUpload) {
-
-            const formData = new FormData();
-            formData.append('image', item);
-
-            const response = await fetch(`${SITE_BASE}/api/upload/post-images`,
-                {
-                    method: 'POST',
-                    body: formData,
-                    credentials: 'include',
-                    headers: {
-                        "X-CSRF-TOKEN": csrfToken
-                    }
-                }
-            )
-
-            console.log(`Image uploaded: ${response.ok}`)
-
-        };
-
-        const finishResponse = await fetch(`${SITE_BASE}/api/upload/finish-upload`, {
-            method: "POST",
-            credentials: "include",
-        })
-
-        if (finishResponse.ok) {
-            setResult("Upload Successful");
-        }
-        else {
-            setResult("Upload Failed");
-        }
+        startDeviceUpload(filesToUpload);
 
     }
 
@@ -69,7 +37,7 @@ function DeviceUpload() {
 
                 </input>
                 <button type="submit">Submit</button>
-                <p>{result}</p>
+                <p>{uploadStatus.currentUploaded} out of {uploadStatus.totalImages} images uploaded...</p>
             </form>
         </div>
 

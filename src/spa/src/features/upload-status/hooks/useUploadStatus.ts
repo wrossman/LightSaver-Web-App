@@ -14,8 +14,7 @@ export function useUploadStatus() {
 
             setUploadedImages(statusData.uploadedImages);
             setTotalImages(statusData.totalImages);
-            console.log(statusData.uploadedImages);
-            console.log(statusData.totalImages);
+
         }
 
         pollUploadStatus()
