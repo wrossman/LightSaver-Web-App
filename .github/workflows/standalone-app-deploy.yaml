@@ -18,6 +18,19 @@ jobs:
         with:
           dotnet-version: '10.x'
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'latest'
+
+      - name: Install node dependencies
+        run: npm ci
+        working-directory: ./src/spa
+
+      - name: Build SPA
+        run: npm run build
+        working-directory: ./src/spa
+
       - name: dotnet publish
         run: dotnet publish src/api/LightSaver.csproj -c Release -o "${{env.DOTNET_ROOT}}/lightsaver-webapp"
 
