@@ -1,6 +1,6 @@
 import type { CsrfResponse } from "../types/CsrfResponse";
 
-const SITE_BASE = import.meta.env.VITE_SITE_BASE_URL;
+const SITE_BASE = import.meta.env.VITE_SITE_BASE_URL ?? "";
 let requestToken: string = "";
 
 export async function getCsrfToken() {

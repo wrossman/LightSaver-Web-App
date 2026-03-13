@@ -2,7 +2,7 @@ import type { UploadStatusResponse } from "../types/UploadStatusResponse";
 
 export async function getUploadStatus(): Promise<UploadStatusResponse> {
 
-    const SITE_BASE = import.meta.env.VITE_SITE_BASE_URL;
+    const SITE_BASE = import.meta.env.VITE_SITE_BASE_URL ?? "";
 
     const response = await fetch(`${SITE_BASE}/api/link/upload-status`,
         {

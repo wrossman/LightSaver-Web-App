@@ -1,6 +1,6 @@
 export async function postUploadImage(image: File, csrfToken: string): Promise<boolean> {
 
-    const SITE_BASE = import.meta.env.VITE_SITE_BASE_URL;
+    const SITE_BASE = import.meta.env.VITE_SITE_BASE_URL ?? "";
 
     const formData = new FormData();
     formData.append('image', image);
