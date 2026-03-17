@@ -1,5 +1,9 @@
 import { useUploadStatus } from "../hooks/useUploadStatus";
 import { useNavigate } from "react-router-dom";
+import { LinkContainer } from "../../../shared/styles/components/LinkContainer";
+import { LinkContentContainer } from "../../../shared/styles/components/LinkContentContainer";
+import "../../../shared/styles/styles.css"
+import "../../../shared/styles/linkStyles.module.css"
 
 function UploadStatus() {
 
@@ -12,10 +16,12 @@ function UploadStatus() {
     }
 
     return (
-        <div>
-            <h1>Upload Status</h1>
-            <p>{uploadedImages} of {totalImages} images uploaded...</p>
-        </div>
+        <LinkContainer>
+            <LinkContentContainer>
+                <h1>Upload Status</h1>
+                <p>{uploadedImages} of {totalImages} images uploaded...</p>
+            </LinkContentContainer>
+        </LinkContainer >
     );
 }
 

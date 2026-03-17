@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import LinkPage from "./pages/LinkPage";
-import UploadSuccess from "./pages/UploadSuccess";
+import UploadSuccess from "../features/upload-status/components/UploadSuccess";
 
 function App() {
     return (

@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { postLightroomAlbum } from "../api/PostLightroomAlbum";
+import { LinkContainer } from "../../../shared/styles/components/LinkContainer";
+import { LinkContentContainer } from "../../../shared/styles/components/LinkContentContainer";
+import "../../../shared/styles/styles.css"
+import "../../../shared/styles/linkStyles.module.css"
 
 function InputLightroomAlbum() {
 
@@ -24,25 +28,29 @@ function InputLightroomAlbum() {
     }
 
     return (
-        <form onSubmit={handleSubmit}>
-            <div>
-                <label>Lightroom Album:</label>
-                <input
-                    type="text"
-                    value={albumLink}
-                    onChange={
-                        (e) => {
-                            setAlbumLink(e.target.value);
-                            setError("");
-                        }
-                    }
-                />
-            </div>
-            <button type="submit">Submit</button>
+        <LinkContainer>
+            <LinkContentContainer>
+                <form onSubmit={handleSubmit}>
+                    <div>
+                        <label>Lightroom Album:</label>
+                        <input
+                            type="text"
+                            value={albumLink}
+                            onChange={
+                                (e) => {
+                                    setAlbumLink(e.target.value);
+                                    setError("");
+                                }
+                            }
+                        />
+                    </div>
+                    <button type="submit">Submit</button>
 
-            <p>{error}</p>
+                    <p>{error}</p>
 
-        </form>
+                </form>
+            </LinkContentContainer>
+        </LinkContainer>
     );
 }
 

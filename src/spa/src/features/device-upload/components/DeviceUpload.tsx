@@ -2,6 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDeviceUploadStatus } from "../hooks/useDeviceUploadStatus";
 import "../../../shared/styles/styles.css"
+import "../../../shared/styles/linkStyles.module.css"
+import { LinkContainer } from "../../../shared/styles/components/LinkContainer";
+import { LinkContentContainer } from "../../../shared/styles/components/LinkContentContainer";
 
 function DeviceUpload() {
 
@@ -31,23 +34,25 @@ function DeviceUpload() {
     }
 
     return (
-        <div>
-            <form
-                onSubmit={handleSubmit}
-            >
-                <h1>Device Upload</h1>
+        <LinkContainer>
+            <LinkContentContainer>
+                <form
+                    onSubmit={handleSubmit}
+                >
+                    <h1>Device Upload</h1>
 
-                <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleFileDrop}>
+                    <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleFileDrop}>
 
-                </input>
-                <button className="button" type="submit">Submit</button>
-                <p>{uploadStatus.currentUploaded} out of {uploadStatus.totalImages} images uploaded...</p>
-            </form>
-        </div>
+                    </input>
+                    <button type="submit">Submit</button>
+                    <p>{uploadStatus.currentUploaded} out of {uploadStatus.totalImages} images uploaded...</p>
+                </form>
+            </LinkContentContainer>
+        </LinkContainer>
 
     );
 }
