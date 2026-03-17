@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDeviceUploadStatus } from "../hooks/useDeviceUploadStatus";
+import "../../../shared/styles/styles.css"
 
 function DeviceUpload() {
 
@@ -43,7 +44,7 @@ function DeviceUpload() {
                     onChange={handleFileDrop}>
 
                 </input>
-                <button type="submit">Submit</button>
+                <button className="button" type="submit">Submit</button>
                 <p>{uploadStatus.currentUploaded} out of {uploadStatus.totalImages} images uploaded...</p>
             </form>
         </div>

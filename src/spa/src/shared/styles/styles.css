@@ -1,0 +1,8 @@
+@font-face {
+    font-family: "ChargerExtraBold";
+    src: url("./fonts/charger-fonts/ChargerExtrabold-4qG9.otf");
+}
+
+.brandTitle {
+    font-family: "ChargerExtraBold";
+}
