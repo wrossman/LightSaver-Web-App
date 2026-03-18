@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDeviceUploadStatus } from "../hooks/useDeviceUploadStatus";
 import fileStyles from "../styles/fileUpload.module.css"
-import "../../../shared/styles/linkStyles.module.css"
+import linkStyles from "../../../shared/styles/linkStyles.module.css"
 import { LinkContainer } from "../../../shared/styles/components/LinkContainer";
 import { LinkContentContainer } from "../../../shared/styles/components/LinkContentContainer";
 
@@ -36,8 +36,9 @@ function DeviceUpload() {
     return (
         <LinkContainer>
             <LinkContentContainer>
-                <h1 className="brandTitle">LightSaver</h1>
+                <h1 className={`brandTitle ${linkStyles.linkH1}`}>LightSaver</h1>
                 <form
+                    className={linkStyles.linkForm}
                     onSubmit={handleSubmit}>
 
                     <label>Device Upload</label>
@@ -52,7 +53,7 @@ function DeviceUpload() {
                         </input>
                     </label>
 
-                    <button type="submit">Submit</button>
+                    <button className={linkStyles.linkButton} type="submit">Submit</button>
                     {uploadStatus.totalImages > 0
                         ? <p>{uploadStatus.currentUploaded} out of {uploadStatus.totalImages} images uploaded...</p>
                         : null}

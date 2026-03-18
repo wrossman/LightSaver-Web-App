@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { postSessionCode } from "../api/PostSessionCode";
 import "../../../shared/styles/styles.css"
-import "../../../shared/styles/linkStyles.module.css"
+import linkStyles from "../../../shared/styles/linkStyles.module.css"
 import { LinkContainer } from "../../../shared/styles/components/LinkContainer";
 import { LinkContentContainer } from "../../../shared/styles/components/LinkContentContainer";
 
@@ -28,10 +28,11 @@ function InputSessionCode() {
     return (
         <LinkContainer>
             <LinkContentContainer>
-                <h1 className="brandTitle">LightSaver</h1>
-                <form onSubmit={handleSubmit}>
+                <h1 className={`brandTitle ${linkStyles.linkH1}`}>LightSaver</h1>
+                <form className={linkStyles.linkForm} onSubmit={handleSubmit}>
                     <label>Enter Session Code</label>
                     <input
+                        className={linkStyles.linkInput}
                         type="text"
                         placeholder="ABC1234"
                         value={sessionCode}
@@ -42,7 +43,7 @@ function InputSessionCode() {
                             }
                         }
                     />
-                    <button type="submit">Submit</button>
+                    <button className={linkStyles.linkButton} type="submit">Submit</button>
 
                 </form>
             </LinkContentContainer>
