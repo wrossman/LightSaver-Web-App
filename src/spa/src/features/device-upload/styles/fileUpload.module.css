@@ -1,0 +1,24 @@
+.fileUpload {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0.6rem 1.2rem;
+
+    background-color: #001C30;
+    color: white;
+
+    border-radius: 8px;
+    cursor: pointer;
+
+    transition: background-color 0.15s ease;
+}
+
+.fileUpload:hover {
+    background-color: #00324F;
+}
+
+/* Hide the actual input */
+.fileUpload input[type="file"] {
+    display: none;
+}

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDeviceUploadStatus } from "../hooks/useDeviceUploadStatus";
-import "../../../shared/styles/styles.css"
+import fileStyles from "../styles/fileUpload.module.css"
 import "../../../shared/styles/linkStyles.module.css"
 import { LinkContainer } from "../../../shared/styles/components/LinkContainer";
 import { LinkContentContainer } from "../../../shared/styles/components/LinkContentContainer";
@@ -36,20 +36,26 @@ function DeviceUpload() {
     return (
         <LinkContainer>
             <LinkContentContainer>
+                <h1 className="brandTitle">LightSaver</h1>
                 <form
-                    onSubmit={handleSubmit}
-                >
-                    <h1>Device Upload</h1>
+                    onSubmit={handleSubmit}>
 
-                    <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleFileDrop}>
+                    <label>Device Upload</label>
 
-                    </input>
+                    <label className={fileStyles.fileUpload}>
+                        Upload Images
+                        <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={handleFileDrop}>
+                        </input>
+                    </label>
+
                     <button type="submit">Submit</button>
-                    <p>{uploadStatus.currentUploaded} out of {uploadStatus.totalImages} images uploaded...</p>
+                    {uploadStatus.totalImages > 0
+                        ? <p>{uploadStatus.currentUploaded} out of {uploadStatus.totalImages} images uploaded...</p>
+                        : null}
                 </form>
             </LinkContentContainer>
         </LinkContainer>

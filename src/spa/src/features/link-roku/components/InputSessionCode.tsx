@@ -9,7 +9,6 @@ import { LinkContentContainer } from "../../../shared/styles/components/LinkCont
 function InputSessionCode() {
 
     const [sessionCode, setSessionCode] = useState("");
-    const [error, setError] = useState("");
 
     const nav = useNavigate();
 
@@ -22,7 +21,7 @@ function InputSessionCode() {
             nav(`?step=select-source`);
         }
         else {
-            setError("Invalid Session Code...");
+            // setError("Invalid Session Code...");
         }
     }
 
@@ -30,23 +29,20 @@ function InputSessionCode() {
         <LinkContainer>
             <LinkContentContainer>
                 <h1 className="brandTitle">LightSaver</h1>
-                <p>Enter Session Code</p>
                 <form onSubmit={handleSubmit}>
-                    <div>
-                        <input
-                            type="text"
-                            value={sessionCode}
-                            onChange={
-                                (e) => {
-                                    setSessionCode(e.target.value);
-                                    setError("");
-                                }
+                    <label>Enter Session Code</label>
+                    <input
+                        type="text"
+                        placeholder="ABC1234"
+                        value={sessionCode}
+                        onChange={
+                            (e) => {
+                                setSessionCode(e.target.value);
+                                // setError("");
                             }
-                        />
-                    </div>
+                        }
+                    />
                     <button type="submit">Submit</button>
-
-                    <p>{error}</p>
 
                 </form>
             </LinkContentContainer>

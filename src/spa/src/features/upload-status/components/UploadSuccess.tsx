@@ -5,7 +5,8 @@ function UploadSuccess() {
     return (
         <LinkContainer>
             <LinkContentContainer>
-                <h1>Upload Success</h1>
+                <h1 className="brandTitle">LightSaver</h1>
+                <p>Upload Success</p>
             </LinkContentContainer>
         </LinkContainer>
     );

@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { postLightroomAlbum } from "../api/PostLightroomAlbum";
 import { LinkContainer } from "../../../shared/styles/components/LinkContainer";
 import { LinkContentContainer } from "../../../shared/styles/components/LinkContentContainer";
-import "../../../shared/styles/styles.css"
 import "../../../shared/styles/linkStyles.module.css"
 
 function InputLightroomAlbum() {
@@ -30,27 +29,26 @@ function InputLightroomAlbum() {
     return (
         <LinkContainer>
             <LinkContentContainer>
+                <h1 className="brandTitle">LightSaver</h1>
                 <form onSubmit={handleSubmit}>
-                    <div>
-                        <label>Lightroom Album:</label>
-                        <input
-                            type="text"
-                            value={albumLink}
-                            onChange={
-                                (e) => {
-                                    setAlbumLink(e.target.value);
-                                    setError("");
-                                }
+                    <label>Enter Lightroom Album</label>
+                    <input
+                        type="text"
+                        value={albumLink}
+                        onChange={
+                            (e) => {
+                                setAlbumLink(e.target.value);
+                                setError("");
                             }
-                        />
-                    </div>
+                        }
+                    />
                     <button type="submit">Submit</button>
 
-                    <p>{error}</p>
+                    {error && <p>{error}</p>}
 
                 </form>
             </LinkContentContainer>
-        </LinkContainer>
+        </LinkContainer >
     );
 }
 

@@ -1,4 +1,5 @@
 import { useUploadStatus } from "../hooks/useUploadStatus";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { LinkContainer } from "../../../shared/styles/components/LinkContainer";
 import { LinkContentContainer } from "../../../shared/styles/components/LinkContentContainer";
@@ -11,15 +12,18 @@ function UploadStatus() {
 
     const nav = useNavigate();
 
-    if (uploadedImages === totalImages && totalImages > 0) {
-        nav("/UploadSuccess")
-    }
+    useEffect(() => {
+        if (uploadedImages === totalImages && totalImages > 0) {
+            nav("/UploadSuccess")
+        }
+    }, [uploadedImages, totalImages, nav]);
 
     return (
         <LinkContainer>
             <LinkContentContainer>
-                <h1>Upload Status</h1>
-                <p>{uploadedImages} of {totalImages} images uploaded...</p>
+                <h1 className="brandTitle">LightSaver</h1>
+                <p>Upload Status</p>
+                {totalImages === 0 ? null : <p>`${uploadedImages} of {totalImages} images uploaded...`</p>}
             </LinkContentContainer>
         </LinkContainer >
     );

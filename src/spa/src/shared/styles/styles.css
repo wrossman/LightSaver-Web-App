@@ -6,4 +6,16 @@
 .brandTitle {
     font-family: "ChargerExtraBold";
     color: #001C30;
+    font-size: 40px;
+}
+
+body {
+    font-family:
+        system-ui,
+        -apple-system,
+        "Segoe UI",
+        Roboto,
+        Helvetica,
+        Arial,
+        sans-serif;
 }
