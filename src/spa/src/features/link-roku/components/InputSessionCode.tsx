@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { postSessionCode } from "../api/PostSessionCode";
 import "../../../shared/styles/styles.css"
 import linkStyles from "../../../shared/styles/linkStyles.module.css"
-import { LinkContainer } from "../../../shared/styles/components/LinkContainer";
-import { LinkContentContainer } from "../../../shared/styles/components/LinkContentContainer";
+import { LinkContainer } from "../../../shared/components/LinkContainer";
+import { LinkContentContainer } from "../../../shared/components/LinkContentContainer";
 
 function InputSessionCode() {
 

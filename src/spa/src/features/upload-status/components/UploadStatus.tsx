@@ -1,8 +1,8 @@
 import { useUploadStatus } from "../hooks/useUploadStatus";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { LinkContainer } from "../../../shared/styles/components/LinkContainer";
-import { LinkContentContainer } from "../../../shared/styles/components/LinkContentContainer";
+import { LinkContainer } from "../../../shared/components/LinkContainer";
+import { LinkContentContainer } from "../../../shared/components/LinkContentContainer";
 import "../../../shared/styles/styles.css"
 import linkStyles from "../../../shared/styles/linkStyles.module.css"
 
@@ -23,7 +23,7 @@ function UploadStatus() {
             <LinkContentContainer>
                 <h1 className={`brandTitle ${linkStyles.linkH1}`}>LightSaver</h1>
                 <p>Upload Status</p>
-                {totalImages === 0 ? null : <p>`${uploadedImages} of {totalImages} images uploaded...`</p>}
+                {totalImages === 0 ? null : (<p>{`${uploadedImages} of ${totalImages} images uploaded...`}</p>)}
             </LinkContentContainer>
         </LinkContainer >
     );

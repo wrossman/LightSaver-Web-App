@@ -1,8 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { getGoogleRedirect } from "../api/GetGoogleRedirect";
-import { LinkContainer } from "../../../shared/styles/components/LinkContainer";
+import { LinkContainer } from "../../../shared/components/LinkContainer";
 import linkStyles from "../../../shared/styles/linkStyles.module.css"
-import { LinkContentContainer } from "../../../shared/styles/components/LinkContentContainer"
+import { LinkContentContainer } from "../../../shared/components/LinkContentContainer"
 function SelectSource() {
 
     const nav = useNavigate()

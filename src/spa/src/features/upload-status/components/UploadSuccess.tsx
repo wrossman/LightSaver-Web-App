@@ -1,5 +1,5 @@
-import { LinkContainer } from "../../../shared/styles/components/LinkContainer";
-import { LinkContentContainer } from "../../../shared/styles/components/LinkContentContainer";
+import { LinkContainer } from "../../../shared/components/LinkContainer";
+import { LinkContentContainer } from "../../../shared/components/LinkContentContainer";
 import linkStyles from "../../../shared/styles/linkStyles.module.css"
 
 function UploadSuccess() {

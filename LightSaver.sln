@@ -9,7 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightSaver", "src\api\Light
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightSaver.Tests", "tests\LightSaver.Tests.csproj", "{C15CEE42-2E00-41C5-9534-3AC0D5CB4AA2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightSaver.Tests", "tests\api\LightSaver.Tests.csproj", "{C15CEE42-2E00-41C5-9534-3AC0D5CB4AA2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

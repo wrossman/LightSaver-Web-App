@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useDeviceUploadStatus } from "../hooks/useDeviceUploadStatus";
 import fileStyles from "../styles/fileUpload.module.css"
 import linkStyles from "../../../shared/styles/linkStyles.module.css"
-import { LinkContainer } from "../../../shared/styles/components/LinkContainer";
-import { LinkContentContainer } from "../../../shared/styles/components/LinkContentContainer";
+import { LinkContainer } from "../../../shared/components/LinkContainer";
+import { LinkContentContainer } from "../../../shared/components/LinkContentContainer";
 
 function DeviceUpload() {
 
