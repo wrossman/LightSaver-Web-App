@@ -36,9 +36,10 @@ function InputSessionCode() {
                         type="text"
                         placeholder="ABC1234"
                         value={sessionCode}
+                        maxLength={7}
                         onChange={
                             (e) => {
-                                setSessionCode(e.target.value);
+                                setSessionCode(e.target.value.toUpperCase());
                                 // setError("");
                             }
                         }
