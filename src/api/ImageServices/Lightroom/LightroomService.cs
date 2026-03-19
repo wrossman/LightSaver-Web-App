@@ -105,12 +105,13 @@ public sealed class LightroomService
 
             // selfHref is typically something like: /v2/spaces/{spaceId}/albums/{albumId}
             // The API root is https://photos.adobe.io (without /v2 here).
-            const string apiRoot = "https://photos.adobe.io/v2/";
+            const string albumApiRoot = "https://photos.adobe.io/v2/";
+            const string finalImageApiRoot = "https://lightroom.adobe.com/v2c/";
 
             string endpointUrlEnd = "/assets?embed=asset&subtype=image%3Bvideo";
 
             // Build album assets endpoint: https://photos.adobe.io + selfHref + endpoint
-            string albumUrl = apiRoot + selfHref + endpointUrlEnd;
+            string albumUrl = albumApiRoot + selfHref + endpointUrlEnd;
 
             string albumResponse;
             try
@@ -223,7 +224,7 @@ public sealed class LightroomService
 
                     // href is usually already a full API path like /v2/assets/...
                     // Just prepend https://photos.adobe.io
-                    string itemUrl = apiRoot + spaceLink + "/" + href;
+                    string itemUrl = finalImageApiRoot + spaceLink + "/" + href;
 
                     outputArr.Add(itemUrl);
                 }
