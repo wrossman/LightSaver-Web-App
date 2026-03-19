@@ -1,6 +1,7 @@
 .linkContentContainer {
     display: flex;
     width: 25%;
+    min-width: fit-content;
     max-width: 400px;
     flex-direction: column;
     align-items: center;

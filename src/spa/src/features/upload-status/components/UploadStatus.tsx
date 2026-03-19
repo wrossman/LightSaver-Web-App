@@ -23,7 +23,7 @@ function UploadStatus() {
             <LinkContentContainer>
                 <h1 className={`brandTitle ${linkStyles.linkH1}`}>LightSaver</h1>
                 <p>Upload Status</p>
-                {totalImages === 0 ? null : (<p>{`${uploadedImages} of ${totalImages} images uploaded...`}</p>)}
+                {totalImages === 0 ? <p></p> : (<p>{`${uploadedImages} of ${totalImages} images uploaded...`}</p>)}
             </LinkContentContainer>
         </LinkContainer >
     );
