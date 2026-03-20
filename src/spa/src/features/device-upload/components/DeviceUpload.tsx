@@ -53,6 +53,10 @@ function DeviceUpload() {
                         </input>
                     </label>
 
+                    {filesToUpload.length > 0
+                        ? <p>{filesToUpload.length} files ready to upload</p>
+                        : null}
+
                     <button className={linkStyles.linkButton} type="submit">Submit</button>
                     {uploadStatus.totalImages > 0
                         ? <p>{uploadStatus.currentUploaded} out of {uploadStatus.totalImages} images uploaded...</p>
