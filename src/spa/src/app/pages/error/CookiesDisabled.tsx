@@ -1,4 +1,4 @@
-function HomePage() {
+function CookiesDisabled() {
     return (
         <div>
             <h1>Cookies must be enabled for LightSaver to successfully link to your Roku.</h1>
@@ -6,4 +6,4 @@ function HomePage() {
     );
 }
 
-export default HomePage;
+export default CookiesDisabled;
