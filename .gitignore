@@ -3,14 +3,9 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
-/reports
+# My custom files
 /certs
 /LocalResourceStore
-/.elasticbeanstalk
-/publish
-/src/api/.platform
-app.zip
-eb-deploy.ps1
 /src/api/wwwroot/*
 
 # User-specific files
