@@ -1,9 +1,9 @@
 name: Standalone - Deploy to App Service
 
 on:
-  push:
-      branches:
-        - main
+  # push:
+  #     branches:
+  #       - main
   workflow_dispatch:
 
 jobs:
