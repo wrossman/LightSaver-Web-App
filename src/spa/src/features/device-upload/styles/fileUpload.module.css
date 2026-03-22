@@ -1,24 +1,48 @@
 .fileUpload {
-    display: inline-flex;
+
+    width: 100%;
+    height: 100px;
+
+    display: flex;
     align-items: center;
     justify-content: center;
 
-    padding: 0.6rem 1.2rem;
-
-    background-color: #001C30;
-    color: white;
-
-    border-radius: 8px;
     cursor: pointer;
-
-    transition: background-color 0.15s ease;
+    transition: all 0.2s ease;
+    position: relative;
 }
 
-.fileUpload:hover {
-    background-color: #00324F;
+.postFileUpload {
+    border: 2px solid #ccc;
+    border-radius: 10px;
+    background-color: #fafafa;
 }
 
-/* Hide the actual input */
+.postFileUpload:hover {
+    background-color: #942b2b;
+}
+
+.preFileUpload {
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    background-color: #fafafa;
+}
+
+.preFileUpload:hover {
+    background-color: #f3f3f3e3;
+}
+
 .fileUpload input[type="file"] {
     display: none;
+}
+
+.uploadButtonInactive {
+    background-color: #eee;
+    color: #666;
+    cursor: not-allowed;
+}
+
+.uploadButtonInactive:hover {
+    background-color: #eee;
+    color: #666;
 }

@@ -1,0 +1,1 @@
+export type UploadStep = "idle" | "ready" | "uploading" | "success" | "error";

@@ -1,4 +1,4 @@
-import styles from "./LinkContainer.module.css";
+import styles from "../styles/LinkContainer.module.css";
 import type { ReactNode } from "react";
 
 export function LinkContainer({ children }: { children: ReactNode }) {

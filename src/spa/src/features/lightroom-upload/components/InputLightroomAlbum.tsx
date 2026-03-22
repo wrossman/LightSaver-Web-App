@@ -4,6 +4,7 @@ import { postLightroomAlbum } from "../api/PostLightroomAlbum";
 import { LinkContainer } from "../../../shared/components/LinkContainer";
 import { LinkContentContainer } from "../../../shared/components/LinkContentContainer";
 import { BrandTitle } from "../../../shared/components/BrandTitle";
+import lrAlbumStyles from "../styles/lightroomUpload.module.css"
 import linkStyles from "../../../shared/styles/linkStyles.module.css"
 
 function InputLightroomAlbum() {
@@ -33,17 +34,20 @@ function InputLightroomAlbum() {
                 <BrandTitle />
                 <form className={linkStyles.linkForm} onSubmit={handleSubmit}>
                     <label>Enter Lightroom Album</label>
-                    <input
-                        className={linkStyles.linkInput}
-                        type="text"
-                        value={albumLink}
-                        onChange={
-                            (e) => {
-                                setAlbumLink(e.target.value);
-                                setError("");
+                    <div className={lrAlbumStyles.albumInputContainer}>
+                        <p className={lrAlbumStyles.albumLinkHint}>https://adobe.ly/</p>
+                        <input
+                            className={linkStyles.linkInput}
+                            type="text"
+                            value={albumLink}
+                            onChange={
+                                (e) => {
+                                    setAlbumLink(e.target.value);
+                                    setError("");
+                                }
                             }
-                        }
-                    />
+                        /></div>
+
                     <button className={linkStyles.linkButton} type="submit">Submit</button>
 
                     {error && <p>{error}</p>}
