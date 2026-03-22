@@ -1,12 +1,12 @@
+import { BrandTitle } from "../../../shared/components/BrandTitle";
 import { LinkContainer } from "../../../shared/components/LinkContainer";
 import { LinkContentContainer } from "../../../shared/components/LinkContentContainer";
-import linkStyles from "../../../shared/styles/linkStyles.module.css"
 
 function UploadSuccess() {
     return (
         <LinkContainer>
             <LinkContentContainer>
-                <h1 className={`brandTitle ${linkStyles.linkH1}`}>LightSaver</h1>
+                <BrandTitle />
                 <p>Upload Success</p>
             </LinkContentContainer>
         </LinkContainer>

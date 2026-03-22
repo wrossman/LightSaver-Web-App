@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { LinkContainer } from "../../../shared/components/LinkContainer";
 import { LinkContentContainer } from "../../../shared/components/LinkContentContainer";
 import "../../../shared/styles/styles.css"
-import linkStyles from "../../../shared/styles/linkStyles.module.css"
+import { BrandTitle } from "../../../shared/components/BrandTitle";
 
 function UploadStatus() {
 
@@ -21,7 +21,7 @@ function UploadStatus() {
     return (
         <LinkContainer>
             <LinkContentContainer>
-                <h1 className={`brandTitle ${linkStyles.linkH1}`}>LightSaver</h1>
+                <BrandTitle />
                 <p>Upload Status</p>
                 {totalImages === 0 ? <p></p> : (<p>{`${uploadedImages} of ${totalImages} images uploaded...`}</p>)}
             </LinkContentContainer>

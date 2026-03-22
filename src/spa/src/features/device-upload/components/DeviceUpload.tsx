@@ -5,6 +5,7 @@ import fileStyles from "../styles/fileUpload.module.css"
 import linkStyles from "../../../shared/styles/linkStyles.module.css"
 import { LinkContainer } from "../../../shared/components/LinkContainer";
 import { LinkContentContainer } from "../../../shared/components/LinkContentContainer";
+import { BrandTitle } from "../../../shared/components/BrandTitle";
 
 function DeviceUpload() {
 
@@ -36,7 +37,7 @@ function DeviceUpload() {
     return (
         <LinkContainer>
             <LinkContentContainer>
-                <h1 className={`brandTitle ${linkStyles.linkH1}`}>LightSaver</h1>
+                <BrandTitle />
                 <form
                     className={linkStyles.linkForm}
                     onSubmit={handleSubmit}>
